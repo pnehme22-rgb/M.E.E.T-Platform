@@ -286,3 +286,23 @@ a.lrow:hover { background: color-mix(in srgb, var(--sand) 55%, transparent); }
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation: none !important; transition: none !important; }
 }
+
+/* ---------- refinements after the phone check ---------- */
+/* Cormorant draws old-style figures (1 looks like I, 0 like O): use lining figures everywhere. */
+html, h1, h2, h3, .kpi b, .badge, .num { font-variant-numeric: lining-nums tabular-nums; font-feature-settings: "lnum" 1, "tnum" 1; }
+/* Tick boxes stay on the same line as their text. */
+label.row { flex-wrap: nowrap; align-items: flex-start; gap: 10px; }
+label.row > input[type="checkbox"] { flex: none; width: 20px; height: 20px; margin: 1px 0 0; accent-color: var(--accent); }
+.btn { white-space: nowrap; }
+
+@media (max-width: 560px) {
+  #who { display: none; }
+  .hdr-in { height: 60px; }
+  .kpis { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+  .kpi { padding: 12px 14px; gap: 4px; }
+  .kpi b { font-size: 32px; }
+  .kpi span { font-size: 12.5px; line-height: 1.35; }
+  .head h1 { font-size: 36px; }
+  .rblock, .panel { padding: 18px; }
+  .modal { padding: 20px; }
+}

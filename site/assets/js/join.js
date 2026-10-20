@@ -48,6 +48,16 @@
   var openedAt = Date.now();   // a person takes a few seconds; most bots do not
   var CFG = window.MEET_CONFIG || {};
 
+  // Where the visitor came from: links can carry ?from=..., for example the
+  // printed QR card uses ?from=qr-dubai. Remembered for this browser tab.
+  var source = "";
+  try {
+    var fromParam = new URLSearchParams(location.search).get("from") || "";
+    source = fromParam.toLowerCase().replace(/[^a-z0-9-]/g, "").slice(0, 40);
+    if (source) sessionStorage.setItem("meet-source", source);
+    else source = sessionStorage.getItem("meet-source") || "";
+  } catch (e) { /* storage unavailable: no source recorded */ }
+
   /* ---------- draft kept for this browser tab only ---------- */
 
   function saveDraft() {
@@ -382,6 +392,7 @@
     data.consent_privacy = form.elements.consent_privacy.checked;
     data.company_website = form.elements.company_website.value;
     data.elapsed_ms = Date.now() - openedAt;
+    data.source = source;
     return data;
   }
 

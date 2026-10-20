@@ -5,6 +5,12 @@
   // Mark that scripts run, so entrance states only apply when they can finish.
   document.documentElement.classList.add("js");
 
+  // Remember where a visitor came from (?from=qr-dubai etc.) until they register.
+  try {
+    var from = (new URLSearchParams(location.search).get("from") || "").toLowerCase().replace(/[^a-z0-9-]/g, "").slice(0, 40);
+    if (from) sessionStorage.setItem("meet-source", from);
+  } catch (e) { /* storage unavailable */ }
+
   function ready(fn) {
     if (document.readyState !== "loading") fn();
     else document.addEventListener("DOMContentLoaded", fn);

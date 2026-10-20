@@ -60,6 +60,7 @@ create table if not exists applications (
   interest_collaboration  boolean not null default false,
   portfolio_links         text[] not null default '{}',
   heard_about             text not null default '',
+  source                  text not null default '',
   consent_version         text not null,
   consent_at              timestamptz not null,
   possible_duplicate      boolean not null default false,
@@ -109,6 +110,8 @@ create table if not exists artists (
   reviewed_by      uuid references team_members(user_id) on delete set null,
   reviewed_at      timestamptz,
   published        boolean not null default false,   -- stays false until the official launch
+  terms_version    text not null default '',
+  terms_accepted_at timestamptz,
   created_at       timestamptz not null default now(),
   updated_at       timestamptz not null default now()
 );
@@ -275,7 +278,7 @@ declare
   e jsonb := '{}';
   v_ip text;
   v_full text; v_artist text; v_email text; v_country text; v_city text; v_disc text; v_other text;
-  v_practice text; v_web text; v_social text; v_more text; v_tech text; v_heard text; v_links text[] := '{}';
+  v_practice text; v_web text; v_social text; v_more text; v_tech text; v_heard text; v_source text; v_links text[] := '{}';
   l text; nl text; v_ref text; v_dup boolean;
 begin
   -- Honeypot: people never fill this. Pretend success, store nothing.
@@ -308,6 +311,8 @@ begin
   v_more     := clean_line(payload->>'additional_disciplines');
   v_tech     := clean_line(payload->>'techniques');
   v_heard    := clean_line(payload->>'heard_about');
+  -- Where the visitor came from, e.g. 'qr-dubai' from the printed QR card.
+  v_source   := left(regexp_replace(lower(coalesce(payload->>'source','')), '[^a-z0-9-]', '', 'g'), 40);
 
   if v_full = '' then e := e || '{"full_name":"Please enter your full name."}'; end if;
   if v_artist = '' then e := e || '{"artist_name":"Please enter your professional or artist name. It can be the same as your full name."}'; end if;
@@ -366,10 +371,10 @@ begin
 
   insert into applications (reference, full_name, artist_name, email, country, city, primary_discipline,
     discipline_other, practice, website, social, additional_disciplines, techniques, interest_commissions,
-    interest_collaboration, portfolio_links, heard_about, consent_version, consent_at, possible_duplicate)
+    interest_collaboration, portfolio_links, heard_about, source, consent_version, consent_at, possible_duplicate)
   values (v_ref, v_full, v_artist, v_email, v_country, v_city, v_disc, v_other, v_practice, v_web, v_social,
     v_more, v_tech, coalesce((payload->>'interest_commissions')::boolean, false),
-    coalesce((payload->>'interest_collaboration')::boolean, false), v_links, v_heard,
+    coalesce((payload->>'interest_collaboration')::boolean, false), v_links, v_heard, v_source,
     '2026-10-20', now(), v_dup);
 
   return jsonb_build_object('ok', true, 'reference', v_ref);
@@ -483,6 +488,17 @@ begin
   perform write_audit('artwork.submit', 'artwork', p_id::text, jsonb_build_object('title', w.title));
 end $$;
 
+-- The artist agrees to the Artist terms once (again when the terms change).
+create or replace function accept_terms(p_version text) returns void
+language plpgsql security definer set search_path = public as $$
+begin
+  if not exists (select 1 from artists where id = auth.uid()) then
+    raise exception 'no studio for this account' using errcode = '42501';
+  end if;
+  update artists set terms_version = left(p_version, 20), terms_accepted_at = now() where id = auth.uid();
+  perform write_audit('artist.terms_accepted', 'artist', auth.uid()::text, jsonb_build_object('version', left(p_version, 20)));
+end $$;
+
 -- Team review of a profile or an artwork. Emails are sent by the Netlify function.
 create or replace function review_item(p_type text, p_id uuid, p_decision review_status, p_feedback text default '')
 returns void language plpgsql security definer set search_path = public as $$
@@ -575,7 +591,8 @@ grant execute on function submit_application(jsonb) to anon, authenticated;
 grant execute on function my_role(), session_confirmed(), is_team(), is_founder(), is_team_editor() to authenticated;
 grant execute on function set_application_status(uuid, app_status, text), assign_application(uuid, uuid),
   add_application_note(uuid, text), submit_profile(), submit_artwork(uuid),
-  review_item(text, uuid, review_status, text), set_team_member(uuid, team_role, boolean) to authenticated;
+  review_item(text, uuid, review_status, text), set_team_member(uuid, team_role, boolean),
+  accept_terms(text) to authenticated;
 revoke execute on function write_audit(text, text, text, jsonb) from public, anon, authenticated;
 
 -- ---------------------------------------------------------------------------
@@ -608,14 +625,16 @@ create policy media_delete on storage.objects for delete to authenticated
 -- ---------------------------------------------------------------------------
 create or replace function push_application_to_sheet() returns trigger
 language plpgsql security definer set search_path = public as $$
-declare url text; secret text; reviewer_name text;
+declare url text; secret text; reviewer_name text; body jsonb;
 begin
   select value into url from app_config where key = 'sheet_webhook_url';
   select value into secret from app_config where key = 'sheet_webhook_secret';
-  if url is null or secret is null then return new; end if;
-  select name into reviewer_name from team_members where user_id = new.reviewer;
-  perform net.http_post(
-    url := url,
+  if url is null or secret is null then return coalesce(new, old); end if;
+  if tg_op = 'DELETE' then
+    -- Erasure: remove the row from the Sheet copy too.
+    body := jsonb_build_object('secret', secret, 'reference', old.reference, 'deleted', true);
+  else
+    select name into reviewer_name from team_members where user_id = new.reviewer;
     body := jsonb_build_object(
       'secret', secret,
       'reference', new.reference, 'status', new.status, 'created_at', new.created_at,
@@ -625,17 +644,18 @@ begin
       'social', new.social, 'additional_disciplines', new.additional_disciplines, 'techniques', new.techniques,
       'interest_commissions', new.interest_commissions, 'interest_collaboration', new.interest_collaboration,
       'portfolio_links', array_to_string(new.portfolio_links, E'\n'), 'heard_about', new.heard_about,
+      'source', new.source,
       'possible_duplicate', new.possible_duplicate, 'reviewer', coalesce(reviewer_name, ''),
-      'decided_at', new.decided_at, 'decision_note', new.decision_note, 'invited_at', new.invited_at),
-    headers := '{"Content-Type":"application/json"}'::jsonb
-  );
-  return new;
+      'decided_at', new.decided_at, 'decision_note', new.decision_note, 'invited_at', new.invited_at);
+  end if;
+  perform net.http_post(url := url, body := body, headers := '{"Content-Type":"application/json"}'::jsonb);
+  return coalesce(new, old);
 exception when others then
-  return new;   -- the Sheet is a mirror: never block saving an application
+  return coalesce(new, old);   -- the Sheet is a mirror: never block the database
 end $$;
 
 drop trigger if exists applications_to_sheet on applications;
-create trigger applications_to_sheet after insert or update on applications
+create trigger applications_to_sheet after insert or update or delete on applications
   for each row execute function push_application_to_sheet();
 
 -- ---------------------------------------------------------------------------

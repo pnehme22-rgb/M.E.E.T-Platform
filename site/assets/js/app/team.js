@@ -18,6 +18,10 @@
     draft: ["Draft", ""], submitted: ["Waiting for review", "red"], changes_requested: ["Changes requested", "warn"],
     approved: ["Approved", "ok"], declined: ["Declined", ""]
   };
+  // Where a registration came from (the ?from=... marker on links and the QR card).
+  var SOURCES = { "qr-dubai": "QR code (Dubai)", "instagram": "Instagram link", "email": "Email link", "website": "Website" };
+  function sourceLabel(v) { return v ? (SOURCES[v] || v) : ""; }
+
   function tag(map, s) { var t = map[s] || [s, ""]; return '<span class="tag ' + t[1] + '">' + esc(t[0]) + "</span>"; }
   function teamName(id) { var t = cache.team.find(function (m) { return m.user_id === id; }); return t ? t.name : ""; }
   function discipline(a) { return a.primary_discipline === "Other" && a.discipline_other ? a.discipline_other : a.primary_discipline; }
@@ -174,7 +178,7 @@
     if (res.error) { fail(res.error); return; }
     var cols = ["reference", "created_at", "status", "full_name", "artist_name", "email", "country", "city", "primary_discipline",
       "discipline_other", "practice", "website", "social", "additional_disciplines", "techniques", "interest_commissions",
-      "interest_collaboration", "portfolio_links", "heard_about", "possible_duplicate", "reviewer", "decided_at", "decision_note",
+      "interest_collaboration", "portfolio_links", "heard_about", "source", "possible_duplicate", "reviewer", "decided_at", "decision_note",
       "invited_at", "consent_version", "consent_at"];
     // Neutralise spreadsheet formulas in anything a visitor typed.
     function safe(v) {
@@ -194,6 +198,46 @@
     document.body.appendChild(a); a.click(); a.remove();
     setTimeout(function () { URL.revokeObjectURL(a.href); }, 2000);
     M.toast("CSV downloaded: " + res.data.length + " applications.");
+  }
+
+  function csvCell(v) {
+    if (Array.isArray(v)) v = v.join("\n");
+    if (v === null || v === undefined) v = "";
+    v = String(v);
+    if (/^[=+\-@\t\r]/.test(v)) v = "'" + v;   // never let a value act as a spreadsheet formula
+    return '"' + v.replace(/"/g, '""') + '"';
+  }
+  function downloadCsv(name, header, rows) {
+    var blob = new Blob(["\ufeff" + [header.join(",")].concat(rows.map(function (r) { return r.map(csvCell).join(","); })).join("\r\n")], { type: "text/csv;charset=utf-8" });
+    var link = document.createElement("a");
+    link.href = URL.createObjectURL(blob);
+    link.download = name + "-" + new Date().toISOString().slice(0, 10) + ".csv";
+    document.body.appendChild(link); link.click(); link.remove();
+    setTimeout(function () { URL.revokeObjectURL(link.href); }, 2000);
+  }
+
+  async function exportArtistsCsv() {
+    var ar = await sb.from("artists").select("*").order("created_at", { ascending: true });
+    if (ar.error) { fail(ar.error); return; }
+    var wr = await sb.from("artworks").select("artist_id, status");
+    var ap = await sb.from("applications").select("id, reference");
+    var refs = {};
+    (ap.data || []).forEach(function (x) { refs[x.id] = x.reference; });
+    var count = {};
+    (wr.data || []).forEach(function (w) {
+      var c = count[w.artist_id] = count[w.artist_id] || { all: 0, approved: 0, waiting: 0 };
+      c.all++; if (w.status === "approved") c.approved++; if (w.status === "submitted") c.waiting++;
+    });
+    var header = ["reference", "display_name", "legal_name", "email", "country", "city", "main_discipline", "other_disciplines",
+      "techniques", "instagram", "website", "profile_status", "works_total", "works_approved", "works_waiting", "terms_agreed", "studio_created"];
+    var rows = (ar.data || []).map(function (a) {
+      var c = count[a.id] || { all: 0, approved: 0, waiting: 0 };
+      return [refs[a.application_id] || "", a.display_name, a.legal_name, a.email, a.country, a.city, a.craft, a.other_disciplines,
+        a.techniques, a.instagram, a.website, (REVIEW_STATUS[a.profile_status] || [a.profile_status])[0], c.all, c.approved, c.waiting,
+        a.terms_accepted_at || "", a.created_at];
+    });
+    downloadCsv("meet-artists", header, rows);
+    M.toast("CSV downloaded: " + rows.length + " artists.");
   }
 
   function welcomePreview(a) {
@@ -259,6 +303,7 @@
       (links ? "<span>More links</span><b>" + links + "</b>" : "") +
       (interests ? "<span>Open to</span><b>" + esc(interests) + "</b>" : "") +
       (a.heard_about ? "<span>Found M.E.E.T. through</span><b>" + esc(a.heard_about) + "</b>" : "") +
+      (a.source ? "<span>Came from</span><b>" + esc(sourceLabel(a.source)) + "</b>" : "") +
       "<span>Consent</span><b>Privacy notice " + esc(a.consent_version) + ", " + esc(M.fmtDate(a.consent_at, true)) + "</b>" +
       "</div></div>" +
       '<div class="rblock"><h3>Team notes</h3><p class="small muted">Private to the team. The artist never sees these.</p>' +
@@ -272,6 +317,7 @@
       '<div class="panel stack" style="gap:12px"><h3 style="font-size:26px">Decision</h3>' +
       (a.decision_note && a.status !== "approved" ? '<div class="note"><span class="muted">' + (a.status === "more_info" ? "Question sent" : "Reason") + "</span>" + esc(a.decision_note) + "</div>" : "") +
       decision + "</div>" +
+      (me.role === "founder" && !a.artist_id ? '<button class="link small" type="button" data-act="delete" style="align-self:flex-start;color:var(--accent)">Delete this application permanently</button>' : "") +
       '<div class="panel stack" style="gap:10px"><label class="f">Reviewer<select class="inp" id="reviewer"' + (canEdit ? "" : " disabled") + '><option value="">Unassigned</option>' +
       cache.team.filter(function (m) { return m.active; }).map(function (m) {
         return '<option value="' + m.user_id + '"' + (a.reviewer === m.user_id ? " selected" : "") + ">" + esc(m.name) + "</option>";
@@ -319,6 +365,7 @@
       if (act === "approve") openApprove(a, reload);
       if (act === "info") openInfo(a, reload);
       if (act === "decline") openDecline(a, reload);
+      if (act === "delete") openDelete("application", a.id, a.artist_name, function () { location.hash = "#/applications"; });
     };
   }
 
@@ -330,7 +377,8 @@
       "profile.submit": "Profile submitted", "profile.approved": "Profile approved", "profile.changes_requested": "Changes requested on profile",
       "profile.declined": "Profile declined", "artwork.submit": "Artwork submitted", "artwork.approved": "Artwork approved",
       "artwork.changes_requested": "Changes requested on artwork", "artwork.declined": "Artwork declined",
-      "team.invite": "Team member invited", "team.update": "Team member updated"
+      "team.invite": "Team member invited", "team.update": "Team member updated",
+      "artist.terms_accepted": "Artist terms agreed", "artist.deleted": "Artist and their data deleted", "application.deleted": "Application deleted"
     })[a] || a;
   }
 
@@ -389,22 +437,65 @@
       });
   }
 
+  function declineMessage(a) {
+    return "Dear " + firstName(a.full_name) + ",\n\n" +
+      "Thank you for applying to M.E.E.T. and for sharing your practice with us. We read every application with care.\n\n" +
+      "At this stage, we are not able to offer you a place in the first M.E.E.T. artist community. This is not a judgement of the value of your work: we are starting small, with a limited number of artists.\n\n" +
+      "As M.E.E.T. grows, we may open new invitations, and we would be glad to hear from you again.";
+  }
+
   function openDecline(a, done) {
     M.modal(
       "<h2>Decline <em>" + esc(a.artist_name) + "</em></h2>" +
-      '<p class="muted">No email is sent. If you want to tell the artist, write to them personally.</p>' +
-      '<label class="f">Reason, for the team<textarea class="inp" id="m-r" rows="4" maxlength="4000" placeholder="Only the team sees this."></textarea></label>' +
+      '<label class="f">Reason, for the team only<textarea class="inp" id="m-r" rows="3" maxlength="4000" placeholder="The artist never sees this."></textarea></label>' +
+      '<label class="row small" style="font-weight:500"><input type="checkbox" id="m-mail" checked> Send a kind message to ' + esc(a.email) + "</label>" +
+      '<label class="f" id="m-msg-box">Message to the artist <span class="hint">You can edit it. It is signed “With warm regards, The M.E.E.T. team”.</span>' +
+      '<textarea class="inp" id="m-msg" rows="9" maxlength="4000">' + esc(declineMessage(a)) + "</textarea></label>" +
       '<p class="err" id="m-err" hidden></p>' +
       '<div class="row"><button class="btn danger" type="button" id="m-go">Decline application</button><button class="btn line" type="button" data-close>Cancel</button></div>',
       function (box, close) {
+        var mail = box.querySelector("#m-mail");
+        mail.addEventListener("change", function () { box.querySelector("#m-msg-box").hidden = !mail.checked; });
         box.querySelector("#m-go").addEventListener("click", async function () {
-          var btn = this;
+          var btn = this, m = box.querySelector("#m-err");
           M.setBusy(btn, true, "Saving");
-          var r = await sb.rpc("set_application_status", { p_id: a.id, p_status: "declined", p_note: box.querySelector("#m-r").value.trim() });
-          if (r.error) { M.setBusy(btn, false); var m = box.querySelector("#m-err"); m.textContent = M.friendlyError(r.error); m.hidden = false; return; }
-          close();
-          M.toast("Application declined.");
-          done();
+          try {
+            await M.api("decline-application", {
+              id: a.id, reason: box.querySelector("#m-r").value.trim(),
+              notify: mail.checked, message: box.querySelector("#m-msg").value
+            });
+            close();
+            M.toast(mail.checked ? "Declined. Message sent to " + a.email + "." : "Declined. No email was sent.");
+            done();
+          } catch (err) { M.setBusy(btn, false); m.textContent = M.friendlyError(err); m.hidden = false; }
+        });
+      });
+  }
+
+  /* Founders only: permanent removal, for privacy and deletion requests. */
+  function openDelete(type, id, name, done) {
+    var what = type === "artist"
+      ? "the artist <b>" + esc(name) + "</b> and everything they gave M.E.E.T.: their studio, artworks, photographs, login and application"
+      : "the application from <b>" + esc(name) + "</b>";
+    M.modal(
+      "<h2>Delete <em>permanently</em></h2>" +
+      '<p class="notice err">This removes ' + what + '. It also disappears from the Google Sheet copy. It cannot be undone.</p>' +
+      '<p class="small muted">Use this when someone asks to be removed. The activity log keeps a note that a deletion happened, without their personal details.</p>' +
+      '<label class="f">Type <b>DELETE</b> to confirm<input class="inp" id="m-confirm" autocomplete="off" autocapitalize="characters"></label>' +
+      '<p class="err" id="m-err" hidden></p>' +
+      '<div class="row"><button class="btn danger" type="button" id="m-go">Delete permanently</button><button class="btn line" type="button" data-close>Cancel</button></div>',
+      function (box, close) {
+        box.querySelector("#m-go").addEventListener("click", async function () {
+          var m = box.querySelector("#m-err");
+          if (box.querySelector("#m-confirm").value.trim().toUpperCase() !== "DELETE") { m.textContent = "Please type DELETE to confirm."; m.hidden = false; return; }
+          var btn = this;
+          M.setBusy(btn, true, "Deleting");
+          try {
+            await M.api("delete-record", { type: type, id: id });
+            close();
+            M.toast(type === "artist" ? "Artist and all their data deleted." : "Application deleted.");
+            done();
+          } catch (err) { M.setBusy(btn, false); m.textContent = M.friendlyError(err); m.hidden = false; }
         });
       });
   }
@@ -425,7 +516,8 @@
     var rows = (ar.data || []).filter(function (a) { return filter !== "review" || a.profile_status === "submitted" || waiting[a.id]; });
     main.innerHTML =
       '<div class="head"><div><span class="eyebrow">Approved artists</span><h1>Artists</h1>' +
-      "<p>Artists you have approved, and the studios they are building. Nothing here is public until M.E.E.T. launches.</p></div></div>" +
+      "<p>Artists you have approved, and the studios they are building. Nothing here is public until M.E.E.T. launches.</p></div>" +
+      '<div class="row"><button class="btn line sm" type="button" id="export-artists">Export artists CSV</button></div></div>' +
       '<div class="chips"><a class="chip" href="#/artists" aria-pressed="' + (!filter) + '">All · ' + (ar.data || []).length + '</a>' +
       '<a class="chip" href="#/artists?filter=review" aria-pressed="' + (filter === "review") + '">Needs review</a></div>' +
       (rows.length ? '<div class="list">' + rows.map(function (a) {
@@ -435,6 +527,7 @@
           '<div class="ls">' + tag(REVIEW_STATUS, a.profile_status) + (waiting[a.id] ? '<span class="tag red">' + waiting[a.id] + " work" + (waiting[a.id] > 1 ? "s" : "") + " to review</span>" : "") + "</div></a>";
       }).join("") + "</div>" : '<div class="empty">' + (filter ? "Nothing is waiting for review." : "No approved artists yet. Approve an application to invite its artist.") + "</div>");
     M.hydrateMedia(main);
+    main.querySelector("#export-artists").addEventListener("click", exportArtistsCsv);
   }
 
   async function viewArtist(id) {
@@ -472,7 +565,9 @@
       (a.techniques ? "<span>Techniques and materials</span><b>" + esc(a.techniques) + "</b>" : "") +
       (a.instagram ? "<span>Instagram</span><b>" + esc(a.instagram) + "</b>" : "") +
       (a.website ? '<span>Website</span><b><a class="link" href="' + esc(a.website) + '" target="_blank" rel="noopener noreferrer nofollow">' + esc(a.website) + "</a></b>" : "") +
-      (a.other_link ? '<span>Other link</span><b>' + esc(a.other_link) + "</b>" : "") + "</div></div>" +
+      (a.other_link ? '<span>Other link</span><b>' + esc(a.other_link) + "</b>" : "") +
+      "<span>Artist terms</span><b>" + (a.terms_accepted_at ? "Agreed " + esc(M.fmtDate(a.terms_accepted_at, true)) + " (version " + esc(a.terms_version) + ")" : "Not agreed yet (they agree the first time they open their studio)") + "</b>" +
+      "</div></div>" +
       (a.bio ? '<p class="prose">' + esc(a.bio) + "</p>" : '<p class="muted small">No biography yet.</p>') +
       (a.feedback && a.profile_status === "changes_requested" ? '<div class="note"><span class="muted">Feedback sent</span>' + esc(a.feedback) + "</div>" : "") +
       actions("profile", a.id, a.profile_status) + "</div>" +
@@ -488,8 +583,13 @@
           (w.description ? '<p class="prose">' + esc(w.description) + "</p>" : "") +
           (w.feedback && w.status !== "approved" ? '<div class="note"><span class="muted">Feedback sent</span>' + esc(w.feedback) + "</div>" : "") +
           actions("artwork", w.id, w.status, w.title || "Untitled") + "</div>";
-      }).join("") : '<div class="empty">No works added yet.</div>');
+      }).join("") : '<div class="empty">No works added yet.</div>') +
+      (me.role === "founder" ? '<div class="panel stack" style="gap:8px;margin-top:12px"><h3 style="font-size:22px">Remove this artist</h3>' +
+        '<p class="small muted">For deletion requests: removes their studio, artworks, photographs, login and application.</p>' +
+        '<div><button class="btn danger sm" type="button" id="del-artist">Delete artist and all their data</button></div></div>' : "");
     M.hydrateMedia(main);
+    var del = main.querySelector("#del-artist");
+    if (del) del.addEventListener("click", function () { openDelete("artist", a.id, a.display_name || a.legal_name || a.email, function () { location.hash = "#/artists"; }); });
 
     main.querySelectorAll("[data-review]").forEach(function (b) {
       b.addEventListener("click", function () {

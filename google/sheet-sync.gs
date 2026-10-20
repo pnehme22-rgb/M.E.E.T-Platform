@@ -26,8 +26,9 @@ var COLUMNS = [
   ['portfolio_links', 'More links'], ['interest_commissions', 'Open to commissions'],
   ['interest_collaboration', 'Open to collaboration'], ['heard_about', 'Found M.E.E.T. through'],
   ['possible_duplicate', 'Applied before'], ['reviewer', 'Reviewer'], ['decided_at', 'Decided'],
-  ['decision_note', 'Decision note'], ['invited_at', 'Studio link sent']
+  ['decision_note', 'Decision note'], ['invited_at', 'Studio link sent'], ['source', 'Came from']
 ];
+var SOURCE_LABEL = { 'qr-dubai': 'QR code (Dubai)', 'instagram': 'Instagram link', 'email': 'Email link', 'website': 'Website' };
 var STATUS_LABEL = {
   new: 'New', in_review: 'In review', more_info: 'More information requested', approved: 'Approved', declined: 'Declined'
 };
@@ -45,11 +46,17 @@ function doPost(e) {
     if (!data.reference) return text_('missing reference');
 
     var sheet = sheet_();
-    var row = COLUMNS.map(function (c) { return cell_(c[0], data[c[0]]); });
-
     var refs = sheet.getRange(2, 1, Math.max(sheet.getLastRow() - 1, 1), 1).getValues();
     var at = -1;
     for (var i = 0; i < refs.length; i++) { if (refs[i][0] === data.reference) { at = i + 2; break; } }
+
+    // Deleted in the console (privacy request): remove the row here too.
+    if (data.deleted) {
+      if (at !== -1) sheet.deleteRow(at);
+      return text_('ok');
+    }
+
+    var row = COLUMNS.map(function (c) { return cell_(c[0], data[c[0]]); });
     if (at === -1) sheet.appendRow(row);
     else sheet.getRange(at, 1, 1, row.length).setValues([row]);
     return text_('ok');
@@ -67,17 +74,17 @@ function sheet_() {
   var ss = id ? SpreadsheetApp.openById(id) : SpreadsheetApp.getActiveSpreadsheet();
   if (!ss) throw new Error('no sheet found: add the SHEET_ID script property');
   var sheet = ss.getSheetByName(SHEET_NAME) || ss.insertSheet(SHEET_NAME);
-  if (sheet.getLastRow() === 0) {
-    sheet.appendRow(COLUMNS.map(function (c) { return c[1]; }));
-    sheet.getRange(1, 1, 1, COLUMNS.length).setFontWeight('bold').setBackground('#f5efe1');
-    sheet.setFrozenRows(1);
-  }
+  // Keep the header row up to date, including columns added later.
+  sheet.getRange(1, 1, 1, COLUMNS.length).setValues([COLUMNS.map(function (c) { return c[1]; })])
+    .setFontWeight('bold').setBackground('#f5efe1');
+  sheet.setFrozenRows(1);
   return sheet;
 }
 
 function cell_(key, v) {
   if (v === null || v === undefined) return '';
   if (key === 'status') return STATUS_LABEL[v] || v;
+  if (key === 'source') return SOURCE_LABEL[v] || v;
   if (typeof v === 'boolean') return v ? 'Yes' : 'No';
   if (/_at$/.test(key) && v) return new Date(v);
   v = String(v);

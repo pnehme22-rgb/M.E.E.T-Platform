@@ -6,6 +6,7 @@
   "use strict";
   var M = window.MEET, sb, me, artist;
   var esc = M.esc;
+  var TERMS_VERSION = "2026-10-21";   // change when the Artist terms change; artists then agree again
   var main = document.getElementById("main");
   var nav = document.getElementById("nav");
 
@@ -37,9 +38,15 @@
     var parts = h.split("/");
     var view = parts[0] || "";
     main.onclick = null;
-    renderNav(view === "work" ? "works" : view);
     try {
       await loadArtist();
+      // The Artist terms come first, once (and again whenever they change).
+      if (!artist.terms_accepted_at || artist.terms_version !== TERMS_VERSION) {
+        nav.innerHTML = "";
+        viewTerms();
+        return;
+      }
+      renderNav(view === "work" ? "works" : view);
       if (view === "") await viewOverview();
       else if (view === "profile") await viewProfile();
       else if (view === "works") await viewWorks();
@@ -49,6 +56,37 @@
       main.innerHTML = '<div class="empty">This page could not be loaded. ' + esc(M.friendlyError(err)) + "</div>";
     }
     main.focus({ preventScroll: true });
+  }
+
+  /* ---------------- artist terms (one-time agreement) ---------------- */
+
+  function viewTerms() {
+    main.innerHTML =
+      '<div class="head"><div><span class="eyebrow">Before you begin</span><h1>Your work, <em>your rights</em></h1>' +
+      "<p>A short agreement about how M.E.E.T. may show your work. Please read it once.</p></div></div>" +
+      '<div class="panel stack">' +
+      '<ul class="stack" style="gap:10px;margin:0;padding-left:20px">' +
+      "<li><b>Your work stays yours.</b> You keep the copyright in your artworks, photographs and texts.</li>" +
+      "<li><b>Once the team approves something,</b> M.E.E.T. may show it on the platform after launch, and use it to present and promote M.E.E.T. (social media, newsletters, printed materials), always credited to you.</li>" +
+      "<li><b>Nothing is public before launch,</b> and we will write to you before your profile goes live.</li>" +
+      "<li><b>You can change your mind:</b> ask us to remove anything, or your whole studio, at any time.</li>" +
+      "<li><b>You confirm</b> the works are your own and you may share the photographs.</li>" +
+      "<li>M.E.E.T. never sells your images, never licenses them to others, and never uses them to train AI.</li>" +
+      "</ul>" +
+      '<p class="small"><a class="link" href="/artist-terms" target="_blank" rel="noopener">Read the full Artist terms</a> (opens in a new tab) · <a class="link" href="/privacy" target="_blank" rel="noopener">Privacy notice</a></p>' +
+      '<label class="row" style="gap:12px;align-items:flex-start;font-weight:500"><input type="checkbox" id="agree" style="width:22px;height:22px;margin-top:2px;accent-color:var(--accent)"> <span>I have read and agree to the M.E.E.T. Artist terms.</span></label>' +
+      '<p class="err" id="terms-err" role="alert" hidden></p>' +
+      '<div class="row"><button class="btn" type="button" id="b-agree">Agree and open my studio</button></div></div>';
+    main.querySelector("#b-agree").addEventListener("click", async function () {
+      var err = main.querySelector("#terms-err");
+      if (!main.querySelector("#agree").checked) { err.textContent = "Please tick the box to agree to the Artist terms."; err.hidden = false; return; }
+      err.hidden = true;
+      M.setBusy(this, true, "Saving");
+      var r = await sb.rpc("accept_terms", { p_version: TERMS_VERSION });
+      if (r.error) { M.setBusy(this, false); err.textContent = M.friendlyError(r.error); err.hidden = false; return; }
+      M.toast("Thank you. Welcome to your studio.");
+      route();
+    });
   }
 
   /* ---------------- overview ---------------- */
