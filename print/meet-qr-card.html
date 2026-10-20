@@ -1,0 +1,47 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>M.E.E.T. QR card</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@400;600&family=Instrument+Serif:ital@0;1&display=swap">
+<style>
+  /* Print at 100% scale. One A6 card per page (105 x 148 mm). */
+  @page { size: 105mm 148mm; margin: 0; }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; background: #e9e2d5; }
+  .card {
+    width: 105mm; height: 148mm; margin: 10mm auto; background: #f6f0e5; color: #18213a;
+    padding: 11mm 10mm 9mm; display: flex; flex-direction: column; align-items: center; text-align: center;
+    font-family: "Instrument Sans", Arial, sans-serif; break-after: page;
+    box-shadow: 0 6px 24px rgba(0,0,0,.08);
+  }
+  .brand { display: flex; align-items: center; gap: 3mm; font-family: "Instrument Serif", Georgia, serif; font-size: 18pt; letter-spacing: .06em; }
+  .brand svg { width: 13mm; height: 9mm; }
+  .kicker { margin: 7mm 0 2mm; font-size: 6.5pt; font-weight: 600; letter-spacing: .2em; text-transform: uppercase; color: #7a1420; }
+  h1 { font-family: "Instrument Serif", Georgia, serif; font-weight: 400; font-size: 21pt; line-height: 1.02; margin: 0; }
+  h1 em { color: #7a1420; }
+  .qr { width: 52mm; height: 52mm; margin: 7mm 0 4mm; padding: 2.5mm; background: #fbf8f2; border: .3mm solid #ddd2bf; border-radius: 4mm; }
+  .qr img { width: 100%; height: 100%; display: block; image-rendering: pixelated; }
+  .scan { font-size: 9pt; line-height: 1.45; color: #2c3550; margin: 0; }
+  .url { margin-top: auto; font-size: 9.5pt; font-weight: 600; letter-spacing: .02em; }
+  .tag { margin-top: 1mm; font-family: "Instrument Serif", Georgia, serif; font-style: italic; font-size: 9pt; color: #545a69; }
+  @media print { html, body { background: none; } .card { margin: 0; box-shadow: none; } }
+</style>
+</head>
+<body>
+  <section class="card">
+    <div class="brand">
+      <svg viewBox="0 0 119 80" aria-hidden="true"><path d="M59.5 8.56 A37 37 0 0 1 59.5 71.44 A37 37 0 0 1 59.5 8.56 Z" fill="#74191d"/><circle cx="40" cy="40" r="37" fill="none" stroke="#11306a" stroke-width="4.5"/><circle cx="79" cy="40" r="37" fill="none" stroke="#11306a" stroke-width="4.5"/></svg>
+      M.E.E.T.
+    </div>
+    <p class="kicker">Artist community</p>
+    <h1>Different crafts.<br>Different stories.<br><em>New possibilities.</em></h1>
+    <div class="qr"><img src="meet-join-qr.png" alt="QR code to meetstudio.art/join"></div>
+    <p class="scan">Scan to join the M.E.E.T. Artist Community.<br>A few short questions. No account needed.</p>
+    <p class="url">meetstudio.art/join</p>
+    <p class="tag">Mind Exploring Every Tradition</p>
+  </section>
+</body>
+</html>

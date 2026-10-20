@@ -69,10 +69,14 @@ create table if not exists applications (
   decision_note           text not null default '',
   artist_id               uuid references auth.users(id) on delete set null,
   invited_at              timestamptz,
+  notified_at             timestamptz,
   updated_at              timestamptz not null default now()
 );
 create index if not exists applications_email_idx on applications (lower(email));
 create index if not exists applications_status_idx on applications (status, created_at desc);
+
+-- References count up: MEET-0001, MEET-0002, ...
+create sequence if not exists application_ref_seq start 1;
 
 create table if not exists application_notes (
   id              uuid primary key default gen_random_uuid(),
@@ -356,7 +360,7 @@ begin
   v_dup := exists (select 1 from applications where lower(email) = v_email);
 
   loop
-    v_ref := 'MEET-' || upper(substr(md5(random()::text || clock_timestamp()::text), 1, 6));
+    v_ref := 'MEET-' || lpad(nextval('application_ref_seq')::text, 4, '0');
     exit when not exists (select 1 from applications where reference = v_ref);
   end loop;
 
@@ -633,6 +637,30 @@ end $$;
 drop trigger if exists applications_to_sheet on applications;
 create trigger applications_to_sheet after insert or update on applications
   for each row execute function push_application_to_sheet();
+
+-- ---------------------------------------------------------------------------
+-- Email alert to the team for each new application. The database tells the
+-- site's /api/new-application function, which emails every active team
+-- member once (it only acts on fresh, not-yet-notified applications).
+-- ---------------------------------------------------------------------------
+create or replace function alert_team_new_application() returns trigger
+language plpgsql security definer set search_path = public as $$
+declare site text;
+begin
+  select value into site from app_config where key = 'site_url';
+  perform net.http_post(
+    url := coalesce(site, 'https://meetstudio.art') || '/api/new-application',
+    body := jsonb_build_object('id', new.id),
+    headers := '{"Content-Type":"application/json"}'::jsonb
+  );
+  return new;
+exception when others then
+  return new;   -- an alert must never block saving an application
+end $$;
+
+drop trigger if exists applications_alert_team on applications;
+create trigger applications_alert_team after insert on applications
+  for each row execute function alert_team_new_application();
 
 -- ---------------------------------------------------------------------------
 -- FIRST FOUNDER (run once, after creating your login in Authentication › Users):
