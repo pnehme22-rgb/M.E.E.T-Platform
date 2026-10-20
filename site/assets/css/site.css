@@ -308,6 +308,7 @@ main:focus { outline: none; }
 
 .btn-small {
   min-height: 42px;
+  white-space: nowrap;
   padding: 0 20px;
   font-size: 14px;
   gap: 12px;
