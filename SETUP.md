@@ -69,7 +69,7 @@ Check: the repository shows the `site`, `netlify` and `supabase` folders.
    | `SUPABASE_SERVICE_ROLE_KEY` | service_role / secret key (secret) |
    | `GMAIL_USER` | `minds.exploring.traditions@gmail.com` |
    | `GMAIL_APP_PASSWORD` | the 16-letter code (secret) |
-   | `SITE_URL` | your site address, for example `https://meet-artists.netlify.app` |
+   | `SITE_URL` | your site address, for example `https://meetstudio.art` |
 
 3. Back in Supabase, **Authentication › URL Configuration**:
    - Site URL: your Netlify address.
