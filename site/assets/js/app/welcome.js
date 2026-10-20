@@ -53,7 +53,7 @@
   $("f-password").addEventListener("submit", async function (e) {
     e.preventDefault();
     var a = $("pw1").value, b = $("pw2").value, err = $("err-password");
-    var problem = a.length < 10 ? "Please use at least 10 characters." : a !== b ? "The two passwords do not match." : "";
+    var problem = a.length < 8 ? "Please use at least 8 characters." : a !== b ? "The two passwords do not match." : "";
     err.textContent = problem; err.hidden = !problem;
     if (problem) return;
     M.setBusy($("b-password"), true, "Saving");
