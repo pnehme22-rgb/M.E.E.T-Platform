@@ -404,6 +404,31 @@ main:focus { outline: none; }
 }
 .nav-links a:hover::after { transform: scaleX(1); transform-origin: left; }
 
+/* Sign in: a quiet text link beside the join button, on every screen size */
+.nav-signin {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  font-size: 14px;
+  font-weight: 600;
+  letter-spacing: .02em;
+  color: var(--ink);
+  text-decoration: none;
+  white-space: nowrap;
+}
+.nav-signin::after {
+  content: "";
+  position: absolute;
+  left: 0; right: 0; bottom: 10px;
+  height: 1px;
+  background: currentColor;
+  opacity: .35;
+  transition: opacity var(--t-fast) var(--ease-out), background-color var(--t-fast) var(--ease-out);
+}
+.nav-signin:hover { color: var(--oxblood); }
+.nav-signin:hover::after { opacity: 1; background: var(--oxblood); }
+
 .nav-back {
   display: inline-flex;
   align-items: center;
@@ -420,6 +445,7 @@ main:focus { outline: none; }
 @media (max-width: 760px) {
   :root { --header-h: 62px; }
   .nav-links { display: none; }
+  .nav { gap: 16px; }
   .brand-word { font-size: 21px; }
   .brand-mark { width: 39px; height: 26px; }
 }
