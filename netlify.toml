@@ -133,3 +133,10 @@
   for = "/assets/img/*"
   [headers.values]
     Cache-Control = "public, max-age=2592000"
+
+# One address for everyone, so sign-ins and links always use meetstudio.art.
+[[redirects]]
+  from = "https://delightful-genie-a59ebf.netlify.app/*"
+  to = "https://meetstudio.art/:splat"
+  status = 301
+  force = true
