@@ -72,7 +72,15 @@ export async function teamCaller(req: Request, need: { founder?: boolean; editor
   if (!token) throw new HttpError(401, "Please sign in again.");
   const svc = serviceClient();
   const { data, error } = await svc.auth.getUser(token);
-  if (error || !data.user) throw new HttpError(401, "Your session has ended. Please sign in again.");
+  if (error || !data.user) {
+    console.error("getUser failed", error && { status: error.status, code: error.code, message: error.message });
+    // A real expired session comes back as 401/403 from Supabase. Anything
+    // else means this server cannot talk to Supabase: a settings problem.
+    if (error && error.status !== 401 && error.status !== 403) {
+      throw new HttpError(500, "The server could not check your sign-in with Supabase. Please check the SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY settings in Netlify. (" + (error.message || "unknown error") + ")");
+    }
+    throw new HttpError(401, "Your session has ended. Please sign in again.");
+  }
   if (jwtClaims(token).aal !== "aal2") throw new HttpError(403, "Please complete two-step sign-in first.");
   const { data: member } = await svc.from("team_members").select("user_id, name, email, role, active")
     .eq("user_id", data.user.id).maybeSingle();
