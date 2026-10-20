@@ -51,6 +51,12 @@
         <label class="f">Type it again
           <input class="inp" id="pw2" type="password" autocomplete="new-password" minlength="8" required>
         </label>
+        <div class="f" id="mfa-box" hidden>
+          <label class="f" for="mfa-code">6-digit code from your authenticator app
+            <input class="inp code-inp" id="mfa-code" inputmode="numeric" autocomplete="one-time-code" maxlength="6" pattern="[0-9]{6}">
+          </label>
+          <span class="hint">Your account uses two-step sign-in, so a code is needed to change the password.</span>
+        </div>
         <p class="err" id="err-password" role="alert" hidden></p>
         <button class="btn block" type="submit" id="b-password">Save and continue</button>
       </form>
