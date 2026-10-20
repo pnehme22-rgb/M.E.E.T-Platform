@@ -1,14 +1,14 @@
 /**
- * M.E.E.T. applications → Google Sheet mirror
+ * M.E.E.T. applications -> Google Sheet mirror
  *
  * Setup (once):
  *  1. Create a Google Sheet in the minds.exploring.traditions account.
- *  2. Extensions › Apps Script. Replace everything with this file. Save.
- *  3. Project Settings (gear) › Script properties › Add property:
+ *  2. Extensions > Apps Script. Replace everything with this file. Save.
+ *  3. Project Settings (gear) > Script properties > Add property:
  *       SECRET = the same long random value you put in Supabase app_config
  *     (Stand-alone project at script.google.com instead? Also add
  *       SHEET_ID = the long code in the Sheet's address, between /d/ and /edit)
- *  4. Deploy › New deployment › type "Web app":
+ *  4. Deploy > New deployment > type "Web app":
  *       Execute as: Me    Who has access: Anyone
  *     Copy the Web app URL into Supabase app_config (see SETUP.md).
  *
@@ -56,7 +56,7 @@ function doPost(e) {
 }
 
 function sheet_() {
-  // Works inside the Sheet (Extensions › Apps Script), or as a stand-alone
+  // Works inside the Sheet (Extensions > Apps Script), or as a stand-alone
   // project at script.google.com with a SHEET_ID script property.
   var id = PropertiesService.getScriptProperties().getProperty('SHEET_ID');
   var ss = id ? SpreadsheetApp.openById(id) : SpreadsheetApp.getActiveSpreadsheet();
