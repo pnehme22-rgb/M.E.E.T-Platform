@@ -18,6 +18,8 @@ export default async (): Promise<Response> => {
   out.GMAIL_USER = get("GMAIL_USER") === "minds.exploring.traditions@gmail.com" ? "ok" : get("GMAIL_USER") ? "set, but not minds.exploring.traditions@gmail.com" : "missing";
   const pw = get("GMAIL_APP_PASSWORD").replace(/\s/g, "");
   out.GMAIL_APP_PASSWORD = !pw ? "missing" : pw.length === 16 ? "ok" : `set, but ${pw.length} characters long (an app password has 16 letters)`;
+  const rk = get("RESEND_API_KEY");
+  out.RESEND_API_KEY = !rk ? "not set yet (emails go through Gmail)" : /^re_/.test(rk) ? "ok (emails go from hello@meetstudio.art)" : "set, but does not look like a Resend key (they start with re_)";
   out.SITE_URL = get("SITE_URL") === "https://meetstudio.art" ? "ok" : get("SITE_URL") ? "set, but not https://meetstudio.art" : "missing";
 
   if (url && svcKey) {

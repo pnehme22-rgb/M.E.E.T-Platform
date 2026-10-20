@@ -201,16 +201,36 @@ ${(p.after || []).map(para).join("")}
   return { html, text };
 }
 
+// Sends through Resend from hello@meetstudio.art when RESEND_API_KEY is set
+// (signed for the domain, so it reaches inboxes), otherwise through Gmail.
+// Replies always go to the team's Gmail inbox.
 export async function sendMail(to: string, subject: string, body: { html: string; text: string }) {
-  const user = env("GMAIL_USER");
+  // deno-lint-ignore no-explicit-any
+  const g = globalThis as any;
+  const get = (k: string) => ((g.Netlify && g.Netlify.env && g.Netlify.env.get(k)) || process.env[k] || "").trim();
+  const replyTo = get("GMAIL_USER") || "minds.exploring.traditions@gmail.com";
+  const resendKey = get("RESEND_API_KEY");
+
+  if (resendKey) {
+    const from = get("MAIL_FROM") || "M.E.E.T. <hello@meetstudio.art>";
+    const res = await fetch("https://api.resend.com/emails", {
+      method: "POST",
+      headers: { Authorization: `Bearer ${resendKey}`, "Content-Type": "application/json" },
+      body: JSON.stringify({ from, to: [to], subject, html: body.html, text: body.text, reply_to: replyTo }),
+    });
+    if (res.ok) return;
+    console.error("RESEND ERROR", res.status, await res.text().catch(() => ""));
+    throw new HttpError(502, "The change was saved, but the email could not be sent. Please try sending it again in a moment.");
+  }
+
   const transport = nodemailer.createTransport({
     host: "smtp.gmail.com",
     port: 465,
     secure: true,
-    auth: { user, pass: env("GMAIL_APP_PASSWORD") },
+    auth: { user: env("GMAIL_USER"), pass: env("GMAIL_APP_PASSWORD") },
   });
   try {
-    await transport.sendMail({ from: `"M.E.E.T." <${user}>`, replyTo: user, to, subject, html: body.html, text: body.text });
+    await transport.sendMail({ from: `"M.E.E.T." <${env("GMAIL_USER")}>`, replyTo, to, subject, html: body.html, text: body.text });
   } catch (err) {
     console.error("MAIL ERROR", err);
     throw new HttpError(502, "The change was saved, but the email could not be sent. Please try sending it again in a moment.");
