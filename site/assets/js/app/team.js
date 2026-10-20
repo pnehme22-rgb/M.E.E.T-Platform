@@ -445,11 +445,16 @@
     var wr = await sb.from("artworks").select("*").eq("artist_id", id).order("created_at", { ascending: false });
     var works = wr.data || [];
 
-    function actions(type, item, status) {
+    // Each button names what it acts on, so a profile is never approved by
+    // mistake when an artwork was meant (and the other way round).
+    function actions(type, item, status, title) {
       if (!canEdit || status === "draft") return status === "draft" ? '<p class="small muted">Still a draft: the artist has not submitted it.</p>' : "";
-      return '<div class="row"><button class="btn sm" type="button" data-review="' + type + '" data-id="' + item + '" data-decision="approved"' + (status === "approved" ? " disabled" : "") + ">Approve</button>" +
-        '<button class="btn line sm" type="button" data-review="' + type + '" data-id="' + item + '" data-decision="changes_requested">Request changes</button>' +
-        (type === "artwork" ? '<button class="btn danger sm" type="button" data-review="artwork" data-id="' + item + '" data-decision="declined">Decline</button>' : "") + "</div>";
+      var what = type === "profile" ? "profile" : "artwork";
+      var t = title ? ' data-title="' + esc(title) + '"' : "";
+      return '<div class="row"><button class="btn sm" type="button" data-review="' + type + '" data-id="' + item + '"' + t + ' data-decision="approved"' + (status === "approved" ? " disabled" : "") + ">" +
+        (status === "approved" ? (type === "profile" ? "Profile approved" : "Artwork approved") : "Approve " + what) + "</button>" +
+        '<button class="btn line sm" type="button" data-review="' + type + '" data-id="' + item + '"' + t + ' data-decision="changes_requested">Request changes to ' + what + "</button>" +
+        (type === "artwork" ? '<button class="btn danger sm" type="button" data-review="artwork" data-id="' + item + '"' + t + ' data-decision="declined">Decline artwork</button>' : "") + "</div>";
     }
 
     main.innerHTML =
@@ -482,27 +487,30 @@
           "<span>Price</span><b>" + (w.price_on_request ? "On request" : esc(w.currency + " " + Number(w.price || 0).toLocaleString("en-US"))) + "</b></div>" +
           (w.description ? '<p class="prose">' + esc(w.description) + "</p>" : "") +
           (w.feedback && w.status !== "approved" ? '<div class="note"><span class="muted">Feedback sent</span>' + esc(w.feedback) + "</div>" : "") +
-          actions("artwork", w.id, w.status) + "</div>";
+          actions("artwork", w.id, w.status, w.title || "Untitled") + "</div>";
       }).join("") : '<div class="empty">No works added yet.</div>');
     M.hydrateMedia(main);
 
     main.querySelectorAll("[data-review]").forEach(function (b) {
       b.addEventListener("click", function () {
-        openReview(b.getAttribute("data-review"), b.getAttribute("data-id"), b.getAttribute("data-decision"), a, function () { viewArtist(id); renderNav("artists"); });
+        openReview(b.getAttribute("data-review"), b.getAttribute("data-id"), b.getAttribute("data-decision"), a, function () { viewArtist(id); renderNav("artists"); }, b.getAttribute("data-title"));
       });
     });
   }
 
-  function openReview(type, itemId, decision, artist, done) {
-    var label = { approved: "Approve", changes_requested: "Request changes", declined: "Decline" }[decision];
+  function openReview(type, itemId, decision, artist, done, title) {
+    var label = { approved: "Approve", changes_requested: "Request changes to", declined: "Decline" }[decision];
     var needsText = decision !== "approved";
+    var name = artist.display_name || artist.legal_name;
+    var subject = type === "profile" ? "the profile of " + esc(name) : "the artwork “" + esc(title || "Untitled") + "”";
     M.modal(
       "<h2>" + label + " <em>" + (type === "profile" ? "profile" : "artwork") + "</em></h2>" +
+      '<p class="notice">You are about to ' + label.toLowerCase() + " " + subject + ".</p>" +
       (needsText ? '<label class="f">What should ' + esc(firstName(artist.display_name || artist.legal_name)) + " change?<textarea class=\"inp\" id=\"m-f\" rows=\"5\" maxlength=\"4000\" placeholder=\"Be specific and kind, for example: Please add a photograph of the whole piece in daylight.\"></textarea></label>"
                  : '<p class="muted">The artist will see this as approved in their studio. It stays private until M.E.E.T. launches.</p>') +
       '<label class="row small" style="font-weight:500"><input type="checkbox" id="m-mail" ' + (decision === "declined" ? "" : "checked") + "> Email " + esc(artist.email) + " about this</label>" +
       '<p class="err" id="m-err" hidden></p>' +
-      '<div class="row"><button class="btn' + (decision === "declined" ? " danger" : "") + '" type="button" id="m-go">' + label + '</button><button class="btn line" type="button" data-close>Cancel</button></div>',
+      '<div class="row"><button class="btn' + (decision === "declined" ? " danger" : "") + '" type="button" id="m-go">' + label + " " + (type === "profile" ? "profile" : "artwork") + '</button><button class="btn line" type="button" data-close>Cancel</button></div>',
       function (box, close) {
         box.querySelector("#m-go").addEventListener("click", async function () {
           var fb = needsText ? box.querySelector("#m-f").value.trim() : "";
@@ -513,7 +521,7 @@
           try {
             await M.api("review-item", { type: type, id: itemId, decision: decision, feedback: fb, notify: box.querySelector("#m-mail").checked });
             close();
-            M.toast("Saved.");
+            M.toast((type === "profile" ? "Profile" : "“" + (title || "Artwork") + "”") + (decision === "approved" ? " approved." : decision === "declined" ? " declined." : ": changes requested.") + (box.querySelector("#m-mail").checked ? " Email sent to " + artist.email + "." : ""));
             done();
           } catch (err) { M.setBusy(btn, false); m.textContent = M.friendlyError(err); m.hidden = false; }
         });
