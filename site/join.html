@@ -183,9 +183,17 @@
           </div>
 
           <div class="field">
-            <label for="additional_disciplines">Other disciplines, techniques or materials <span class="opt">optional</span></label>
-            <input id="additional_disciplines" name="additional_disciplines" type="text" maxlength="400" aria-describedby="additional_disciplines-error">
+            <label for="additional_disciplines">Other disciplines <span class="opt">optional</span></label>
+            <p class="hint" id="additional_disciplines-hint">Other kinds of art you also practise, for example canvas painting or woodwork.</p>
+            <input id="additional_disciplines" name="additional_disciplines" type="text" maxlength="400" aria-describedby="additional_disciplines-hint additional_disciplines-error">
             <p class="error" id="additional_disciplines-error"></p>
+          </div>
+
+          <div class="field">
+            <label for="techniques">Techniques and materials <span class="opt">optional</span></label>
+            <p class="hint" id="techniques-hint">How you work, for example overglaze painting, gold leaf, natural dyes or kiln firing.</p>
+            <input id="techniques" name="techniques" type="text" maxlength="400" aria-describedby="techniques-hint techniques-error">
+            <p class="error" id="techniques-error"></p>
           </div>
         </fieldset>
 

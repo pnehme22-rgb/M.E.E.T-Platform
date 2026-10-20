@@ -58,7 +58,7 @@
     var works = w.data || [];
     var approved = works.filter(function (x) { return x.status === "approved"; }).length;
     var steps = [
-      [artist.profile_status === "approved" || artist.profile_status === "submitted", "Complete your profile", "Your name, craft, biography and a profile picture.", "#/profile"],
+      [artist.profile_status === "approved" || artist.profile_status === "submitted", "Complete your profile", "Your name, main discipline, biography and a profile picture.", "#/profile"],
       [works.length > 0, "Add your first artwork", "At least one piece you made yourself, photographed in daylight.", "#/work/new"],
       [works.some(function (x) { return x.status !== "draft"; }), "Send it for review", "The team reviews each item with care and may suggest changes.", "#/works"]
     ];
@@ -99,8 +99,9 @@
       '<label class="f">Legal name <span class="opt">private, for the team only</span><input class="inp" name="legal_name" maxlength="120" value="' + esc(a.legal_name) + '"></label></div>' +
       '<div class="grid2"><label class="f">Country<input class="inp" name="country" maxlength="80" value="' + esc(a.country) + '"></label>' +
       '<label class="f">City<input class="inp" name="city" maxlength="80" value="' + esc(a.city) + '"></label></div>' +
-      '<div class="grid2"><label class="f">Craft or discipline<input class="inp" name="craft" maxlength="120" value="' + esc(a.craft) + '"></label>' +
-      '<label class="f">Techniques and materials <span class="opt">optional</span><input class="inp" name="techniques" maxlength="400" value="' + esc(a.techniques) + '"></label></div>' +
+      '<label class="f">Main discipline<span class="hint">Your main art form, for example porcelain painting.</span><input class="inp" name="craft" maxlength="120" value="' + esc(a.craft) + '"></label>' +
+      '<div class="grid2"><label class="f">Other disciplines <span class="opt">optional</span><span class="hint">Other kinds of art you also practise.</span><input class="inp" name="other_disciplines" maxlength="400" value="' + esc(a.other_disciplines || "") + '"></label>' +
+      '<label class="f">Techniques and materials <span class="opt">optional</span><span class="hint">How you work: techniques, tools, materials.</span><input class="inp" name="techniques" maxlength="400" value="' + esc(a.techniques) + '"></label></div>' +
       '<label class="f">Biography<span class="hint">What you make, how you learned it, what you are exploring now. At least 40 characters.</span>' +
       '<textarea class="inp" name="bio" rows="7" maxlength="1500">' + esc(a.bio) + "</textarea></label></div>" +
       '<div class="panel stack"><h3 style="font-size:24px">Links</h3>' +
@@ -116,7 +117,7 @@
     M.hydrateMedia(main);
 
     var form = main.querySelector("#pf");
-    var FIELDS = ["display_name", "legal_name", "country", "city", "craft", "techniques", "bio", "instagram", "website", "other_link"];
+    var FIELDS = ["display_name", "legal_name", "country", "city", "craft", "other_disciplines", "techniques", "bio", "instagram", "website", "other_link"];
     function values() { var v = {}; FIELDS.forEach(function (f) { v[f] = form.elements[f].value.trim(); }); return v; }
     function changed() { var v = values(); return FIELDS.some(function (f) { return v[f] !== (artist[f] || ""); }); }
 
@@ -141,7 +142,7 @@
       var v = values();
       var missing = [];
       if (!v.display_name) missing.push("the name shown on your profile");
-      if (!v.craft) missing.push("your craft");
+      if (!v.craft) missing.push("your main discipline");
       if (v.bio.length < 40) missing.push("a biography of at least 40 characters");
       if (!artist.avatar_path) missing.push("a profile picture");
       if (missing.length) { err.textContent = "Before sending, please add " + missing.join(", ") + "."; err.hidden = false; return; }

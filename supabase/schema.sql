@@ -55,6 +55,7 @@ create table if not exists applications (
   website                 text not null default '',
   social                  text not null default '',
   additional_disciplines  text not null default '',
+  techniques              text not null default '',
   interest_commissions    boolean not null default false,
   interest_collaboration  boolean not null default false,
   portfolio_links         text[] not null default '{}',
@@ -90,6 +91,7 @@ create table if not exists artists (
   country          text not null default '',
   city             text not null default '',
   craft            text not null default '',
+  other_disciplines text not null default '',
   techniques       text not null default '',
   bio              text not null default '' check (char_length(bio) <= 1500),
   instagram        text not null default '',
@@ -269,7 +271,7 @@ declare
   e jsonb := '{}';
   v_ip text;
   v_full text; v_artist text; v_email text; v_country text; v_city text; v_disc text; v_other text;
-  v_practice text; v_web text; v_social text; v_more text; v_heard text; v_links text[] := '{}';
+  v_practice text; v_web text; v_social text; v_more text; v_tech text; v_heard text; v_links text[] := '{}';
   l text; nl text; v_ref text; v_dup boolean;
 begin
   -- Honeypot: people never fill this. Pretend success, store nothing.
@@ -300,6 +302,7 @@ begin
   v_practice := clean_block(payload->>'practice');
   v_social   := clean_line(payload->>'social');
   v_more     := clean_line(payload->>'additional_disciplines');
+  v_tech     := clean_line(payload->>'techniques');
   v_heard    := clean_line(payload->>'heard_about');
 
   if v_full = '' then e := e || '{"full_name":"Please enter your full name."}'; end if;
@@ -324,6 +327,7 @@ begin
   if char_length(v_practice) > 1500 then e := e || '{"practice":"Please keep this under 1500 characters."}'; end if;
   if char_length(v_social) > 300 then e := e || '{"social":"Please keep this under 300 characters."}'; end if;
   if char_length(v_more) > 400 then e := e || '{"additional_disciplines":"Please keep this under 400 characters."}'; end if;
+  if char_length(v_tech) > 400 then e := e || '{"techniques":"Please keep this under 400 characters."}'; end if;
   v_heard := left(v_heard, 120);
 
   v_web := normalise_url(payload->>'website');
@@ -357,10 +361,10 @@ begin
   end loop;
 
   insert into applications (reference, full_name, artist_name, email, country, city, primary_discipline,
-    discipline_other, practice, website, social, additional_disciplines, interest_commissions,
+    discipline_other, practice, website, social, additional_disciplines, techniques, interest_commissions,
     interest_collaboration, portfolio_links, heard_about, consent_version, consent_at, possible_duplicate)
   values (v_ref, v_full, v_artist, v_email, v_country, v_city, v_disc, v_other, v_practice, v_web, v_social,
-    v_more, coalesce((payload->>'interest_commissions')::boolean, false),
+    v_more, v_tech, coalesce((payload->>'interest_commissions')::boolean, false),
     coalesce((payload->>'interest_collaboration')::boolean, false), v_links, v_heard,
     '2026-10-20', now(), v_dup);
 
@@ -437,7 +441,7 @@ begin
 end $$;
 
 drop trigger if exists artists_edit_reset on artists;
-create trigger artists_edit_reset before update of display_name, legal_name, country, city, craft, techniques, bio,
+create trigger artists_edit_reset before update of display_name, legal_name, country, city, craft, other_disciplines, techniques, bio,
   instagram, website, other_link, avatar_path, cover_path on artists
   for each row execute function artist_profile_edit_resets_review();
 
@@ -453,7 +457,7 @@ begin
   select * into a from artists where id = auth.uid();
   if not found then raise exception 'no studio for this account' using errcode = '42501'; end if;
   if a.display_name = '' or a.craft = '' or char_length(a.bio) < 40 or a.avatar_path = '' then
-    raise exception 'Please add your name, craft, a biography of at least 40 characters and a profile picture.' using errcode = '22023';
+    raise exception 'Please add your name, main discipline, a biography of at least 40 characters and a profile picture.' using errcode = '22023';
   end if;
   update artists set profile_status = 'submitted', submitted_at = now() where id = auth.uid();
   perform write_audit('profile.submit', 'artist', auth.uid()::text, '{}');
@@ -524,7 +528,7 @@ revoke all on function submit_application(jsonb) from public;
 
 grant select on team_members, applications, application_notes, audit_log to authenticated;
 grant select on artists, artworks to authenticated;
-grant update (display_name, legal_name, country, city, craft, techniques, bio, instagram, website, other_link,
+grant update (display_name, legal_name, country, city, craft, other_disciplines, techniques, bio, instagram, website, other_link,
               avatar_path, cover_path) on artists to authenticated;
 grant insert (title, year, materials, height, width, depth, unit, edition_type, edition_size, price,
               price_on_request, currency, description, images) on artworks to authenticated;
@@ -614,7 +618,7 @@ begin
       'full_name', new.full_name, 'artist_name', new.artist_name, 'email', new.email,
       'country', new.country, 'city', new.city, 'primary_discipline', new.primary_discipline,
       'discipline_other', new.discipline_other, 'practice', new.practice, 'website', new.website,
-      'social', new.social, 'additional_disciplines', new.additional_disciplines,
+      'social', new.social, 'additional_disciplines', new.additional_disciplines, 'techniques', new.techniques,
       'interest_commissions', new.interest_commissions, 'interest_collaboration', new.interest_collaboration,
       'portfolio_links', array_to_string(new.portfolio_links, E'\n'), 'heard_about', new.heard_about,
       'possible_duplicate', new.possible_duplicate, 'reviewer', coalesce(reviewer_name, ''),

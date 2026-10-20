@@ -173,7 +173,7 @@
     var res = await sb.from("applications").select("*").order("created_at", { ascending: false }).limit(10000);
     if (res.error) { fail(res.error); return; }
     var cols = ["reference", "created_at", "status", "full_name", "artist_name", "email", "country", "city", "primary_discipline",
-      "discipline_other", "practice", "website", "social", "additional_disciplines", "interest_commissions",
+      "discipline_other", "practice", "website", "social", "additional_disciplines", "techniques", "interest_commissions",
       "interest_collaboration", "portfolio_links", "heard_about", "possible_duplicate", "reviewer", "decided_at", "decision_note",
       "invited_at", "consent_version", "consent_at"];
     // Neutralise spreadsheet formulas in anything a visitor typed.
@@ -252,7 +252,8 @@
       '<span>Email</span><b><a class="link" href="mailto:' + esc(a.email) + '">' + esc(a.email) + "</a></b>" +
       "<span>Based in</span><b>" + esc(place(a)) + "</b>" +
       "<span>Main discipline</span><b>" + esc(discipline(a)) + "</b>" +
-      (a.additional_disciplines ? "<span>Also works with</span><b>" + esc(a.additional_disciplines) + "</b>" : "") +
+      (a.additional_disciplines ? "<span>Other disciplines</span><b>" + esc(a.additional_disciplines) + "</b>" : "") +
+      (a.techniques ? "<span>Techniques and materials</span><b>" + esc(a.techniques) + "</b>" : "") +
       (a.website ? '<span>Website</span><b><a class="link" href="' + esc(a.website) + '" target="_blank" rel="noopener noreferrer nofollow">' + esc(a.website.replace(/^https?:\/\//, "")) + "</a></b>" : "") +
       (socialHtml ? "<span>Social profile</span><b>" + socialHtml + "</b>" : "") +
       (links ? "<span>More links</span><b>" + links + "</b>" : "") +
@@ -461,7 +462,9 @@
       '<div class="row" style="gap:18px;align-items:flex-start">' +
       (a.avatar_path ? '<img class="avatar-lg" alt="Profile picture" data-media="' + esc(a.avatar_path) + '">' : '<span class="av" style="width:120px;height:120px;font-size:30px">' + esc(M.initials(a.display_name)) + "</span>") +
       '<div class="kv" style="flex:1;min-width:240px"><span>Legal name</span><b>' + esc(a.legal_name) + "</b><span>Shown as</span><b>" + esc(a.display_name) + "</b>" +
-      "<span>Craft</span><b>" + esc(a.craft) + "</b>" + (a.techniques ? "<span>Techniques</span><b>" + esc(a.techniques) + "</b>" : "") +
+      "<span>Main discipline</span><b>" + esc(a.craft) + "</b>" +
+      (a.other_disciplines ? "<span>Other disciplines</span><b>" + esc(a.other_disciplines) + "</b>" : "") +
+      (a.techniques ? "<span>Techniques and materials</span><b>" + esc(a.techniques) + "</b>" : "") +
       (a.instagram ? "<span>Instagram</span><b>" + esc(a.instagram) + "</b>" : "") +
       (a.website ? '<span>Website</span><b><a class="link" href="' + esc(a.website) + '" target="_blank" rel="noopener noreferrer nofollow">' + esc(a.website) + "</a></b>" : "") +
       (a.other_link ? '<span>Other link</span><b>' + esc(a.other_link) + "</b>" : "") + "</div></div>" +

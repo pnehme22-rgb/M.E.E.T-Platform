@@ -32,6 +32,7 @@
     discipline_other: "Describe your discipline",
     practice: "Your practice",
     additional_disciplines: "Other disciplines",
+    techniques: "Techniques and materials",
     website: "Website",
     social: "Professional profile",
     portfolio_links: "More links",
@@ -39,7 +40,7 @@
   };
 
   var TEXT_FIELDS = ["full_name", "artist_name", "email", "country", "city", "primary_discipline",
-    "discipline_other", "practice", "additional_disciplines", "website", "social",
+    "discipline_other", "practice", "additional_disciplines", "techniques", "website", "social",
     "portfolio_links", "heard_about"];
   var CHECK_FIELDS = ["interest_commissions", "interest_collaboration", "consent_privacy"];
 

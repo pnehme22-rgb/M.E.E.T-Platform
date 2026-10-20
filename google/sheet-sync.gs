@@ -19,8 +19,8 @@ var SHEET_NAME = 'Applications';
 var COLUMNS = [
   ['reference', 'Reference'], ['status', 'Status'], ['created_at', 'Received'], ['artist_name', 'Artist name'],
   ['full_name', 'Full name'], ['email', 'Email'], ['country', 'Country'], ['city', 'City'],
-  ['primary_discipline', 'Main discipline'], ['discipline_other', 'Other discipline'], ['practice', 'Practice'],
-  ['additional_disciplines', 'Also works with'], ['website', 'Website'], ['social', 'Social profile'],
+  ['primary_discipline', 'Main discipline'], ['discipline_other', 'Discipline (if Other)'], ['practice', 'Practice'],
+  ['additional_disciplines', 'Other disciplines'], ['techniques', 'Techniques and materials'], ['website', 'Website'], ['social', 'Social profile'],
   ['portfolio_links', 'More links'], ['interest_commissions', 'Open to commissions'],
   ['interest_collaboration', 'Open to collaboration'], ['heard_about', 'Found M.E.E.T. through'],
   ['possible_duplicate', 'Applied before'], ['reviewer', 'Reviewer'], ['decided_at', 'Decided'],
