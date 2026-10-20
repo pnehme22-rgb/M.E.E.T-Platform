@@ -25,6 +25,11 @@
       err.hidden = false;
       return;
     }
+    if (r.error && (r.error.status >= 500 || /sending|smtp/i.test(r.error.message))) {
+      err.textContent = "We could not send the email just now. Please try again in a few minutes, or write to minds.exploring.traditions@gmail.com and we will help you.";
+      err.hidden = false;
+      return;
+    }
     if (r.error && /rate|too many/i.test(r.error.message)) {
       err.textContent = "Too many requests. Please wait a few minutes and try again.";
       err.hidden = false;
