@@ -1,0 +1,7 @@
+User-agent: *
+Disallow: /signin
+Disallow: /welcome
+Disallow: /reset
+Disallow: /team
+Disallow: /studio
+Disallow: /prototype

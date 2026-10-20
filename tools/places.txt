@@ -1,0 +1,222 @@
+# Countries and cities for the registration form suggestions.
+# One country per line:  Country name [alias, alias] | City; City; City
+# Edit freely, then run:  python3 tools/build_places.py
+# Artists can always type a city that is not listed.
+
+Afghanistan | Kabul; Kandahar; Herat; Mazar-i-Sharif; Jalalabad; Kunduz; Ghazni; Bamyan
+Albania | Tirana; Durrës; Vlorë; Shkodër; Elbasan; Korçë; Berat; Gjirokastër; Sarandë
+Algeria | Algiers; Oran; Constantine; Annaba; Blida; Batna; Sétif; Tlemcen; Béjaïa; Ghardaïa; Tamanrasset
+Andorra | Andorra la Vella; Escaldes-Engordany; Encamp; La Massana
+Angola | Luanda; Huambo; Lobito; Benguela; Lubango; Namibe; Cabinda; Malanje
+Antigua and Barbuda | St. John's; All Saints; Codrington
+Argentina | Buenos Aires; Córdoba; Rosario; Mendoza; La Plata; San Miguel de Tucumán; Mar del Plata; Salta; Santa Fe; San Juan; Neuquén; Bariloche; Ushuaia; Posadas; Corrientes; Bahía Blanca; Jujuy
+Armenia | Yerevan; Gyumri; Vanadzor; Vagharshapat; Dilijan; Goris
+Australia | Sydney; Melbourne; Brisbane; Perth; Adelaide; Canberra; Hobart; Darwin; Gold Coast; Newcastle; Wollongong; Geelong; Cairns; Townsville; Alice Springs; Byron Bay; Fremantle; Launceston; Ballarat; Bendigo
+Austria | Vienna; Graz; Linz; Salzburg; Innsbruck; Klagenfurt; Villach; Wels; St. Pölten; Dornbirn; Bregenz; Hallstatt
+Azerbaijan | Baku; Ganja; Sumqayit; Lankaran; Shaki; Shamakhi; Quba; Nakhchivan
+Bahamas | Nassau; Freeport; Marsh Harbour
+Bahrain | Manama; Muharraq; Riffa; Hamad Town; Isa Town; Sitra
+Bangladesh | Dhaka; Chittagong; Khulna; Rajshahi; Sylhet; Barisal; Rangpur; Comilla; Mymensingh; Cox's Bazar
+Barbados | Bridgetown; Speightstown; Oistins; Holetown
+Belarus | Minsk; Gomel; Mogilev; Vitebsk; Grodno; Brest
+Belgium | Brussels; Antwerp; Ghent; Bruges; Liège; Leuven; Namur; Charleroi; Mechelen; Mons; Ostend; Hasselt; Kortrijk
+Belize | Belize City; Belmopan; San Ignacio; Orange Walk; Dangriga; San Pedro
+Benin | Porto-Novo; Cotonou; Parakou; Abomey; Ouidah; Djougou; Bohicon; Natitingou
+Bhutan | Thimphu; Paro; Punakha; Phuntsholing; Bumthang; Trongsa
+Bolivia | La Paz; Santa Cruz de la Sierra; Cochabamba; Sucre; El Alto; Oruro; Potosí; Tarija; Trinidad
+Bosnia and Herzegovina [Bosnia] | Sarajevo; Banja Luka; Mostar; Tuzla; Zenica; Bihać; Travnik
+Botswana | Gaborone; Francistown; Maun; Molepolole; Serowe; Kasane
+Brazil | São Paulo; Rio de Janeiro; Brasília; Salvador; Fortaleza; Belo Horizonte; Manaus; Curitiba; Recife; Porto Alegre; Belém; Goiânia; Florianópolis; Natal; Maceió; João Pessoa; Campinas; Santos; Vitória; Ouro Preto; Paraty; Olinda; São Luís; Cuiabá; Campo Grande; Teresina; Aracaju
+Brunei | Bandar Seri Begawan; Kuala Belait; Seria; Tutong
+Bulgaria | Sofia; Plovdiv; Varna; Burgas; Ruse; Stara Zagora; Veliko Tarnovo; Pleven; Bansko; Sozopol
+Burkina Faso | Ouagadougou; Bobo-Dioulasso; Koudougou; Banfora; Ouahigouya; Kaya
+Burundi | Gitega; Bujumbura; Ngozi; Muyinga; Rumonge
+Cabo Verde [Cape Verde] | Praia; Mindelo; Santa Maria; Assomada; Espargos
+Cambodia | Phnom Penh; Siem Reap; Battambang; Sihanoukville; Kampot; Kampong Cham; Kep
+Cameroon | Yaoundé; Douala; Bamenda; Bafoussam; Garoua; Maroua; Ngaoundéré; Kribi; Limbe; Foumban; Buea
+Canada | Toronto; Montreal; Vancouver; Calgary; Edmonton; Ottawa; Winnipeg; Quebec City; Hamilton; Halifax; Victoria; Saskatoon; Regina; St. John's; Kitchener; London; Mississauga; Kelowna; Fredericton; Charlottetown; Whitehorse; Yellowknife; Iqaluit
+Central African Republic | Bangui; Bimbo; Berbérati; Carnot; Bambari; Bouar
+Chad | N'Djamena; Moundou; Abéché; Sarh; Kélo
+Chile | Santiago; Valparaíso; Viña del Mar; Concepción; Antofagasta; La Serena; Temuco; Puerto Montt; Arica; Iquique; Punta Arenas; Valdivia; San Pedro de Atacama; Rancagua; Talca
+China | Beijing; Shanghai; Guangzhou; Shenzhen; Chengdu; Chongqing; Tianjin; Wuhan; Hangzhou; Xi'an; Nanjing; Suzhou; Qingdao; Dalian; Xiamen; Kunming; Changsha; Shenyang; Harbin; Zhengzhou; Jinan; Fuzhou; Hefei; Nanning; Guilin; Lhasa; Ürümqi; Kashgar; Jingdezhen; Dunhuang; Lijiang; Dali; Yangshuo; Datong; Pingyao; Luoyang; Kaifeng; Hohhot; Lanzhou; Xining; Guiyang; Haikou; Sanya; Ningbo; Wuxi; Foshan; Dongguan; Shantou
+Colombia | Bogotá; Medellín; Cali; Barranquilla; Cartagena; Cúcuta; Bucaramanga; Pereira; Santa Marta; Manizales; Ibagué; Pasto; Villavicencio; Popayán; Armenia; Leticia
+Comoros | Moroni; Mutsamudu; Fomboni
+Congo [Republic of the Congo, Congo-Brazzaville] | Brazzaville; Pointe-Noire; Dolisie; Nkayi; Owando
+Costa Rica | San José; Alajuela; Cartago; Heredia; Limón; Puntarenas; Liberia; Puerto Viejo; Tamarindo
+Côte d'Ivoire [Ivory Coast, Cote d'Ivoire] | Abidjan; Yamoussoukro; Bouaké; Daloa; San-Pédro; Korhogo; Man; Grand-Bassam
+Croatia | Zagreb; Split; Rijeka; Osijek; Zadar; Pula; Dubrovnik; Šibenik; Varaždin; Rovinj; Hvar; Korčula
+Cuba | Havana; Santiago de Cuba; Camagüey; Holguín; Santa Clara; Guantánamo; Matanzas; Cienfuegos; Trinidad; Pinar del Río; Bayamo; Varadero
+Cyprus | Nicosia; Limassol; Larnaca; Paphos; Famagusta; Kyrenia; Ayia Napa
+Czechia [Czech Republic] | Prague; Brno; Ostrava; Plzeň; Liberec; Olomouc; České Budějovice; Hradec Králové; Český Krumlov; Karlovy Vary; Kutná Hora
+Democratic Republic of the Congo [DRC, DR Congo, Congo-Kinshasa] | Kinshasa; Lubumbashi; Mbuji-Mayi; Kisangani; Kananga; Goma; Bukavu; Kolwezi; Likasi; Matadi
+Denmark | Copenhagen; Aarhus; Odense; Aalborg; Esbjerg; Roskilde; Helsingør; Vejle; Kolding; Skagen
+Djibouti | Djibouti City; Ali Sabieh; Tadjourah; Obock; Dikhil
+Dominica | Roseau; Portsmouth; Marigot
+Dominican Republic | Santo Domingo; Santiago de los Caballeros; La Romana; San Pedro de Macorís; Puerto Plata; Punta Cana; La Vega; San Cristóbal
+Ecuador | Quito; Guayaquil; Cuenca; Santo Domingo; Machala; Manta; Portoviejo; Ambato; Loja; Riobamba; Otavalo; Ibarra; Esmeraldas
+Egypt | Cairo; Alexandria; Giza; Luxor; Aswan; Port Said; Suez; Ismailia; Mansoura; Tanta; Asyut; Faiyum; Hurghada; Sharm El Sheikh; Dahab; Siwa; Minya; Zagazig; Damietta; El Gouna; Marsa Alam
+El Salvador | San Salvador; Santa Ana; San Miguel; Soyapango; Santa Tecla; La Libertad; Suchitoto
+Equatorial Guinea | Malabo; Bata; Ebebiyín; Mongomo; Ciudad de la Paz
+Eritrea | Asmara; Keren; Massawa; Assab; Mendefera
+Estonia | Tallinn; Tartu; Narva; Pärnu; Viljandi; Haapsalu; Kuressaare
+Eswatini [Swaziland] | Mbabane; Manzini; Lobamba; Siteki; Nhlangano
+Ethiopia | Addis Ababa; Dire Dawa; Mekelle; Gondar; Bahir Dar; Hawassa; Adama; Jimma; Dessie; Harar; Lalibela; Axum; Arba Minch
+Fiji | Suva; Nadi; Lautoka; Labasa; Savusavu; Levuka
+Finland | Helsinki; Espoo; Tampere; Vantaa; Turku; Oulu; Jyväskylä; Lahti; Kuopio; Pori; Rovaniemi; Porvoo; Joensuu; Vaasa
+France | Paris; Marseille; Lyon; Toulouse; Nice; Nantes; Strasbourg; Montpellier; Bordeaux; Lille; Rennes; Reims; Toulon; Grenoble; Dijon; Angers; Nîmes; Aix-en-Provence; Avignon; Arles; Cannes; Limoges; Tours; Rouen; Le Havre; Caen; Brest; Clermont-Ferrand; Metz; Nancy; Besançon; Perpignan; Orléans; Poitiers; La Rochelle; Biarritz; Bayonne; Annecy; Chamonix; Colmar; Vallauris; Sèvres; Aubusson; Ajaccio; Bastia
+Gabon | Libreville; Port-Gentil; Franceville; Oyem; Moanda; Lambaréné
+Gambia [The Gambia] | Banjul; Serekunda; Brikama; Bakau; Farafenni; Janjanbureh
+Georgia | Tbilisi; Batumi; Kutaisi; Rustavi; Zugdidi; Gori; Telavi; Sighnaghi; Mtskheta; Borjomi
+Germany | Berlin; Hamburg; Munich; Cologne; Frankfurt; Stuttgart; Düsseldorf; Leipzig; Dortmund; Essen; Bremen; Dresden; Hanover; Nuremberg; Duisburg; Bochum; Wuppertal; Bielefeld; Bonn; Münster; Karlsruhe; Mannheim; Augsburg; Wiesbaden; Mainz; Kiel; Lübeck; Rostock; Freiburg; Heidelberg; Potsdam; Weimar; Erfurt; Kassel; Halle; Magdeburg; Regensburg; Würzburg; Aachen; Trier; Meissen; Bamberg; Passau; Konstanz; Göttingen; Jena
+Ghana | Accra; Kumasi; Tamale; Takoradi; Cape Coast; Sunyani; Koforidua; Ho; Tema; Bolgatanga; Wa; Bonwire
+Greece | Athens; Thessaloniki; Patras; Heraklion; Larissa; Volos; Ioannina; Chania; Rhodes; Kalamata; Corfu; Nafplio; Mykonos; Santorini; Kavala; Alexandroupoli; Hydra; Delphi
+Grenada | St. George's; Gouyave; Grenville; Hillsborough
+Guatemala | Guatemala City; Quetzaltenango; Antigua Guatemala; Escuintla; Cobán; Flores; Chichicastenango; Panajachel; Huehuetenango; Puerto Barrios
+Guinea | Conakry; Nzérékoré; Kankan; Kindia; Labé; Mamou; Boké
+Guinea-Bissau | Bissau; Bafatá; Gabú; Bolama; Cacheu
+Guyana | Georgetown; Linden; New Amsterdam; Bartica; Lethem
+Haiti | Port-au-Prince; Cap-Haïtien; Jacmel; Gonaïves; Les Cayes; Pétion-Ville; Jérémie
+Honduras | Tegucigalpa; San Pedro Sula; La Ceiba; Choloma; Comayagua; Copán Ruinas; Roatán; Puerto Cortés
+Hungary | Budapest; Debrecen; Szeged; Miskolc; Pécs; Győr; Nyíregyháza; Kecskemét; Székesfehérvár; Eger; Sopron; Szentendre; Herend
+Iceland | Reykjavík; Akureyri; Hafnarfjörður; Kópavogur; Reykjanesbær; Selfoss; Ísafjörður; Seyðisfjörður; Húsavík
+India | New Delhi; Delhi; Mumbai; Bengaluru; Kolkata; Chennai; Hyderabad; Ahmedabad; Pune; Jaipur; Surat; Lucknow; Kanpur; Nagpur; Indore; Bhopal; Patna; Vadodara; Ludhiana; Agra; Varanasi; Kochi; Thiruvananthapuram; Kozhikode; Coimbatore; Madurai; Mysuru; Mangaluru; Visakhapatnam; Vijayawada; Bhubaneswar; Puri; Guwahati; Shillong; Imphal; Chandigarh; Amritsar; Dehradun; Rishikesh; Shimla; Dharamshala; Srinagar; Leh; Jammu; Udaipur; Jodhpur; Jaisalmer; Bikaner; Ajmer; Pushkar; Goa; Panaji; Pondicherry; Raipur; Ranchi; Kutch; Bhuj; Rajkot; Nashik; Aurangabad; Kolhapur; Hampi; Khajuraho; Gwalior; Moradabad; Kanchipuram; Thanjavur; Darjeeling; Gangtok; Siliguri; Allahabad; Jabalpur
+Indonesia | Jakarta; Surabaya; Bandung; Medan; Semarang; Makassar; Palembang; Denpasar; Ubud; Yogyakarta; Solo; Malang; Bogor; Batam; Pekanbaru; Padang; Banjarmasin; Balikpapan; Pontianak; Manado; Mataram; Kupang; Jayapura; Ambon; Banda Aceh; Pekalongan; Cirebon; Jepara; Magelang
+Iran | Tehran; Mashhad; Isfahan; Karaj; Shiraz; Tabriz; Qom; Ahvaz; Kermanshah; Urmia; Rasht; Zahedan; Kerman; Yazd; Hamadan; Ardabil; Bandar Abbas; Kashan; Qazvin; Sanandaj; Kish
+Iraq | Baghdad; Basra; Mosul; Erbil; Sulaymaniyah; Najaf; Karbala; Kirkuk; Nasiriyah; Duhok; Ramadi; Samarra
+Ireland | Dublin; Cork; Limerick; Galway; Waterford; Kilkenny; Drogheda; Dundalk; Sligo; Killarney; Wexford; Athlone; Letterkenny; Dingle
+Israel | Jerusalem; Tel Aviv; Haifa; Rishon LeZion; Petah Tikva; Ashdod; Netanya; Beersheba; Holon; Eilat; Nazareth; Acre; Safed; Tiberias; Jaffa
+Italy | Rome; Milan; Naples; Turin; Palermo; Genoa; Bologna; Florence; Bari; Catania; Venice; Verona; Messina; Padua; Trieste; Brescia; Parma; Modena; Reggio Calabria; Perugia; Livorno; Cagliari; Ravenna; Rimini; Salerno; Ferrara; Siena; Pisa; Lucca; Bergamo; Como; Lecce; Matera; Urbino; Faenza; Deruta; Murano; Assisi; Orvieto; Mantua; Cremona; Sorrento; Amalfi; Syracuse; Trapani; Bolzano; Trento; Udine; Ancona; Pescara; L'Aquila; Caltagirone; Vietri sul Mare
+Jamaica | Kingston; Montego Bay; Spanish Town; Portmore; Ocho Rios; Negril; Mandeville; Port Antonio
+Japan | Tokyo; Osaka; Kyoto; Yokohama; Nagoya; Sapporo; Kobe; Fukuoka; Kawasaki; Hiroshima; Sendai; Kitakyushu; Chiba; Sakai; Niigata; Hamamatsu; Kumamoto; Okayama; Shizuoka; Kagoshima; Nagasaki; Kanazawa; Nara; Naha; Matsuyama; Takamatsu; Kochi; Nikko; Kamakura; Hakone; Takayama; Matsumoto; Mashiko; Arita; Hagi; Seto; Tokoname; Shigaraki; Bizen; Imari; Karatsu; Kurashiki; Himeji; Gifu; Toyama; Aomori; Morioka; Akita; Yamagata; Fukushima; Utsunomiya; Wakayama; Tottori; Matsue; Oita; Miyazaki; Okinawa
+Jordan | Amman; Zarqa; Irbid; Aqaba; Madaba; Salt; Jerash; Karak; Mafraq; Ajloun; Petra; Wadi Musa
+Kazakhstan | Astana; Almaty; Shymkent; Karaganda; Aktobe; Taraz; Pavlodar; Ust-Kamenogorsk; Semey; Atyrau; Kostanay; Turkistan
+Kenya | Nairobi; Mombasa; Kisumu; Nakuru; Eldoret; Malindi; Lamu; Thika; Nyeri; Naivasha; Kitale; Machakos; Diani
+Kiribati | South Tarawa; Betio; Bikenibeu
+Kosovo | Pristina; Prizren; Peja; Gjakova; Mitrovica; Ferizaj; Gjilan
+Kuwait | Kuwait City; Hawalli; Salmiya; Jahra; Ahmadi; Fahaheel; Farwaniya; Mubarak Al-Kabeer
+Kyrgyzstan | Bishkek; Osh; Jalal-Abad; Karakol; Tokmok; Naryn; Talas; Cholpon-Ata
+Laos | Vientiane; Luang Prabang; Pakse; Savannakhet; Vang Vieng; Thakhek; Phonsavan
+Latvia | Riga; Daugavpils; Liepāja; Jelgava; Jūrmala; Ventspils; Cēsis; Sigulda
+Lebanon | Beirut; Tripoli; Sidon; Tyre; Byblos; Jounieh; Zahle; Baalbek; Batroun; Nabatieh; Aley; Broummana; Deir el Qamar; Ehden; Jbeil; Baabda; Bikfaya; Zgharta
+Lesotho | Maseru; Teyateyaneng; Mafeteng; Hlotse; Mohale's Hoek; Roma
+Liberia | Monrovia; Gbarnga; Buchanan; Kakata; Harper; Voinjama; Zwedru
+Libya | Tripoli; Benghazi; Misrata; Zawiya; Bayda; Tobruk; Sabha; Ghadames; Derna; Sirte
+Liechtenstein | Vaduz; Schaan; Triesen; Balzers; Eschen
+Lithuania | Vilnius; Kaunas; Klaipėda; Šiauliai; Panevėžys; Alytus; Trakai; Palanga; Nida
+Luxembourg | Luxembourg City; Esch-sur-Alzette; Differdange; Dudelange; Ettelbruck; Diekirch; Echternach; Vianden
+Madagascar | Antananarivo; Toamasina; Antsirabe; Fianarantsoa; Mahajanga; Toliara; Antsiranana; Nosy Be; Morondava
+Malawi | Lilongwe; Blantyre; Mzuzu; Zomba; Kasungu; Mangochi; Salima; Karonga
+Malaysia | Kuala Lumpur; George Town; Penang; Johor Bahru; Ipoh; Shah Alam; Petaling Jaya; Kuching; Kota Kinabalu; Malacca; Kota Bharu; Kuala Terengganu; Alor Setar; Seremban; Kuantan; Miri; Sandakan; Putrajaya; Langkawi
+Maldives | Malé; Addu City; Fuvahmulah; Kulhudhuffushi; Thinadhoo; Hulhumalé
+Mali | Bamako; Sikasso; Mopti; Ségou; Kayes; Koutiala; Timbuktu; Djenné; Gao; Kidal
+Malta | Valletta; Birkirkara; Sliema; St. Julian's; Mdina; Rabat; Mosta; Qormi; Żabbar; Victoria; Gozo
+Marshall Islands | Majuro; Ebeye; Jaluit
+Mauritania | Nouakchott; Nouadhibou; Kiffa; Kaédi; Rosso; Atar; Chinguetti; Ouadane
+Mauritius | Port Louis; Curepipe; Quatre Bornes; Vacoas-Phoenix; Rose Hill; Mahébourg; Grand Baie; Flic en Flac
+Mexico | Mexico City; Guadalajara; Monterrey; Puebla; Tijuana; León; Juárez; Zapopan; Mérida; San Luis Potosí; Aguascalientes; Querétaro; Chihuahua; Morelia; Hermosillo; Saltillo; Culiacán; Toluca; Cancún; Acapulco; Veracruz; Xalapa; Oaxaca; Tuxtla Gutiérrez; San Cristóbal de las Casas; Villahermosa; Campeche; Chetumal; Tulum; Playa del Carmen; Mazatlán; Puerto Vallarta; Guanajuato; San Miguel de Allende; Zacatecas; Durango; Cuernavaca; Taxco; Pachuca; Tlaquepaque; Tonalá; Ensenada; La Paz; Los Cabos; Tepic; Colima; Tlaxcala
+Micronesia | Palikir; Weno; Kolonia; Tofol; Colonia
+Moldova | Chișinău; Bălți; Tiraspol; Bender; Cahul; Ungheni; Orhei
+Monaco | Monaco; Monte Carlo; La Condamine; Fontvieille
+Mongolia | Ulaanbaatar; Erdenet; Darkhan; Choibalsan; Mörön; Khovd; Ölgii; Kharkhorin
+Montenegro | Podgorica; Nikšić; Herceg Novi; Bar; Budva; Kotor; Cetinje; Ulcinj; Tivat
+Morocco | Rabat; Casablanca; Marrakesh; Fez; Tangier; Agadir; Meknes; Oujda; Kenitra; Tetouan; Essaouira; Chefchaouen; Ouarzazate; Safi; El Jadida; Nador; Beni Mellal; Laayoune; Dakhla; Ifrane; Asilah; Taroudant; Tiznit; Merzouga; Zagora; Errachidia
+Mozambique | Maputo; Matola; Beira; Nampula; Chimoio; Quelimane; Tete; Pemba; Inhambane; Lichinga; Xai-Xai
+Myanmar [Burma] | Yangon; Mandalay; Naypyidaw; Bagan; Mawlamyine; Taunggyi; Bago; Pathein; Sittwe; Myitkyina; Inle Lake; Hpa-An
+Namibia | Windhoek; Walvis Bay; Swakopmund; Rundu; Oshakati; Katima Mulilo; Rehoboth; Lüderitz; Keetmanshoop; Otjiwarongo
+Nauru | Yaren; Denigomodu; Aiwo
+Nepal | Kathmandu; Pokhara; Lalitpur; Patan; Bhaktapur; Biratnagar; Birgunj; Dharan; Bharatpur; Butwal; Janakpur; Nepalgunj; Lumbini
+Netherlands [Holland] | Amsterdam; Rotterdam; The Hague; Utrecht; Eindhoven; Groningen; Tilburg; Almere; Breda; Nijmegen; Arnhem; Haarlem; Maastricht; Leiden; Delft; Zwolle; 's-Hertogenbosch; Leeuwarden; Gouda; Enschede; Apeldoorn; Makkum
+New Zealand | Auckland; Wellington; Christchurch; Hamilton; Tauranga; Dunedin; Palmerston North; Napier; Nelson; Rotorua; New Plymouth; Whangārei; Invercargill; Queenstown; Gisborne; Whanganui
+Nicaragua | Managua; León; Masaya; Granada; Matagalpa; Estelí; Chinandega; Bluefields; San Juan del Sur
+Niger | Niamey; Zinder; Maradi; Agadez; Tahoua; Dosso; Diffa
+Nigeria | Lagos; Abuja; Kano; Ibadan; Port Harcourt; Benin City; Kaduna; Enugu; Onitsha; Aba; Jos; Ilorin; Abeokuta; Oshogbo; Ife; Calabar; Uyo; Owerri; Warri; Maiduguri; Sokoto; Zaria; Bida; Yola; Akure; Asaba
+North Korea | Pyongyang; Hamhung; Chongjin; Nampo; Wonsan; Kaesong; Sinuiju
+North Macedonia [Macedonia] | Skopje; Bitola; Kumanovo; Prilep; Tetovo; Ohrid; Veles; Štip; Struga
+Norway | Oslo; Bergen; Trondheim; Stavanger; Drammen; Fredrikstad; Kristiansand; Tromsø; Sandnes; Ålesund; Bodø; Lillehammer; Tønsberg; Hamar; Molde; Svolvær
+Oman | Muscat; Seeb; Salalah; Sohar; Nizwa; Sur; Ibri; Buraimi; Barka; Rustaq; Khasab; Duqm; Bahla
+Pakistan | Karachi; Lahore; Islamabad; Rawalpindi; Faisalabad; Multan; Peshawar; Quetta; Hyderabad; Gujranwala; Sialkot; Bahawalpur; Sargodha; Sukkur; Larkana; Abbottabad; Mardan; Gilgit; Skardu; Hunza; Muzaffarabad; Gwadar; Thatta; Hala
+Palau | Ngerulmud; Koror; Airai; Melekeok
+Palestine [State of Palestine, West Bank, Gaza] | Jerusalem; Ramallah; Gaza; Hebron; Nablus; Bethlehem; Jenin; Jericho; Tulkarm; Qalqilya; Khan Yunis; Rafah; Beit Sahour; Beit Jala
+Panama | Panama City; Colón; David; Santiago de Veraguas; Chitré; Boquete; Bocas del Toro; La Chorrera; Penonomé
+Papua New Guinea | Port Moresby; Lae; Mount Hagen; Madang; Goroka; Wewak; Kokopo; Kimbe; Alotau
+Paraguay | Asunción; Ciudad del Este; San Lorenzo; Luque; Capiatá; Encarnación; Concepción; Pedro Juan Caballero; Areguá; Itauguá
+Peru | Lima; Arequipa; Trujillo; Chiclayo; Piura; Cusco; Iquitos; Huancayo; Tacna; Ica; Pucallpa; Cajamarca; Puno; Ayacucho; Chimbote; Huaraz; Huánuco; Juliaca; Tarapoto; Puerto Maldonado; Nazca; Paracas
+Philippines | Manila; Quezon City; Davao City; Cebu City; Makati; Pasig; Taguig; Zamboanga City; Cagayan de Oro; Iloilo City; Bacolod; General Santos; Baguio; Angeles City; Dumaguete; Tacloban; Puerto Princesa; Vigan; Legazpi; Naga; Batangas; Butuan; Laoag
+Poland | Warsaw; Kraków; Łódź; Wrocław; Poznań; Gdańsk; Szczecin; Bydgoszcz; Lublin; Białystok; Katowice; Gdynia; Częstochowa; Radom; Toruń; Sopot; Kielce; Rzeszów; Olsztyn; Opole; Zakopane; Bolesławiec; Zielona Góra
+Portugal | Lisbon; Porto; Braga; Coimbra; Funchal; Faro; Aveiro; Évora; Setúbal; Guimarães; Viseu; Leiria; Sintra; Cascais; Ponta Delgada; Lagos; Tavira; Óbidos; Caldas da Rainha; Viana do Castelo; Barcelos; Estremoz; Nazaré
+Qatar | Doha; Al Rayyan; Al Wakrah; Al Khor; Lusail; Umm Salal; Al Shamal; Dukhan; Mesaieed
+Romania | Bucharest; Cluj-Napoca; Timișoara; Iași; Constanța; Craiova; Brașov; Galați; Ploiești; Oradea; Sibiu; Arad; Pitești; Bacău; Suceava; Sighișoara; Baia Mare; Târgu Mureș; Alba Iulia; Horezu
+Russia | Moscow; Saint Petersburg; Novosibirsk; Yekaterinburg; Kazan; Nizhny Novgorod; Chelyabinsk; Samara; Omsk; Rostov-on-Don; Ufa; Krasnoyarsk; Voronezh; Perm; Volgograd; Krasnodar; Sochi; Kaliningrad; Vladivostok; Irkutsk; Khabarovsk; Yaroslavl; Tula; Tver; Vladimir; Suzdal; Veliky Novgorod; Pskov; Murmansk; Arkhangelsk; Astrakhan; Makhachkala; Grozny; Yakutsk; Gzhel; Palekh
+Rwanda | Kigali; Butare; Huye; Gisenyi; Rubavu; Musanze; Muhanga; Rwamagana; Kibuye
+Saint Kitts and Nevis | Basseterre; Charlestown; Sandy Point Town
+Saint Lucia | Castries; Soufrière; Vieux Fort; Gros Islet; Dennery
+Saint Vincent and the Grenadines | Kingstown; Georgetown; Barrouallie; Port Elizabeth
+Samoa | Apia; Asau; Salelologa; Mulifanua
+San Marino | San Marino; Serravalle; Borgo Maggiore; Domagnano
+São Tomé and Príncipe [Sao Tome] | São Tomé; Santo António; Neves; Trindade
+Saudi Arabia [KSA] | Riyadh; Jeddah; Mecca; Medina; Dammam; Khobar; Dhahran; Taif; Tabuk; Abha; Buraidah; Khamis Mushait; Hail; Najran; Jazan; Al Ahsa; Hofuf; Jubail; Yanbu; Al Ula; Al Baha; Arar; Sakaka; Unaizah; Diriyah; Qatif; NEOM
+Senegal | Dakar; Touba; Thiès; Saint-Louis; Kaolack; Ziguinchor; Mbour; Rufisque; Saly; Gorée; Tambacounda; Kolda
+Serbia | Belgrade; Novi Sad; Niš; Kragujevac; Subotica; Zrenjanin; Pančevo; Čačak; Novi Pazar; Kraljevo; Sombor
+Seychelles | Victoria; Anse Boileau; Beau Vallon; La Digue; Praslin
+Sierra Leone | Freetown; Bo; Kenema; Makeni; Koidu; Lunsar
+Singapore | Singapore
+Slovakia | Bratislava; Košice; Prešov; Žilina; Nitra; Banská Bystrica; Trnava; Trenčín; Martin; Poprad; Banská Štiavnica; Modra
+Slovenia | Ljubljana; Maribor; Celje; Kranj; Koper; Novo Mesto; Velenje; Ptuj; Piran; Bled; Nova Gorica
+Solomon Islands | Honiara; Auki; Gizo; Buala
+Somalia | Mogadishu; Hargeisa; Bosaso; Kismayo; Berbera; Baidoa; Garowe; Galkayo; Beledweyne
+South Africa | Johannesburg; Cape Town; Durban; Pretoria; Port Elizabeth; Gqeberha; Bloemfontein; East London; Pietermaritzburg; Polokwane; Nelspruit; Mbombela; Kimberley; Rustenburg; Soweto; Stellenbosch; Franschhoek; George; Knysna; Grahamstown; Makhanda; Paarl; Mthatha; Hermanus
+South Korea [Korea, Republic of Korea] | Seoul; Busan; Incheon; Daegu; Daejeon; Gwangju; Ulsan; Suwon; Changwon; Seongnam; Goyang; Yongin; Jeonju; Cheongju; Jeju; Gyeongju; Andong; Icheon; Yeoju; Gangneung; Sokcho; Chuncheon; Pohang; Tongyeong; Mokpo; Gimhae
+South Sudan | Juba; Wau; Malakal; Yei; Aweil; Bor; Rumbek; Torit
+Spain | Madrid; Barcelona; Valencia; Seville; Zaragoza; Málaga; Murcia; Palma; Las Palmas; Bilbao; Alicante; Córdoba; Valladolid; Vigo; Gijón; Granada; A Coruña; Vitoria-Gasteiz; Santa Cruz de Tenerife; Pamplona; Almería; San Sebastián; Santander; Burgos; Salamanca; Toledo; Cádiz; Jerez de la Frontera; Oviedo; León; Girona; Tarragona; Cáceres; Segovia; Ávila; Cuenca; Santiago de Compostela; Ibiza; Marbella; Ronda; Úbeda; Manises; Talavera de la Reina; La Bisbal; Teruel; Logroño; Huelva; Badajoz; Lleida
+Sri Lanka | Colombo; Kandy; Galle; Jaffna; Negombo; Sri Jayawardenepura Kotte; Trincomalee; Batticaloa; Anuradhapura; Matara; Nuwara Eliya; Ella; Kurunegala; Ratnapura; Badulla; Dehiwala-Mount Lavinia
+Sudan | Khartoum; Omdurman; Port Sudan; Kassala; El Obeid; Nyala; Wad Madani; Al-Fashir; Atbara; Dongola; Gedaref
+Suriname | Paramaribo; Lelydorp; Nieuw Nickerie; Moengo; Albina
+Sweden | Stockholm; Gothenburg; Malmö; Uppsala; Västerås; Örebro; Linköping; Helsingborg; Jönköping; Norrköping; Lund; Umeå; Gävle; Visby; Kiruna; Kalmar; Växjö; Luleå; Karlskrona; Falun
+Switzerland | Zurich; Geneva; Basel; Lausanne; Bern; Winterthur; Lucerne; St. Gallen; Lugano; Biel/Bienne; Thun; Fribourg; Neuchâtel; Chur; Sion; Montreux; Locarno; Zug; Interlaken; La Chaux-de-Fonds
+Syria | Damascus; Aleppo; Homs; Latakia; Hama; Tartus; Deir ez-Zor; Raqqa; Idlib; Daraa; Qamishli; Palmyra; Suwayda
+Taiwan | Taipei; New Taipei; Taichung; Kaohsiung; Tainan; Taoyuan; Hsinchu; Keelung; Chiayi; Hualien; Taitung; Yilan; Pingtung; Changhua; Yingge; Lukang
+Tajikistan | Dushanbe; Khujand; Bokhtar; Kulob; Istaravshan; Khorog; Panjakent
+Tanzania | Dodoma; Dar es Salaam; Mwanza; Arusha; Zanzibar City; Stone Town; Mbeya; Morogoro; Tanga; Moshi; Kigoma; Tabora; Iringa; Bagamoyo
+Thailand | Bangkok; Chiang Mai; Phuket; Pattaya; Nonthaburi; Nakhon Ratchasima; Hat Yai; Udon Thani; Khon Kaen; Chiang Rai; Krabi; Hua Hin; Ayutthaya; Sukhothai; Lampang; Ubon Ratchathani; Surat Thani; Koh Samui; Nakhon Si Thammarat; Pai; Kanchanaburi; Nan
+Timor-Leste [East Timor] | Dili; Baucau; Maliana; Lospalos; Suai
+Togo | Lomé; Sokodé; Kara; Kpalimé; Atakpamé; Dapaong; Tsévié; Aného
+Tonga | Nukuʻalofa; Neiafu; Pangai; Haveluloto
+Trinidad and Tobago | Port of Spain; San Fernando; Chaguanas; Arima; Point Fortin; Scarborough
+Tunisia | Tunis; Sfax; Sousse; Kairouan; Bizerte; Gabès; Ariana; Gafsa; Monastir; Nabeul; Hammamet; Djerba; Houmt Souk; Tozeur; Mahdia; Sidi Bou Said; Carthage; Tataouine; Guellala
+Türkiye [Turkey, Turkiye] | Istanbul; Ankara; Izmir; Bursa; Antalya; Adana; Konya; Gaziantep; Şanlıurfa; Kocaeli; Mersin; Diyarbakır; Kayseri; Eskişehir; Samsun; Denizli; Malatya; Trabzon; Erzurum; Van; Mardin; Bodrum; Fethiye; Kaş; Alanya; Çanakkale; Edirne; Kütahya; İznik; Avanos; Nevşehir; Göreme; Ürgüp; Sivas; Muğla; Safranbolu; Amasya; Bergama; Selçuk
+Turkmenistan | Ashgabat; Türkmenabat; Daşoguz; Mary; Balkanabat; Türkmenbaşy
+Tuvalu | Funafuti; Vaiaku
+Uganda | Kampala; Entebbe; Gulu; Lira; Mbarara; Jinja; Mbale; Masaka; Kasese; Fort Portal; Arua; Kabale
+Ukraine | Kyiv; Kharkiv; Odesa; Dnipro; Lviv; Zaporizhzhia; Kryvyi Rih; Mykolaiv; Vinnytsia; Poltava; Chernihiv; Cherkasy; Sumy; Zhytomyr; Khmelnytskyi; Rivne; Ivano-Frankivsk; Ternopil; Lutsk; Uzhhorod; Chernivtsi; Kherson; Kosiv; Opishnia
+United Arab Emirates [UAE, Emirates, U.A.E.] | Dubai; Abu Dhabi; Sharjah; Ajman; Ras Al Khaimah; Fujairah; Umm Al Quwain; Al Ain; Khor Fakkan; Kalba; Dibba Al-Fujairah; Dibba Al-Hisn; Madinat Zayed; Ruwais; Liwa; Hatta; Jebel Ali; Al Dhaid; Masafi; Al Madam
+United Kingdom [UK, U.K., Britain, Great Britain, England, Scotland, Wales, Northern Ireland] | London; Birmingham; Manchester; Glasgow; Edinburgh; Liverpool; Leeds; Sheffield; Bristol; Newcastle upon Tyne; Cardiff; Belfast; Nottingham; Leicester; Coventry; Bradford; Brighton; Hull; Plymouth; Stoke-on-Trent; Wolverhampton; Derby; Southampton; Portsmouth; Swansea; Aberdeen; Dundee; Inverness; Oxford; Cambridge; Bath; York; Norwich; Exeter; Canterbury; Durham; Chester; Lancaster; Reading; Milton Keynes; Sunderland; Middlesbrough; Stirling; Perth; St Ives; Penzance; Falmouth; Margate; Hastings; Londonderry; Newport; Wrexham
+United States [USA, U.S., US, United States of America, America] | New York; Los Angeles; Chicago; Houston; Phoenix; Philadelphia; San Antonio; San Diego; Dallas; San Jose; Austin; Jacksonville; Fort Worth; Columbus; Charlotte; San Francisco; Indianapolis; Seattle; Denver; Washington, D.C.; Boston; El Paso; Nashville; Detroit; Oklahoma City; Portland; Las Vegas; Memphis; Louisville; Baltimore; Milwaukee; Albuquerque; Tucson; Fresno; Sacramento; Kansas City; Mesa; Atlanta; Omaha; Colorado Springs; Raleigh; Miami; Long Beach; Virginia Beach; Oakland; Minneapolis; Tulsa; Tampa; Arlington; New Orleans; Cleveland; Honolulu; Anaheim; Pittsburgh; Cincinnati; St. Louis; Orlando; Salt Lake City; Richmond; Buffalo; Providence; Hartford; New Haven; Santa Fe; Taos; Asheville; Savannah; Charleston; Santa Barbara; Palm Springs; Berkeley; Brooklyn; Queens; the Bronx; Anchorage; Boise; Madison; Ann Arbor; Burlington; Portland, Maine; Des Moines; Little Rock; Birmingham; Jackson; Baton Rouge; Knoxville; Lexington; Spokane; Tacoma; Reno; Scottsdale; Sedona; Marfa; Durham; Chapel Hill; Princeton; Newark; Jersey City; Miami Beach; Fort Lauderdale; St. Petersburg
+Uruguay | Montevideo; Salto; Paysandú; Las Piedras; Rivera; Maldonado; Punta del Este; Colonia del Sacramento; Tacuarembó; Mercedes
+Uzbekistan | Tashkent; Samarkand; Bukhara; Namangan; Andijan; Fergana; Nukus; Khiva; Qarshi; Termez; Kokand; Rishtan; Margilan; Gijduvan; Shahrisabz
+Vanuatu | Port Vila; Luganville; Isangel; Lakatoro
+Vatican City [Holy See] | Vatican City
+Venezuela | Caracas; Maracaibo; Valencia; Barquisimeto; Maracay; Ciudad Guayana; Barcelona; Maturín; Puerto La Cruz; Mérida; San Cristóbal; Cumaná; Ciudad Bolívar; Coro; Porlamar
+Vietnam [Viet Nam] | Hanoi; Ho Chi Minh City; Saigon; Da Nang; Hai Phong; Can Tho; Hue; Nha Trang; Hoi An; Da Lat; Vung Tau; Bien Hoa; Quy Nhon; Ha Long; Sapa; Ninh Binh; Buon Ma Thuot; Phu Quoc; Bat Trang; Vinh
+Yemen | Sanaa; Aden; Taiz; Al Hudaydah; Ibb; Mukalla; Dhamar; Seiyun; Shibam; Tarim; Zabid
+Zambia | Lusaka; Kitwe; Ndola; Kabwe; Chingola; Livingstone; Mufulira; Chipata; Kasama; Solwezi
+Zimbabwe | Harare; Bulawayo; Chitungwiza; Mutare; Gweru; Kwekwe; Masvingo; Victoria Falls; Kariba; Hwange
+Hong Kong | Hong Kong; Kowloon; Central; Sha Tin; Tsuen Wan; Tuen Mun; Yuen Long; Lantau
+Macau [Macao] | Macau; Taipa; Coloane
+Puerto Rico | San Juan; Bayamón; Carolina; Ponce; Caguas; Mayagüez; Arecibo; Guaynabo
+Greenland | Nuuk; Sisimiut; Ilulissat; Qaqortoq; Aasiaat; Tasiilaq
+Faroe Islands | Tórshavn; Klaksvík; Runavík; Tvøroyri
+Western Sahara | Laayoune; Dakhla; Smara; Boujdour
+New Caledonia | Nouméa; Mont-Dore; Dumbéa; Païta; Koné
+French Polynesia [Tahiti] | Papeete; Faaʻa; Punaauia; Uturoa; Bora Bora
+Réunion [Reunion] | Saint-Denis; Saint-Pierre; Saint-Paul; Le Tampon; Saint-Louis
+Martinique | Fort-de-France; Le Lamentin; Le Robert; Schœlcher; Sainte-Anne
+Guadeloupe | Basse-Terre; Pointe-à-Pitre; Les Abymes; Baie-Mahault; Le Gosier
+French Guiana | Cayenne; Saint-Laurent-du-Maroni; Kourou; Matoury
+Curaçao [Curacao] | Willemstad; Sint Michiel; Westpunt
+Aruba | Oranjestad; San Nicolaas; Noord; Santa Cruz
+Bermuda | Hamilton; St. George's; Somerset
+Cayman Islands | George Town; West Bay; Bodden Town
+Gibraltar | Gibraltar
+Isle of Man | Douglas; Ramsey; Peel; Castletown
+Jersey | St Helier; St Aubin; Gorey
+Guernsey | St Peter Port; St Sampson; Vale

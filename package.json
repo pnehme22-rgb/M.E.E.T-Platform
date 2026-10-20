@@ -1,0 +1,13 @@
+{
+  "name": "meet-platform",
+  "private": true,
+  "type": "module",
+  "description": "M.E.E.T. public registration, team console and artist studio (Netlify + Supabase).",
+  "dependencies": {
+    "@supabase/supabase-js": "2.45.4",
+    "nodemailer": "6.9.14"
+  },
+  "devDependencies": {
+    "@types/nodemailer": "6.4.15"
+  }
+}

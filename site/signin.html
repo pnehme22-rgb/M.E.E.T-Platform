@@ -1,0 +1,84 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="robots" content="noindex, nofollow">
+<title>Sign in | M.E.E.T.</title>
+<meta name="theme-color" content="#f5efe1">
+<link rel="icon" href="/assets/img/brand/mark.svg" type="image/svg+xml">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;1,400&family=Manrope:wght@400;500;600;700&display=swap">
+<link rel="stylesheet" href="/assets/css/app.css">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.js" defer></script>
+<script src="/assets/js/config.js" defer></script>
+<script src="/assets/js/app/core.js" defer></script>
+<script src="/assets/js/app/signin.js" defer></script>
+</head>
+<body>
+<header class="hdr">
+  <div class="hdr-in">
+    <a class="logo" href="/" aria-label="M.E.E.T. home" id="logo"><span>M.E.E.T.</span></a>
+    <a class="link small" href="/">Back to the website</a>
+  </div>
+</header>
+
+<main class="auth" id="main">
+  <div class="auth-card">
+    <div id="msg" class="notice" role="status" hidden></div>
+
+    <!-- 1. Email and password -->
+    <section id="step-password" class="stack" aria-labelledby="t-signin">
+      <span class="eyebrow">Members</span>
+      <h1 id="t-signin">Sign <em>in</em></h1>
+      <p class="muted">For approved M.E.E.T. artists and the M.E.E.T. team.</p>
+      <form id="f-password" class="panel" novalidate>
+        <label class="f">Email
+          <input class="inp" id="email" name="email" type="email" autocomplete="username" autocapitalize="off" spellcheck="false" required>
+        </label>
+        <label class="f">Password
+          <input class="inp" id="password" name="password" type="password" autocomplete="current-password" required>
+        </label>
+        <p class="err" id="err-password" role="alert" hidden></p>
+        <button class="btn block" type="submit" id="b-password">Sign in</button>
+        <a class="link small" href="/reset">Forgotten your password?</a>
+      </form>
+      <p class="small muted">New to M.E.E.T.? Artists <a class="link" href="/join">register here</a>. Approved artists receive an email to set their password.</p>
+    </section>
+
+    <!-- 2a. First time for a team member: set up the authenticator app -->
+    <section id="step-enroll" class="stack" aria-labelledby="t-enroll" hidden>
+      <span class="eyebrow">Team security</span>
+      <h1 id="t-enroll">Set up <em>two-step</em> sign-in</h1>
+      <p class="muted">The team console holds artists' personal details, so every team login needs a second step. Scan this code with an authenticator app (Google Authenticator, Microsoft Authenticator or 1Password), then enter the 6-digit code it shows.</p>
+      <form id="f-enroll" class="panel" novalidate>
+        <img class="qr" id="qr" alt="QR code for your authenticator app">
+        <p class="small muted">Can't scan it? Enter this key in the app instead:</p>
+        <p class="secret" id="secret"></p>
+        <label class="f">6-digit code
+          <input class="inp code-inp" id="code-enroll" inputmode="numeric" autocomplete="one-time-code" maxlength="6" pattern="[0-9]{6}" required>
+        </label>
+        <p class="err" id="err-enroll" role="alert" hidden></p>
+        <button class="btn block" type="submit" id="b-enroll">Confirm and continue</button>
+      </form>
+    </section>
+
+    <!-- 2b. Returning team member: enter the code -->
+    <section id="step-verify" class="stack" aria-labelledby="t-verify" hidden>
+      <span class="eyebrow">Team security</span>
+      <h1 id="t-verify">Enter your <em>code</em></h1>
+      <p class="muted">Open your authenticator app and enter the 6-digit code for M.E.E.T.</p>
+      <form id="f-verify" class="panel" novalidate>
+        <label class="f">6-digit code
+          <input class="inp code-inp" id="code-verify" inputmode="numeric" autocomplete="one-time-code" maxlength="6" pattern="[0-9]{6}" required>
+        </label>
+        <p class="err" id="err-verify" role="alert" hidden></p>
+        <button class="btn block" type="submit" id="b-verify">Continue</button>
+        <button class="link small" type="button" data-signout>Sign out</button>
+      </form>
+    </section>
+  </div>
+</main>
+</body>
+</html>

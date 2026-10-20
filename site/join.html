@@ -1,0 +1,304 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Join the Artist Community | M.E.E.T.</title>
+<meta name="description" content="Register for the M.E.E.T. artist community. A few short questions, no account or password needed.">
+<meta name="theme-color" content="#f6f0e5">
+<meta property="og:title" content="Join the M.E.E.T. Artist Community">
+<meta property="og:description" content="A few short questions. No account or password needed.">
+<meta property="og:type" content="website">
+<!-- DEPLOY STEP: set absolute URLs once the live domain is known -->
+<!-- <meta property="og:url" content="https://YOUR-DOMAIN/join"> -->
+<!-- <meta property="og:image" content="https://YOUR-DOMAIN/assets/img/clay-hands-1200.jpg"> -->
+<link rel="icon" href="/assets/img/brand/mark.svg" type="image/svg+xml">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@400;500;600&family=Instrument+Serif:ital@0;1&display=swap">
+<link rel="stylesheet" href="/assets/css/site.css">
+<link rel="stylesheet" href="/assets/css/join.css">
+<script src="/assets/js/site.js"></script>
+<script src="/assets/js/config.js" defer></script>
+<script src="/assets/js/places.js" defer></script>
+<script src="/assets/js/join.js" defer></script>
+</head>
+<body class="join-page">
+<a class="skip-link" href="#main">Skip to the form</a>
+
+<svg width="0" height="0" style="position:absolute" aria-hidden="true" focusable="false">
+  <defs>
+    <symbol id="mark" viewBox="0 0 119 80">
+      <path d="M59.5 8.56 A37 37 0 0 1 59.5 71.44 A37 37 0 0 1 59.5 8.56 Z" fill="#74191d"/>
+      <circle cx="40" cy="40" r="37" fill="none" stroke="#11306a" stroke-width="4.5"/>
+      <circle cx="79" cy="40" r="37" fill="none" stroke="#11306a" stroke-width="4.5"/>
+    </symbol>
+    <symbol id="arrow" viewBox="0 0 22 10">
+      <path d="M0 5h20M16 1l4 4-4 4" fill="none" stroke="currentColor" stroke-width="1.4"/>
+    </symbol>
+  </defs>
+</svg>
+
+<header class="site-header">
+  <div class="wrap header-inner">
+    <a class="brand" href="/" aria-label="M.E.E.T. home">
+      <svg class="brand-mark" aria-hidden="true"><use href="#mark"/></svg>
+      <span class="brand-word">M.E.E.T.</span>
+    </a>
+    <a class="nav-back" href="/">
+      <svg aria-hidden="true"><use href="#arrow"/></svg>
+      About M.E.E.T.
+    </a>
+  </div>
+</header>
+
+<main id="main" tabindex="-1">
+  <div class="wrap grid join-grid">
+
+    <aside class="join-intro" aria-labelledby="join-title">
+      <p class="kicker">Artist registration</p>
+      <h1 class="display join-title" id="join-title">Join the M.E.E.T. <em>Artist Community</em></h1>
+      <p class="lede">A few short questions. No account or password needed. It only takes a few minutes.</p>
+
+      <figure class="join-figure">
+        <div class="frame">
+          <img src="/assets/img/clay-hands-720.jpg" width="720" height="1080" alt="" decoding="async">
+        </div>
+      </figure>
+
+      <div class="join-next">
+        <h2>What happens next</h2>
+        <ol>
+          <li>The M.E.E.T. team reads every application.</li>
+          <li>As M.E.E.T. takes shape, registered artists hear about it first.</li>
+        </ol>
+        <p class="fine">Registering does not guarantee acceptance, paid work, commissions or a collaboration.</p>
+      </div>
+    </aside>
+
+    <div class="join-form-col">
+      <noscript>
+        <p class="error-summary">This form needs JavaScript to send your application. Please switch it on, or open this page in another browser.</p>
+      </noscript>
+
+      <div class="error-summary" id="error-summary" role="alert" tabindex="-1" hidden>
+        <h2 id="error-title">Please check a few things</h2>
+        <p id="error-message"></p>
+        <ul id="error-list"></ul>
+      </div>
+
+      <form id="join-form" class="join-form" novalidate>
+        <p class="form-note">All fields are required unless marked <span class="opt">optional</span>.</p>
+
+        <fieldset>
+          <legend><span class="n">01</span> About you</legend>
+
+          <div class="field">
+            <label for="full_name">Full name</label>
+            <input id="full_name" name="full_name" type="text" autocomplete="name" maxlength="120" required aria-describedby="full_name-error">
+            <p class="error" id="full_name-error"></p>
+          </div>
+
+          <div class="field">
+            <label for="artist_name">Professional or artist name</label>
+            <p class="hint" id="artist_name-hint">The name your work is known by. It can be the same as your full name.</p>
+            <input id="artist_name" name="artist_name" type="text" autocomplete="nickname" maxlength="120" required aria-describedby="artist_name-hint artist_name-error">
+            <p class="error" id="artist_name-error"></p>
+          </div>
+
+          <div class="field">
+            <label for="email">Email address</label>
+            <p class="hint" id="email-hint">We only use this to contact you about M.E.E.T.</p>
+            <input id="email" name="email" type="email" inputmode="email" autocomplete="email" autocapitalize="off" spellcheck="false" maxlength="254" required aria-describedby="email-hint email-error">
+            <p class="error" id="email-error"></p>
+          </div>
+
+          <div class="field-row">
+            <div class="field">
+              <label for="country">Country</label>
+              <div class="combo">
+                <input id="country" name="country" type="text" autocomplete="off" autocapitalize="words" spellcheck="false" maxlength="80" required
+                       role="combobox" aria-autocomplete="list" aria-expanded="false" aria-controls="country-list" aria-describedby="country-error">
+                <ul class="combo-list" id="country-list" role="listbox" aria-label="Countries" hidden></ul>
+              </div>
+              <p class="error" id="country-error"></p>
+            </div>
+            <div class="field">
+              <label for="city">City <span class="opt">optional</span></label>
+              <div class="combo">
+                <input id="city" name="city" type="text" autocomplete="off" autocapitalize="words" spellcheck="false" maxlength="80"
+                       role="combobox" aria-autocomplete="list" aria-expanded="false" aria-controls="city-list" aria-describedby="city-error">
+                <ul class="combo-list" id="city-list" role="listbox" aria-label="Cities" hidden></ul>
+              </div>
+              <p class="error" id="city-error"></p>
+            </div>
+          </div>
+        </fieldset>
+
+        <fieldset>
+          <legend><span class="n">02</span> Your practice</legend>
+
+          <div class="field">
+            <label for="primary_discipline">Main discipline</label>
+            <p class="hint" id="primary_discipline-hint">Choose the closest one. If none fits, choose Other and describe it.</p>
+            <div class="select">
+              <select id="primary_discipline" name="primary_discipline" required aria-describedby="primary_discipline-hint primary_discipline-error">
+                <option value="">Choose a discipline</option>
+                <option>Ceramics and pottery</option>
+                <option>Textiles, weaving and embroidery</option>
+                <option>Woodworking and carving</option>
+                <option>Glass</option>
+                <option>Metalwork and jewellery</option>
+                <option>Painting</option>
+                <option>Drawing and illustration</option>
+                <option>Printmaking</option>
+                <option>Calligraphy and lettering</option>
+                <option>Sculpture</option>
+                <option>Photography</option>
+                <option>Film and moving image</option>
+                <option>Digital art</option>
+                <option>Installation</option>
+                <option>Performance</option>
+                <option>Leather, basketry and natural fibres</option>
+                <option value="Other">Other</option>
+              </select>
+            </div>
+            <p class="error" id="primary_discipline-error"></p>
+          </div>
+
+          <div class="field" id="discipline_other-field" hidden>
+            <label for="discipline_other">Describe your discipline</label>
+            <p class="hint" id="discipline_other-hint">For example: lacquer work, kintsugi, bookbinding, mosaic, sound sculpture.</p>
+            <input id="discipline_other" name="discipline_other" type="text" maxlength="120" aria-describedby="discipline_other-hint discipline_other-error">
+            <p class="error" id="discipline_other-error"></p>
+          </div>
+
+          <div class="field">
+            <label for="practice">Your practice, in a few sentences</label>
+            <p class="hint" id="practice-hint">What do you make, how do you make it, and what shapes your work? Traditions, materials and techniques are all welcome.</p>
+            <textarea id="practice" name="practice" rows="6" maxlength="1500" required aria-describedby="practice-hint practice-count practice-error"></textarea>
+            <p class="count" id="practice-count" aria-live="polite">0 of 1500 characters</p>
+            <p class="error" id="practice-error"></p>
+          </div>
+
+          <div class="field">
+            <label for="additional_disciplines">Other disciplines, techniques or materials <span class="opt">optional</span></label>
+            <input id="additional_disciplines" name="additional_disciplines" type="text" maxlength="400" aria-describedby="additional_disciplines-error">
+            <p class="error" id="additional_disciplines-error"></p>
+          </div>
+        </fieldset>
+
+        <fieldset>
+          <legend><span class="n">03</span> Your work online <span class="opt">optional</span></legend>
+          <p class="fieldset-note">A link is enough. You do not need to upload anything.</p>
+
+          <div class="field">
+            <label for="website">Website or online portfolio <span class="opt">optional</span></label>
+            <input id="website" name="website" type="url" inputmode="url" autocomplete="url" autocapitalize="off" spellcheck="false" maxlength="300" placeholder="https://" aria-describedby="website-error">
+            <p class="error" id="website-error"></p>
+          </div>
+
+          <div class="field">
+            <label for="social">Instagram or another professional profile <span class="opt">optional</span></label>
+            <p class="hint" id="social-hint">A handle such as @yourstudio, or a full link.</p>
+            <input id="social" name="social" type="text" autocapitalize="off" spellcheck="false" maxlength="300" aria-describedby="social-hint social-error">
+            <p class="error" id="social-error"></p>
+          </div>
+
+          <div class="field">
+            <label for="portfolio_links">More links to your work <span class="opt">optional</span></label>
+            <p class="hint" id="portfolio_links-hint">Up to 6 links, one per line. Shop pages, press, videos or project pages all work.</p>
+            <textarea id="portfolio_links" name="portfolio_links" rows="3" maxlength="1500" autocapitalize="off" spellcheck="false" aria-describedby="portfolio_links-hint portfolio_links-error"></textarea>
+            <p class="error" id="portfolio_links-error"></p>
+          </div>
+        </fieldset>
+
+        <fieldset>
+          <legend><span class="n">04</span> What you are open to <span class="opt">optional</span></legend>
+
+          <div class="choices">
+            <label class="choice" for="interest_commissions">
+              <input id="interest_commissions" name="interest_commissions" type="checkbox" value="yes">
+              <span><b>Commission enquiries</b> I would like to hear from people who may want to commission my work.</span>
+            </label>
+            <label class="choice" for="interest_collaboration">
+              <input id="interest_collaboration" name="interest_collaboration" type="checkbox" value="yes">
+              <span><b>Cross-disciplinary collaboration</b> I am curious about working with artists from other practices and traditions.</span>
+            </label>
+          </div>
+
+          <div class="field">
+            <label for="heard_about">Where did you find M.E.E.T.? <span class="opt">optional</span></label>
+            <div class="select">
+              <select id="heard_about" name="heard_about">
+                <option value="">Choose one</option>
+                <option>Social media</option>
+                <option>Friend or artist</option>
+                <option>Somewhere else</option>
+              </select>
+            </div>
+          </div>
+        </fieldset>
+
+        <fieldset>
+          <legend><span class="n">05</span> Privacy</legend>
+          <div class="field">
+            <label class="choice consent" for="consent_privacy">
+              <input id="consent_privacy" name="consent_privacy" type="checkbox" value="yes" required aria-describedby="consent_privacy-error">
+              <span>I have read the <a class="text-link" href="/privacy" target="_blank" rel="noopener">privacy notice</a> (opens in a new tab) and agree that M.E.E.T. may store and review the information in this application.</span>
+            </label>
+            <p class="error" id="consent_privacy-error"></p>
+          </div>
+        </fieldset>
+
+        <div class="hp" aria-hidden="true">
+          <label for="company_website">Leave this field empty</label>
+          <input id="company_website" name="company_website" type="text" tabindex="-1" autocomplete="off">
+        </div>
+
+        <div class="submit-row">
+          <button class="btn" type="submit" id="submit-btn">
+            <span class="btn-label">Send my application</span>
+            <svg class="arrow" aria-hidden="true"><use href="#arrow"/></svg>
+          </button>
+          <p class="submit-status" id="submit-status" aria-live="polite"></p>
+        </div>
+      </form>
+
+      <div class="join-next join-next-mobile" id="next-mobile">
+        <h2>What happens next</h2>
+        <ol>
+          <li>The M.E.E.T. team reads every application.</li>
+          <li>As M.E.E.T. takes shape, registered artists hear about it first.</li>
+        </ol>
+        <p class="fine">Registering does not guarantee acceptance, paid work, commissions or a collaboration.</p>
+      </div>
+
+      <section class="success" id="success" hidden aria-labelledby="success-title">
+        <p class="kicker plain">Application received</p>
+        <h2 class="display success-title" id="success-title" tabindex="-1">Thank you, <em id="success-name">artist</em>.</h2>
+        <p class="lede">Your application has been saved. The M.E.E.T. team reads every one and may contact you at <b id="success-email"></b> if we need more information.</p>
+        <p class="ref">Your reference: <b id="success-ref"></b></p>
+        <p class="fine">Registering does not guarantee acceptance, paid work, commissions or a collaboration. We do not send an automatic confirmation email, so you may want to note your reference.</p>
+        <div class="success-actions">
+          <a class="btn" href="/">
+            Back to M.E.E.T.
+            <svg class="arrow" aria-hidden="true"><use href="#arrow"/></svg>
+          </a>
+          <button class="link-btn" type="button" id="another">Register another artist on this device</button>
+        </div>
+      </section>
+    </div>
+  </div>
+</main>
+
+<footer class="site-footer slim">
+  <div class="wrap">
+    <div class="footer-base">
+      <p>&copy; 2026 M.E.E.T. Mind Exploring Every Tradition.</p>
+      <p><a class="text-link" href="/privacy">Privacy notice</a> &middot; <a href="mailto:minds.exploring.traditions@gmail.com">minds.exploring.traditions@gmail.com</a></p>
+    </div>
+  </div>
+</footer>
+</body>
+</html>

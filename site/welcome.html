@@ -1,0 +1,71 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="robots" content="noindex, nofollow">
+<meta name="referrer" content="no-referrer">
+<title>Welcome | M.E.E.T.</title>
+<meta name="theme-color" content="#f5efe1">
+<link rel="icon" href="/assets/img/brand/mark.svg" type="image/svg+xml">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;1,400&family=Manrope:wght@400;500;600;700&display=swap">
+<link rel="stylesheet" href="/assets/css/app.css">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.js" defer></script>
+<script src="/assets/js/config.js" defer></script>
+<script src="/assets/js/app/core.js" defer></script>
+<script src="/assets/js/app/welcome.js" defer></script>
+</head>
+<body>
+<header class="hdr">
+  <div class="hdr-in">
+    <a class="logo" href="/" aria-label="M.E.E.T. home" id="logo"><span>M.E.E.T.</span></a>
+  </div>
+</header>
+
+<main class="auth" id="main">
+  <div class="auth-card">
+    <div id="msg" class="notice" role="status" hidden></div>
+
+    <!-- The link from the email lands here. A button press confirms it, so
+         email security scanners that open links cannot use it up. -->
+    <section id="step-open" class="stack" hidden>
+      <span class="eyebrow" id="open-eyebrow">Welcome to M.E.E.T.</span>
+      <h1 id="open-title">Welcome to <em>M.E.E.T.</em></h1>
+      <p class="muted" id="open-text">Press continue to choose your password and open your account.</p>
+      <div class="panel">
+        <button class="btn block" type="button" id="b-open">Continue</button>
+      </div>
+    </section>
+
+    <section id="step-password" class="stack" hidden>
+      <span class="eyebrow">Your account</span>
+      <h1>Choose a <em>password</em></h1>
+      <p class="muted" id="pw-for"></p>
+      <form id="f-password" class="panel" novalidate>
+        <label class="f">New password
+          <input class="inp" id="pw1" type="password" autocomplete="new-password" minlength="10" required aria-describedby="pw-hint">
+          <span class="hint" id="pw-hint">At least 10 characters. A short sentence is easy to remember and hard to guess.</span>
+        </label>
+        <label class="f">Type it again
+          <input class="inp" id="pw2" type="password" autocomplete="new-password" minlength="10" required>
+        </label>
+        <p class="err" id="err-password" role="alert" hidden></p>
+        <button class="btn block" type="submit" id="b-password">Save and continue</button>
+      </form>
+    </section>
+
+    <section id="step-expired" class="stack" hidden>
+      <span class="eyebrow">Link expired</span>
+      <h1>This link has <em>expired</em></h1>
+      <p class="muted">For your security, links work for a limited time and only once. You can ask for a new one below, or reply to the email you received and we will send another.</p>
+      <div class="panel stack">
+        <a class="btn block" href="/reset">Email me a new link</a>
+        <a class="link small" href="/signin">Go to sign in</a>
+      </div>
+    </section>
+  </div>
+</main>
+</body>
+</html>

@@ -1,0 +1,50 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="robots" content="noindex, nofollow">
+<title>Reset your password | M.E.E.T.</title>
+<meta name="theme-color" content="#f5efe1">
+<link rel="icon" href="/assets/img/brand/mark.svg" type="image/svg+xml">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;1,400&family=Manrope:wght@400;500;600;700&display=swap">
+<link rel="stylesheet" href="/assets/css/app.css">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.js" defer></script>
+<script src="/assets/js/config.js" defer></script>
+<script src="/assets/js/app/core.js" defer></script>
+<script src="/assets/js/app/reset.js" defer></script>
+</head>
+<body>
+<header class="hdr">
+  <div class="hdr-in">
+    <a class="logo" href="/" aria-label="M.E.E.T. home" id="logo"><span>M.E.E.T.</span></a>
+    <a class="link small" href="/signin">Sign in</a>
+  </div>
+</header>
+
+<main class="auth" id="main">
+  <div class="auth-card">
+    <section id="step-ask" class="stack">
+      <span class="eyebrow">Your account</span>
+      <h1>Reset your <em>password</em></h1>
+      <p class="muted">Enter the email you use for M.E.E.T. If it belongs to an account, we will send you a link to choose a new password.</p>
+      <form id="f-reset" class="panel" novalidate>
+        <label class="f">Email
+          <input class="inp" id="email" type="email" autocomplete="email" autocapitalize="off" spellcheck="false" required>
+        </label>
+        <p class="err" id="err" role="alert" hidden></p>
+        <button class="btn block" type="submit" id="b-reset">Email me a link</button>
+      </form>
+    </section>
+    <section id="step-sent" class="stack" hidden>
+      <span class="eyebrow">Check your inbox</span>
+      <h1>Link <em>sent</em></h1>
+      <p class="muted">If <b id="sent-to"></b> belongs to a M.E.E.T. account, an email with a link is on its way. It can take a few minutes, and it may land in your spam folder.</p>
+      <a class="btn line" href="/signin">Back to sign in</a>
+    </section>
+  </div>
+</main>
+</body>
+</html>
