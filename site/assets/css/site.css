@@ -1012,3 +1012,9 @@ body.paused *, body.paused *::before, body.paused *::after { animation-play-stat
 @media (max-width: 350px) {
   .btn { white-space: normal; text-align: left; }
 }
+
+/* Small phones: the header keeps logo, Sign in and a short Join button on one line */
+@media (max-width: 440px) {
+  .btn-more { display: none; }
+  .site-header .btn-small { padding: 0 18px; }
+}
