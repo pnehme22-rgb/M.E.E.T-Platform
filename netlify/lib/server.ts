@@ -64,8 +64,23 @@ function jwtClaims(token: string): Record<string, unknown> {
   }
 }
 
+export function sessionId(token: string): string {
+  const id = jwtClaims(token).session_id;
+  return typeof id === "string" ? id : "";
+}
+
+// A team sign-in counts once its emailed code has been confirmed (30 days per device).
+export async function sessionConfirmed(svc: SupabaseClient, userId: string, token: string): Promise<boolean> {
+  const sid = sessionId(token);
+  if (!sid) return false;
+  const since = new Date(Date.now() - 30 * 24 * 3600 * 1000).toISOString();
+  const { data } = await svc.from("team_session_checks").select("session_id")
+    .eq("session_id", sid).eq("user_id", userId).not("verified_at", "is", null).gte("verified_at", since).maybeSingle();
+  return !!data;
+}
+
 // Confirms the request comes from an active team member who completed
-// two-step sign-in. Founders-only and editors-only checks are optional.
+// the emailed-code step. Founders-only and editors-only checks are optional.
 export async function teamCaller(req: Request, need: { founder?: boolean; editor?: boolean } = {}): Promise<Caller> {
   const header = req.headers.get("authorization") || "";
   const token = header.startsWith("Bearer ") ? header.slice(7) : "";
@@ -81,7 +96,7 @@ export async function teamCaller(req: Request, need: { founder?: boolean; editor
     }
     throw new HttpError(401, "Your session has ended. Please sign in again.");
   }
-  if (jwtClaims(token).aal !== "aal2") throw new HttpError(403, "Please complete two-step sign-in first.");
+  if (!(await sessionConfirmed(svc, data.user.id, token))) throw new HttpError(403, "Please confirm your sign-in with the code we emailed you.");
   const { data: member } = await svc.from("team_members").select("user_id, name, email, role, active")
     .eq("user_id", data.user.id).maybeSingle();
   if (!member || !member.active) throw new HttpError(403, "Your account does not have access to the team console.");

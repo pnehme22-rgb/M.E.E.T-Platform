@@ -530,7 +530,7 @@
     cache.team = t.data || [];
     main.innerHTML =
       '<div class="head"><div><span class="eyebrow">Founders only</span><h1>Team</h1>' +
-      "<p>Invite people who help review artists. Each person signs in with their own password and a code from an authenticator app.</p></div></div>" +
+      "<p>Invite people who help review artists. Each person signs in with their own password and a code we email them.</p></div></div>" +
       '<div class="list">' + cache.team.map(function (m) {
         var self = m.user_id === me.user.id;
         return '<div class="lrow" data-member="' + m.user_id + '"><div class="lm"><b>' + esc(m.name) + (self ? " (you)" : "") + '</b><span class="muted small">' + esc(m.email) + "</span></div>" +

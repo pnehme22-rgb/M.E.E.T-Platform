@@ -6,7 +6,7 @@ What lives where:
 | --- | --- | --- |
 | Homepage, registration form, privacy notice | Netlify (`site/`) | Yes |
 | Sign-in, team console (`/team`), artist studio (`/studio`) | Netlify pages + Supabase logins | Only to signed-in people |
-| Platform prototype (`/prototype`) | Netlify, behind an edge-function check | Team only (two-step sign-in) |
+| Platform prototype (`/prototype`) | Netlify, behind an edge-function check | Team only (password + emailed code) |
 | Applications, artists, artworks, team, activity log | Supabase database (EU) | Never |
 | Artist photographs | Supabase storage, private bucket | Never |
 | Welcome and review emails | Netlify functions → Gmail | Sent to the artist |
@@ -44,7 +44,6 @@ Check: you have a 16-letter code saved.
 5. **Authentication › Emails › Templates › Reset password**
    - Subject: `Choose a new M.E.E.T. password`
    - Body: paste `supabase/email-reset-password.html`.
-6. **Authentication › Multi-Factor**: make sure **TOTP (authenticator app)** is enabled.
 7. **Project Settings › API**: note the **Project URL** and the **anon / publishable key**. Send these two to Claude; they are safe to share and go into `site/assets/js/config.js`. Keep the **service_role / secret key** private: you paste it only into Netlify in step 4.
 
 Check: Table Editor shows `applications`, `artists`, `artworks`, `team_members`, `audit_log`.
@@ -86,7 +85,7 @@ Check: the homepage opens at your Netlify address, and `/prototype/` sends you t
    insert into team_members (user_id, name, email, role)
    select id, 'Pia Maria Nehme', email, 'founder' from auth.users where email = 'YOUR-LOGIN-EMAIL';
    ```
-3. Open `https://YOUR-SITE/signin`, sign in, and scan the QR code with an authenticator app (Google Authenticator, Microsoft Authenticator or 1Password). Enter the code.
+3. Open `https://meetstudio.art/signin`, sign in, and enter the 6-digit code that arrives by email.
 
 Check: you land on the team console, and **Platform prototype** opens the prototype.
 

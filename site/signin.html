@@ -47,35 +47,22 @@
       <p class="small muted">New to M.E.E.T.? Artists <a class="link" href="/join">register here</a>. Approved artists receive an email to set their password.</p>
     </section>
 
-    <!-- 2a. First time for a team member: set up the authenticator app -->
-    <section id="step-enroll" class="stack" aria-labelledby="t-enroll" hidden>
+    <!-- 2. Team members: confirm with a code sent by email -->
+    <section id="step-code" class="stack" aria-labelledby="t-code" hidden>
       <span class="eyebrow">Team security</span>
-      <h1 id="t-enroll">Set up <em>two-step</em> sign-in</h1>
-      <p class="muted">The team console holds artists' personal details, so every team login needs a second step. Scan this code with an authenticator app (Google Authenticator, Microsoft Authenticator or 1Password), then enter the 6-digit code it shows.</p>
-      <form id="f-enroll" class="panel" novalidate>
-        <img class="qr" id="qr" alt="QR code for your authenticator app">
-        <p class="small muted">Can't scan it? Enter this key in the app instead:</p>
-        <p class="secret" id="secret"></p>
+      <h1 id="t-code">Check your <em>email</em></h1>
+      <p class="muted" id="code-sent">We have emailed you a 6-digit code to finish signing in.</p>
+      <form id="f-code" class="panel" novalidate>
         <label class="f">6-digit code
-          <input class="inp code-inp" id="code-enroll" inputmode="numeric" autocomplete="one-time-code" maxlength="6" pattern="[0-9]{6}" required>
+          <input class="inp code-inp" id="code" inputmode="numeric" autocomplete="one-time-code" maxlength="6" pattern="[0-9]{6}" required>
         </label>
-        <p class="err" id="err-enroll" role="alert" hidden></p>
-        <button class="btn block" type="submit" id="b-enroll">Confirm and continue</button>
-      </form>
-    </section>
-
-    <!-- 2b. Returning team member: enter the code -->
-    <section id="step-verify" class="stack" aria-labelledby="t-verify" hidden>
-      <span class="eyebrow">Team security</span>
-      <h1 id="t-verify">Enter your <em>code</em></h1>
-      <p class="muted">Open your authenticator app and enter the 6-digit code for M.E.E.T.</p>
-      <form id="f-verify" class="panel" novalidate>
-        <label class="f">6-digit code
-          <input class="inp code-inp" id="code-verify" inputmode="numeric" autocomplete="one-time-code" maxlength="6" pattern="[0-9]{6}" required>
-        </label>
-        <p class="err" id="err-verify" role="alert" hidden></p>
-        <button class="btn block" type="submit" id="b-verify">Continue</button>
-        <button class="link small" type="button" data-signout>Sign out</button>
+        <p class="err" id="err-code" role="alert" hidden></p>
+        <button class="btn block" type="submit" id="b-code">Continue</button>
+        <div class="between small">
+          <button class="link" type="button" id="b-resend">Send a new code</button>
+          <button class="link" type="button" data-signout>Sign out</button>
+        </div>
+        <p class="hint">It can take a minute to arrive. Check your spam folder too.</p>
       </form>
     </section>
   </div>

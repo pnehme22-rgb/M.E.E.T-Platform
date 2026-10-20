@@ -86,9 +86,10 @@
     if (!s) return null;
     var roleRes = await sb.rpc("my_role");
     var artistRes = await sb.from("artists").select("id, display_name, avatar_path").eq("id", s.user.id).maybeSingle();
-    var aal = await sb.auth.mfa.getAuthenticatorAssuranceLevel();
-    var member = null;
+    var member = null, confirmed = false;
     if (roleRes.data) {
+      var c = await sb.rpc("session_confirmed");
+      confirmed = c.data === true;
       var m = await sb.from("team_members").select("user_id, name, email, role").eq("user_id", s.user.id).maybeSingle();
       member = m.data || { user_id: s.user.id, name: s.user.email, role: roleRes.data };
     }
@@ -98,7 +99,7 @@
       role: roleRes.data || null,
       member: member,
       artist: artistRes.data || null,
-      aal: aal.data ? aal.data.currentLevel : "aal1"
+      confirmed: confirmed
     };
   }
 
@@ -107,7 +108,7 @@
     var me = await whoAmI();
     if (!me) { location.replace("/signin?next=" + encodeURIComponent(location.pathname + location.hash)); return null; }
     if (!me.role) { location.replace(me.artist ? "/studio" : "/signin?noaccess=1"); return null; }
-    if (me.aal !== "aal2") { location.replace("/signin?step=mfa&next=" + encodeURIComponent(location.pathname + location.hash)); return null; }
+    if (!me.confirmed) { location.replace("/signin?step=code&next=" + encodeURIComponent(location.pathname + location.hash)); return null; }
     setGateCookie(me.session);
     return me;
   }
@@ -125,7 +126,7 @@
     var me = await whoAmI();
     if (!me) return "/signin";
     if (me.role) {
-      if (me.aal !== "aal2") return "/signin?step=mfa" + (next ? "&next=" + encodeURIComponent(next) : "");
+      if (!me.confirmed) return "/signin?step=code" + (next ? "&next=" + encodeURIComponent(next) : "");
       // Only send team members on to their own private areas, never to an outside address.
       var safe = next && /^\/(team|prototype)(\/|#|$)/.test(next);
       return safe ? next : "/team";

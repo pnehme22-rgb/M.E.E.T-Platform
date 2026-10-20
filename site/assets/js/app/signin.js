@@ -1,16 +1,15 @@
-/* Sign-in: email and password, then two-step verification for team members. */
+/* Sign-in: email and password, then an emailed code for team members. */
 (function () {
   "use strict";
   var M = window.MEET;
   var $ = function (id) { return document.getElementById(id); };
   var params = new URLSearchParams(location.search);
   var next = params.get("next") || "";
-  var factorId = null;
 
   $("logo").insertAdjacentHTML("afterbegin", M.LOGO);
 
   function show(step) {
-    ["step-password", "step-enroll", "step-verify"].forEach(function (id) { $(id).hidden = id !== step; });
+    ["step-password", "step-code"].forEach(function (id) { $(id).hidden = id !== step; });
     var input = $(step).querySelector("input");
     if (input) setTimeout(function () { input.focus(); }, 30);
   }
@@ -43,46 +42,47 @@
       message("This account does not have access yet. If you think this is a mistake, write to minds.exploring.traditions@gmail.com.", "warn");
       return;
     }
-    if (dest.indexOf("/signin?step=mfa") === 0) { await startMfa(); return; }
+    if (dest.indexOf("/signin?step=code") === 0) { await sendCode(); return; }
     location.replace(dest);
   }
 
-  async function startMfa() {
-    var list = await M.sb.auth.mfa.listFactors();
-    if (list.error) { message(M.friendlyError(list.error), "err"); return; }
-    var verified = (list.data.totp || []).filter(function (f) { return f.status === "verified"; });
-    if (verified.length) {
-      factorId = verified[0].id;
-      show("step-verify");
-      return;
-    }
-    // Clear any half-finished setup, then start a fresh one.
-    var stale = (list.data.all || []).filter(function (f) { return f.status !== "verified"; });
-    for (var i = 0; i < stale.length; i++) await M.sb.auth.mfa.unenroll({ factorId: stale[i].id });
-    var en = await M.sb.auth.mfa.enroll({ factorType: "totp", friendlyName: "M.E.E.T. team " + new Date().toISOString().slice(0, 10) });
-    if (en.error) { message(M.friendlyError(en.error), "err"); return; }
-    factorId = en.data.id;
-    $("qr").src = en.data.totp.qr_code;
-    $("secret").textContent = en.data.totp.secret;
-    show("step-enroll");
+  function nextPage() {
+    return next && /^\/(team|prototype)(\/|#|$)/.test(next) ? next : "/team";
   }
 
-  async function verifyCode(inputId, errId, btnId) {
-    var code = $(inputId).value.replace(/\D/g, "");
-    if (code.length !== 6) { fieldError(errId, "Please enter the 6-digit code from your authenticator app."); return; }
-    fieldError(errId, "");
-    M.setBusy($(btnId), true, "Checking");
-    var r = await M.sb.auth.mfa.challengeAndVerify({ factorId: factorId, code: code });
-    M.setBusy($(btnId), false);
-    if (r.error) {
-      fieldError(errId, "That code did not work. Codes change every 30 seconds, so please try the newest one.");
-      $(inputId).select();
-      return;
+  async function sendCode() {
+    show("step-code");
+    fieldError("err-code", "");
+    try {
+      var r = await M.api("team-code", { action: "send" });
+      if (r.confirmed) { M.setGateCookie(await M.session()); location.replace(nextPage()); return; }
+      $("code-sent").textContent = "We have emailed a 6-digit code to " + (r.sent_to || "your email") + ". Enter it below to finish signing in.";
+    } catch (err) {
+      fieldError("err-code", M.friendlyError(err));
     }
-    var s = await M.session();
-    M.setGateCookie(s);
-    location.replace(next && /^\/(team|prototype)(\/|#|$)/.test(next) ? next : "/team");
   }
+
+  $("f-code").addEventListener("submit", async function (e) {
+    e.preventDefault();
+    var code = $("code").value.replace(/\D/g, "");
+    if (code.length !== 6) { fieldError("err-code", "Please enter the 6 digits from the email."); return; }
+    fieldError("err-code", "");
+    M.setBusy($("b-code"), true, "Checking");
+    try {
+      await M.api("team-code", { action: "verify", code: code });
+      M.setGateCookie(await M.session());
+      location.replace(nextPage());
+    } catch (err) {
+      M.setBusy($("b-code"), false);
+      fieldError("err-code", M.friendlyError(err));
+      $("code").select();
+    }
+  });
+
+  $("b-resend").addEventListener("click", function () {
+    $("code").value = "";
+    sendCode();
+  });
 
   $("f-password").addEventListener("submit", async function (e) {
     e.preventDefault();
@@ -102,8 +102,6 @@
     go();
   });
 
-  $("f-enroll").addEventListener("submit", function (e) { e.preventDefault(); verifyCode("code-enroll", "err-enroll", "b-enroll"); });
-  $("f-verify").addEventListener("submit", function (e) { e.preventDefault(); verifyCode("code-verify", "err-verify", "b-verify"); });
   document.querySelectorAll("[data-signout]").forEach(function (b) { b.addEventListener("click", M.signOut); });
 
   // Already signed in: carry on from where they are.

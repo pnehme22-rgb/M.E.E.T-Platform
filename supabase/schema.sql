@@ -6,7 +6,7 @@
 -- Security model
 --   anon (public visitors) : may only call submit_application(). Nothing else.
 --   artists (signed in)    : read and edit only their own profile, works and files.
---   team (signed in, 2FA)  : review everything. Founders also manage the team.
+--   team (signed in + email code) : review everything. Founders also manage the team.
 --   service role           : used only by Netlify functions (invites, emails).
 -- =============================================================================
 
@@ -167,17 +167,43 @@ language sql stable security definer set search_path = public as $$
   select role from team_members where user_id = auth.uid() and active
 $$;
 
--- Team access needs an active membership AND a two-step (aal2) session.
+-- Team sign-in sessions confirmed with an emailed 6-digit code.
+create table if not exists team_session_checks (
+  session_id   uuid primary key,
+  user_id      uuid not null references auth.users(id) on delete cascade,
+  code_hash    text not null,
+  expires_at   timestamptz not null,
+  attempts     int not null default 0,
+  sent_count   int not null default 1,
+  sent_at      timestamptz not null default now(),
+  verified_at  timestamptz
+);
+create index if not exists team_session_checks_user_idx on team_session_checks (user_id, sent_at desc);
+alter table team_session_checks enable row level security;
+revoke all on team_session_checks from anon, authenticated;
+
+-- Team access: an active team member whose current sign-in session has been
+-- confirmed with an emailed code (valid for 30 days on that device).
+create or replace function session_confirmed() returns boolean
+language sql stable security definer set search_path = public as $$
+  select exists (
+    select 1 from team_session_checks
+    where session_id = nullif(auth.jwt()->>'session_id','')::uuid
+      and user_id = auth.uid()
+      and verified_at is not null
+      and verified_at > now() - interval '30 days')
+$$;
+
 create or replace function is_team() returns boolean
 language sql stable security definer set search_path = public as $$
   select exists (select 1 from team_members where user_id = auth.uid() and active)
-     and coalesce(auth.jwt()->>'aal','') = 'aal2'
+     and session_confirmed()
 $$;
 
 create or replace function is_founder() returns boolean
 language sql stable security definer set search_path = public as $$
   select exists (select 1 from team_members where user_id = auth.uid() and active and role = 'founder')
-     and coalesce(auth.jwt()->>'aal','') = 'aal2'
+     and session_confirmed()
 $$;
 
 -- Team members who may change things (viewers only read).
@@ -538,7 +564,7 @@ create policy own_delete_artwork on artworks for delete to authenticated
   using (artist_id = auth.uid() and status <> 'approved');
 
 grant execute on function submit_application(jsonb) to anon, authenticated;
-grant execute on function my_role(), is_team(), is_founder(), is_team_editor() to authenticated;
+grant execute on function my_role(), session_confirmed(), is_team(), is_founder(), is_team_editor() to authenticated;
 grant execute on function set_application_status(uuid, app_status, text), assign_application(uuid, uuid),
   add_application_note(uuid, text), submit_profile(), submit_artwork(uuid),
   review_item(text, uuid, review_status, text), set_team_member(uuid, team_role, boolean) to authenticated;
