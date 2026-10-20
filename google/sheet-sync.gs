@@ -32,13 +32,16 @@ var STATUS_LABEL = {
   new: 'New', in_review: 'In review', more_info: 'More information requested', approved: 'Approved', declined: 'Declined'
 };
 
+// The shared secret. The SECRET script property overrides it if set.
+var DEFAULT_SECRET = 'meet-VD2ykQ2uHGz7ZRIsyTAZbLK9DvHsru8S';
+
 function doPost(e) {
   var lock = LockService.getScriptLock();
   lock.waitLock(20000);
   try {
-    var data = JSON.parse(e.postData.contents || '{}');
-    var secret = PropertiesService.getScriptProperties().getProperty('SECRET');
-    if (!secret || data.secret !== secret) return text_('forbidden');
+    var data = JSON.parse((e && e.postData && e.postData.contents) || '{}');
+    var secret = (PropertiesService.getScriptProperties().getProperty('SECRET') || DEFAULT_SECRET).trim();
+    if (data.secret !== secret) return text_('forbidden: secret does not match');
     if (!data.reference) return text_('missing reference');
 
     var sheet = sheet_();
@@ -50,6 +53,8 @@ function doPost(e) {
     if (at === -1) sheet.appendRow(row);
     else sheet.getRange(at, 1, 1, row.length).setValues([row]);
     return text_('ok');
+  } catch (err) {
+    return text_('error: ' + err.message);
   } finally {
     lock.releaseLock();
   }
@@ -58,8 +63,9 @@ function doPost(e) {
 function sheet_() {
   // Works inside the Sheet (Extensions > Apps Script), or as a stand-alone
   // project at script.google.com with a SHEET_ID script property.
-  var id = PropertiesService.getScriptProperties().getProperty('SHEET_ID');
+  var id = (PropertiesService.getScriptProperties().getProperty('SHEET_ID') || '').trim();
   var ss = id ? SpreadsheetApp.openById(id) : SpreadsheetApp.getActiveSpreadsheet();
+  if (!ss) throw new Error('no sheet found: add the SHEET_ID script property');
   var sheet = ss.getSheetByName(SHEET_NAME) || ss.insertSheet(SHEET_NAME);
   if (sheet.getLastRow() === 0) {
     sheet.appendRow(COLUMNS.map(function (c) { return c[1]; }));
