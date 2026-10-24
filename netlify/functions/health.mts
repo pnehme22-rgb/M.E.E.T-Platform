@@ -1,7 +1,9 @@
-// Settings self-check. Says which Netlify settings look right, without ever
-// revealing their values. Open /api/health in a browser.
+// Settings self-check for founders. Says which Netlify settings look right,
+// without ever revealing their values. Visitors get no details: send the
+// request with a founder's sign-in (Authorization: Bearer <token>).
 
 import { createClient } from "@supabase/supabase-js";
+import { teamCaller } from "../lib/server.ts";
 
 function get(name: string): string {
   // deno-lint-ignore no-explicit-any
@@ -9,7 +11,15 @@ function get(name: string): string {
   return ((g.Netlify && g.Netlify.env && g.Netlify.env.get(name)) || process.env[name] || "").trim();
 }
 
-export default async (): Promise<Response> => {
+export default async (req: Request): Promise<Response> => {
+  try { await teamCaller(req, { founder: true }); }
+  catch (err) {
+    // deno-lint-ignore no-explicit-any
+    const e = err as any;
+    // A settings problem is still reported (without values), so a founder can fix it.
+    if (e && e.status === 500) return new Response(JSON.stringify({ ok: false, message: e.message }), { status: 500, headers: { "Content-Type": "application/json", "Cache-Control": "no-store" } });
+    return new Response(JSON.stringify({ ok: false, message: "Founders only." }), { status: 401, headers: { "Content-Type": "application/json", "Cache-Control": "no-store" } });
+  }
   const url = get("SUPABASE_URL"), anon = get("SUPABASE_ANON_KEY"), svcKey = get("SUPABASE_SERVICE_ROLE_KEY");
   const out: Record<string, string> = {};
   out.SUPABASE_URL = !url ? "missing" : url === "https://tklhucdxrgkbkjkaturg.supabase.co" ? "ok" : "set, but not the expected address (check for typos or extra characters)";

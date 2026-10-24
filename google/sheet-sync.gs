@@ -33,8 +33,10 @@ var STATUS_LABEL = {
   new: 'New', in_review: 'In review', more_info: 'More information requested', approved: 'Approved', declined: 'Declined'
 };
 
-// The shared secret. The SECRET script property overrides it if set.
-var DEFAULT_SECRET = 'meet-VD2ykQ2uHGz7ZRIsyTAZbLK9DvHsru8S';
+// The shared secret. Never commit the real value: when pasting this script
+// into Apps Script, replace PASTE-THE-SECRET-HERE with the secret that the
+// Supabase webhook sends (or set the SECRET script property).
+var DEFAULT_SECRET = 'PASTE-THE-SECRET-HERE';
 
 function doPost(e) {
   var lock = LockService.getScriptLock();

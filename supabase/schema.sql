@@ -1641,3 +1641,15 @@ grant execute on function create_project_request(jsonb), my_project_requests(), 
   set_project_artist(uuid, uuid, text, text), remove_project_artist(uuid, uuid),
   add_project_task(uuid, text, uuid, date, text), set_project_task_done(uuid, boolean), delete_project_task(uuid),
   update_project_money(uuid, jsonb) to authenticated;
+
+-- =============================================================================
+-- Phase 4 (update 011): visitors may call only the public website's functions.
+-- =============================================================================
+revoke execute on all functions in schema public from anon, public;
+
+-- The public website: sending an artist application, and reading the
+-- photographs of public artists and artworks (storage rule media_public_read).
+grant execute on function submit_application(jsonb), is_public_media(text) to anon;
+
+-- Functions created later are not callable by visitors unless granted.
+alter default privileges in schema public revoke execute on functions from anon, public;

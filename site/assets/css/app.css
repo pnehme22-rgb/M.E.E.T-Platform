@@ -376,3 +376,6 @@ label.row > input[type="checkbox"] { flex: none; width: 20px; height: 20px; marg
 .rtable td.n, .rtable th.n { text-align: right; font-variant-numeric: tabular-nums; }
 .rwrap { overflow-x: auto; }
 @media (max-width: 820px) { .pipe { grid-template-columns: repeat(3, minmax(0, 1fr)); } .money { grid-template-columns: minmax(0, 1fr); } }
+
+/* Way back to the public website from the studio and member account. */
+@media (max-width: 420px) { .site-link { display: none; } }

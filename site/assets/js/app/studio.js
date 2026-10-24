@@ -32,7 +32,7 @@
     nav.innerHTML = items.map(function (i) {
       return '<a class="ni" href="#/' + i[0] + '"' + (current === i[0] ? ' aria-current="page"' : "") + ">" + esc(i[1]) +
         (i[2] ? '<span class="badge" aria-label="' + i[2] + ' new">' + i[2] + "</span>" : "") + "</a>";
-    }).join("") + '<a class="ni" href="/welcome">Change password</a>';
+    }).join("") + '<a class="ni" href="/welcome">Change password</a><a class="ni" href="/">M.E.E.T. website</a>';
   }
 
   async function route() {
