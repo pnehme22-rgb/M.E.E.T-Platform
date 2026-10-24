@@ -62,13 +62,18 @@
     }
   }
 
+  var guard = M.captcha($("captcha"));
+
   // Sends the email-confirmation link again (for new member accounts).
   function showResend(email) {
     var box = $("resend-box");
     box.hidden = false;
     $("b-resend-confirm").onclick = async function () {
       M.setBusy(this, true, "Sending");
-      var r = await M.sb.auth.resend({ type: "signup", email: email });
+      var r;
+      try { r = await M.sb.auth.resend({ type: "signup", email: email, options: { captchaToken: await guard.token() } }); }
+      catch (ex) { r = { error: ex }; }
+      guard.reset();
       M.setBusy(this, false);
       message(r.error ? M.friendlyError(r.error) : "We sent a new confirmation email to " + email + ". Check your spam folder too.", r.error ? "err" : "ok");
     };
@@ -103,8 +108,12 @@
     fieldError("err-password", "");
     message("");
     M.setBusy($("b-password"), true, "Signing in");
-    var r = await M.sb.auth.signInWithPassword({ email: email, password: pw });
+    var r;
+    try { r = await M.sb.auth.signInWithPassword({ email: email, password: pw, options: { captchaToken: await guard.token() } }); }
+    catch (ex) { r = { error: ex }; }
+    guard.reset();
     M.setBusy($("b-password"), false);
+    if (r.error && /captcha|security check/i.test(r.error.message)) { fieldError("err-password", M.friendlyError(r.error)); return; }
     if (r.error && /not confirmed/i.test(r.error.message)) {
       fieldError("err-password", "Please confirm your email first: open the email we sent when you signed up and press the button in it.");
       showResend(email);

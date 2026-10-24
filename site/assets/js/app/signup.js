@@ -30,6 +30,7 @@
   };
 
   $("logo").insertAdjacentHTML("afterbegin", M.LOGO);
+  var guard = M.captcha($("captcha"));
 
   // Country suggestions from the same list the artist registration uses.
   (window.MEET_PLACES || []).forEach(function (c) {
@@ -135,11 +136,15 @@
 
     var btn = $("b-submit");
     M.setBusy(btn, true, "Creating your account");
-    var r = await M.sb.auth.signUp({
-      email: val("email"),
-      password: form.elements.password.value,
-      options: { data: data, emailRedirectTo: location.origin + "/welcome?type=signup" }
-    });
+    var r;
+    try {
+      r = await M.sb.auth.signUp({
+        email: val("email"),
+        password: form.elements.password.value,
+        options: { data: data, emailRedirectTo: location.origin + "/welcome?type=signup", captchaToken: await guard.token() }
+      });
+    } catch (ex) { r = { error: ex }; }
+    guard.reset();
     M.setBusy(btn, false);
 
     if (r.error) {
@@ -148,6 +153,7 @@
         : /password/i.test(m) && /weak|short|characters|pwned|leaked/i.test(m) ? "Please choose a stronger password: at least 8 characters, and not one used on other sites."
         : /signups? not allowed|signup.*disabled/i.test(m) ? "New accounts are paused at the moment. Please try again later, or write to minds.exploring.traditions@gmail.com."
         : /rate|too many/i.test(m) ? "Too many attempts. Please wait a few minutes and try again."
+        : /captcha|security check/i.test(m) ? "The security check did not pass. Please wait a moment and try again."
         : /Database error|saving new user/i.test(m) ? "Some details could not be saved. Please check the form and try again."
         : /fetch|network/i.test(m) ? "We could not reach the server. Please check your connection and try again."
         : "Your account could not be created. " + m;
@@ -165,7 +171,10 @@
   $("b-resend").addEventListener("click", async function () {
     if (!lastEmail) return;
     M.setBusy(this, true, "Sending");
-    var r = await M.sb.auth.resend({ type: "signup", email: lastEmail });
+    var r;
+    try { r = await M.sb.auth.resend({ type: "signup", email: lastEmail, options: { captchaToken: await guard.token() } }); }
+    catch (ex) { r = { error: ex }; }
+    guard.reset();
     M.setBusy(this, false);
     message(r.error ? M.friendlyError(r.error) : "We sent the confirmation email again to " + lastEmail + ".", r.error ? "err" : "ok");
   });

@@ -6,6 +6,8 @@
   var $ = function (id) { return document.getElementById(id); };
   $("logo").insertAdjacentHTML("afterbegin", M.LOGO);
 
+  var guard = M.captcha($("captcha"));
+
   // An earlier error disappears as soon as the address is edited.
   $("email").addEventListener("input", function () { $("err").hidden = true; });
 
@@ -21,8 +23,16 @@
     err.hidden = true;
     if (!M.configured) { err.textContent = "The site is not connected to its database yet."; err.hidden = false; return; }
     M.setBusy($("b-reset"), true, "Sending");
-    var r = await M.sb.auth.resetPasswordForEmail(email, { redirectTo: location.origin + "/welcome?type=recovery" });
+    var r;
+    try { r = await M.sb.auth.resetPasswordForEmail(email, { redirectTo: location.origin + "/welcome?type=recovery", captchaToken: await guard.token() }); }
+    catch (ex) { r = { error: ex }; }
+    guard.reset();
     M.setBusy($("b-reset"), false);
+    if (r.error && /captcha|security check/i.test(r.error.message)) {
+      err.textContent = M.friendlyError(r.error);
+      err.hidden = false;
+      return;
+    }
     if (r.error && /fetch|network/i.test(r.error.message)) {
       err.textContent = "We could not reach the server. Please check your connection and try again.";
       err.hidden = false;

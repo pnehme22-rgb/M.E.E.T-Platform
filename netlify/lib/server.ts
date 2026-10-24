@@ -234,7 +234,9 @@ ${(p.after || []).map(para).join("")}
 // Sends through Resend from hello@meetstudio.art when RESEND_API_KEY is set
 // (signed for the domain, so it reaches inboxes), otherwise through Gmail.
 // Replies always go to the team's Gmail inbox.
-export async function sendMail(to: string, subject: string, body: { html: string; text: string }) {
+export interface MailAttachment { filename: string; content: string }   // content: plain text (e.g. CSV)
+
+export async function sendMail(to: string, subject: string, body: { html: string; text: string }, attachments: MailAttachment[] = []) {
   // deno-lint-ignore no-explicit-any
   const g = globalThis as any;
   const get = (k: string) => ((g.Netlify && g.Netlify.env && g.Netlify.env.get(k)) || process.env[k] || "").trim();
@@ -246,7 +248,10 @@ export async function sendMail(to: string, subject: string, body: { html: string
     const res = await fetch("https://api.resend.com/emails", {
       method: "POST",
       headers: { Authorization: `Bearer ${resendKey}`, "Content-Type": "application/json" },
-      body: JSON.stringify({ from, to: [to], subject, html: body.html, text: body.text, reply_to: replyTo }),
+      body: JSON.stringify({
+        from, to: [to], subject, html: body.html, text: body.text, reply_to: replyTo,
+        ...(attachments.length ? { attachments: attachments.map((x) => ({ filename: x.filename, content: Buffer.from(x.content, "utf8").toString("base64") })) } : {}),
+      }),
     });
     if (res.ok) return;
     console.error("RESEND ERROR", res.status, await res.text().catch(() => ""));
@@ -260,7 +265,10 @@ export async function sendMail(to: string, subject: string, body: { html: string
     auth: { user: env("GMAIL_USER"), pass: env("GMAIL_APP_PASSWORD") },
   });
   try {
-    await transport.sendMail({ from: `"M.E.E.T." <${env("GMAIL_USER")}>`, replyTo, to, subject, html: body.html, text: body.text });
+    await transport.sendMail({
+      from: `"M.E.E.T." <${env("GMAIL_USER")}>`, replyTo, to, subject, html: body.html, text: body.text,
+      attachments: attachments.map((x) => ({ filename: x.filename, content: x.content })),
+    });
   } catch (err) {
     console.error("MAIL ERROR", err);
     throw new HttpError(502, "The change was saved, but the email could not be sent. Please try sending it again in a moment.");

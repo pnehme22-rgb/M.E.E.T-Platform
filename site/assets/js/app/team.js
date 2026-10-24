@@ -940,7 +940,7 @@
     ["negotiation", "Negotiation", "warn"], ["confirmed", "Project Confirmed", "ok"], ["not_confirmed", "Not Confirmed", ""]];
   var PROJECT_STATUS = {}; PIPE.forEach(function (p) { PROJECT_STATUS[p[0]] = [p[1], p[2]]; });
   var REASONS = [["budget", "Budget didn't fit"], ["timeline", "Timeline didn't fit"], ["changed_mind", "Client changed their mind"],
-    ["no_response", "No response from client"], ["match", "Artist or artwork match wasn't suitable"], ["requirements", "Project requirements changed"], ["other", "Other"]];
+    ["no_response", "No response"], ["match", "Artist/artwork match unsuitable"], ["requirements", "Requirements changed"], ["other", "Other"]];
   var REASON_LABEL = {}; REASONS.forEach(function (r) { REASON_LABEL[r[0]] = r[1]; });
   var PAYMENT = [["not_recorded", "Not recorded"], ["not_due", "Not due yet"], ["awaiting", "Awaiting payment"], ["partly_paid", "Partly paid"], ["paid", "Paid in full"], ["not_applicable", "Not applicable"]];
   var PAYMENT_LABEL = {}; PAYMENT.forEach(function (p) { PAYMENT_LABEL[p[0]] = p[1]; });
@@ -1279,7 +1279,8 @@
         return '<button class="chip" type="button" data-f="tab" data-v="' + c[0] + '" aria-pressed="' + (tab === c[0]) + '">' + esc(c[1]) + " · " + groups[c[0]].length + "</button>";
       }).join("") + "</div>" +
       '<div class="toolbar"><label class="visually-hidden" for="f-who">Whose follow-ups</label><select class="inp" id="f-who" data-sel="who">' +
-      [["mine", "Assigned to me"], ["all", "Everyone"]].map(function (o) { return '<option value="' + o[0] + '"' + (who === o[0] ? " selected" : "") + ">" + esc(o[1]) + "</option>"; }).join("") + "</select></div></div>" +
+      [["mine", "Assigned to me"], ["all", "Everyone"]].map(function (o) { return '<option value="' + o[0] + '"' + (who === o[0] ? " selected" : "") + ">" + esc(o[1]) + "</option>"; }).join("") + "</select>" +
+      (me.role === "founder" ? '<button class="btn line sm" type="button" data-job="reminders">Send due reminders now</button>' : "") + "</div></div>" +
       (rows.length ? '<div class="list">' + rows.map(function (k) {
         var pr = k.project_requests || {};
         return '<div class="lrow"><div class="lm"><b>' + esc(k.title) + '</b><span class="muted small"><a class="link" href="#/project/' + pr.id + '">' + esc(pr.reference || "") + " · " + esc(pr.client_organization || pr.client_name || "") + "</a> · " + esc(teamName(k.assigned_to) || "Unassigned") + (k.notes ? " · " + esc(k.notes) : "") + "</span></div>" +
@@ -1287,6 +1288,7 @@
           (k.assigned_to === me.user.id || me.role === "founder" || pr.assigned_to === me.user.id ? '<button class="btn line sm" type="button" data-task="' + k.id + '" data-done="' + (!k.done) + '">' + (k.done ? "Reopen" : "Mark done") + "</button>" : "") + "</div></div>";
       }).join("") + "</div>" : '<div class="empty">' + (tab === "overdue" ? "Nothing overdue." : tab === "upcoming" ? "No upcoming follow-ups." : "No completed follow-ups yet.") + "</div>");
     hashFilters("followups", q);
+    runJobButtons();
     main.onclick = async function (e) {
       var k = e.target.closest("[data-task]");
       if (!k) return;
@@ -1329,7 +1331,9 @@
     main.innerHTML =
       '<div class="head"><div><span class="eyebrow">Founders</span><h1>Reports</h1>' +
       "<p>By each person's registered country, as given in their account. Inquiry counts are not revenue. Amounts in different currencies are shown separately and never added together.</p></div>" +
-      '<div class="toolbar"><label class="visually-hidden" for="f-country">Country</label><select class="inp" id="f-country">' + countryOptions(countries, country, "All countries") + "</select></div></div>" +
+      '<div class="toolbar"><label class="visually-hidden" for="f-country">Country</label><select class="inp" id="f-country">' + countryOptions(countries, country, "All countries") + "</select>" +
+      '<button class="btn line sm" type="button" data-job="export">Email the export now</button></div></div>' +
+      '<p class="small muted">Every Monday at 05:00 UTC, founders receive an email with CSV copies of all inquiry and sales records. It is a copy of the records, not a full database backup.</p>' +
       '<section class="rblock"><h3>Revenue records</h3><p class="small muted">From the figures the team recorded by hand.</p>' +
       table(["", "Projects", "Amounts"], [
         ["Open pipeline, estimated project value", String(open.length), sums(open, "estimated_value")],
@@ -1353,6 +1357,23 @@
       table(["Reason", "Projects"], REASONS.map(function (r) { return [esc(r[1]), String(n(prjF, function (x) { return x.status === "not_confirmed" && x.not_confirmed_reason === r[0]; }))]; })
         .filter(function (r) { return r[1] !== "0"; })) + "</section>";
     hashFilters("reports", q);
+    runJobButtons();
+  }
+
+  // Founders: run a scheduled job now (same code as the schedule).
+  function runJobButtons() {
+    main.querySelectorAll("[data-job]").forEach(function (b) {
+      b.addEventListener("click", async function () {
+        var job = b.getAttribute("data-job");
+        M.setBusy(b, true, job === "export" ? "Sending" : "Running");
+        try {
+          var r = await M.api("run-job", { job: job });
+          M.toast(job === "export" ? "Export emailed to " + r.sent + " founder" + (r.sent === 1 ? "" : "s") + "."
+            : r.due ? "Reminders sent for " + r.due + " follow-up" + (r.due === 1 ? "" : "s") + "." : "No follow-ups are due today.");
+        } catch (err) { fail(err); }
+        M.setBusy(b, false);
+      });
+    });
   }
 
   /* ------------------------------------------------------------------ */

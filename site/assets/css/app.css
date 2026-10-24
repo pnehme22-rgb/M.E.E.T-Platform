@@ -383,3 +383,11 @@ label.row > input[type="checkbox"] { flex: none; width: 20px; height: 20px; marg
 /* Content areas receive focus after each page change (for screen readers);
    they are not controls, so no focus frame is drawn around them. */
 [tabindex="-1"]:focus { outline: none; }
+
+/* Member account header: links back into the public website. */
+.hdr-links { display: flex; gap: 18px; }
+@media (max-width: 560px) { .hdr-links { gap: 12px; } .hdr-links a:last-child { display: none; } }
+
+/* Bot protection widget: invisible unless Cloudflare needs a click. */
+.captcha:empty { display: none; }
+.captcha { display: flex; justify-content: center; }

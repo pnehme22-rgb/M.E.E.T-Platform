@@ -60,6 +60,7 @@
     var m = (err && (err.message || err.error_description || err.error)) || String(err || "");
     if (/Failed to fetch|NetworkError|network/i.test(m)) return "We could not reach the server. Please check your connection and try again.";
     if (/JWT|expired|not authenticated/i.test(m)) return "Your session has ended. Please sign in again.";
+    if (/captcha/i.test(m)) return "The security check did not pass. Please wait a moment and try again.";
     if (/not allowed|permission|42501/i.test(m)) return "Your account does not have permission to do this.";
     return m || "Something went wrong. Please try again.";
   }
@@ -81,10 +82,24 @@
     return r.data.session;
   }
 
+  /* A navigation hint for the public pages: which workspace this browser's
+     sign-in belongs to. It only changes links in the public header; every
+     private page still checks access with the server. */
+  var HOME_KEY = "meet-home";
+  function rememberHome(me) {
+    try {
+      if (!me) { localStorage.removeItem(HOME_KEY); return; }
+      var home = me.role ? { href: "/team", label: "Team console", kind: "team" }
+        : me.artist ? { href: "/studio", label: "My studio", kind: "artist" }
+        : me.account ? { href: "/account", label: "My account", kind: "member" } : null;
+      if (home) localStorage.setItem(HOME_KEY, JSON.stringify(home)); else localStorage.removeItem(HOME_KEY);
+    } catch (e) { /* storage unavailable: the header simply shows Sign in */ }
+  }
+
   /* Who is signed in, and what may they open? */
   async function whoAmI() {
     var s = await session();
-    if (!s) return null;
+    if (!s) { rememberHome(null); return null; }
     var roleRes = await sb.rpc("my_role");
     var artistRes = await sb.from("artists").select("id, display_name, avatar_path").eq("id", s.user.id).maybeSingle();
     // Personal, Professional or Business & Organization member account, if any.
@@ -96,7 +111,7 @@
       var m = await sb.from("team_members").select("user_id, name, email, role").eq("user_id", s.user.id).maybeSingle();
       member = m.data || { user_id: s.user.id, name: s.user.email, role: roleRes.data };
     }
-    return {
+    var me = {
       session: s,
       user: s.user,
       role: roleRes.data || null,
@@ -105,6 +120,8 @@
       account: accountRes.data || null,
       confirmed: confirmed
     };
+    rememberHome(me);
+    return me;
   }
 
   async function requireTeam() {
@@ -151,6 +168,7 @@
 
   async function signOut() {
     clearGateCookie();
+    rememberHome(null);
     if (sb) await sb.auth.signOut();
     location.replace("/signin?out=1");
   }
@@ -239,6 +257,50 @@
     return close;
   }
 
+  /* Bot protection (Cloudflare Turnstile) for sign-up, sign-in, password reset
+     and confirmation emails. Supabase checks the token on its servers. With no
+     site key configured, nothing is loaded and no token is sent. */
+  var turnstileReady = null;
+  function loadTurnstile() {
+    if (turnstileReady) return turnstileReady;
+    turnstileReady = new Promise(function (resolve, reject) {
+      window.onMeetTurnstile = function () { resolve(window.turnstile); };
+      var s = document.createElement("script");
+      s.src = "https://challenges.cloudflare.com/turnstile/v0/api.js?onload=onMeetTurnstile&render=explicit";
+      s.async = true;
+      s.onerror = function () { reject(new Error("The security check could not load. Please check your connection, or turn off a blocker for this page, and try again.")); };
+      document.head.appendChild(s);
+    });
+    return turnstileReady;
+  }
+  function captcha(el) {
+    var key = CFG.turnstileSiteKey;
+    if (!key || !el) return { enabled: false, token: function () { return Promise.resolve(undefined); }, reset: function () {} };
+    var id = null, current = null, waiting = [], failed = null;
+    function settle(t) { current = t; waiting.splice(0).forEach(function (w) { w(t); }); }
+    loadTurnstile().then(function (ts) {
+      id = ts.render(el, {
+        sitekey: key, appearance: "interaction-only", "refresh-expired": "auto",
+        callback: settle,
+        "expired-callback": function () { current = null; },
+        "error-callback": function () { current = null; }
+      });
+    }).catch(function (err) { failed = err; });
+    return {
+      enabled: true,
+      token: function () {
+        if (failed) return Promise.reject(failed);
+        if (current) return Promise.resolve(current);
+        return new Promise(function (resolve, reject) {
+          waiting.push(resolve);
+          setTimeout(function () { reject(new Error("The security check has not finished yet. Please wait a moment and try again.")); }, 20000);
+        });
+      },
+      // Tokens work once: get a fresh one after every request.
+      reset: function () { current = null; if (id !== null && window.turnstile) window.turnstile.reset(id); }
+    };
+  }
+
   function setBusy(btn, on, label) {
     if (!btn) return;
     if (on) { btn.dataset.label = btn.textContent; btn.textContent = label || "Working"; btn.classList.add("busy"); btn.disabled = true; }
@@ -248,7 +310,7 @@
   if (sb) {
     sb.auth.onAuthStateChange(function (event, s) {
       if (event === "TOKEN_REFRESHED" && s && document.cookie.indexOf("meet-session=") !== -1) setGateCookie(s);
-      if (event === "SIGNED_OUT") clearGateCookie();
+      if (event === "SIGNED_OUT") { clearGateCookie(); rememberHome(null); }
     });
   }
 
@@ -258,6 +320,6 @@
     session: session, whoAmI: whoAmI, requireTeam: requireTeam, requireArtist: requireArtist, requireAccount: requireAccount,
     routeAfterSignIn: routeAfterSignIn, signOut: signOut, api: api,
     setGateCookie: setGateCookie, mediaUrl: mediaUrl, hydrateMedia: hydrateMedia, uploadImage: uploadImage,
-    modal: modal, setBusy: setBusy
+    modal: modal, setBusy: setBusy, captcha: captcha
   };
 })();

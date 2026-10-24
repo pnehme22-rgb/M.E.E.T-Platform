@@ -43,6 +43,29 @@
     onScroll();
 
 
+    // Signed in on this browser: show the way to the account instead of
+    // Sign in / Sign up. Navigation only; access is checked by each page.
+    var home = null;
+    try {
+      if (localStorage.getItem("meet-auth")) home = JSON.parse(localStorage.getItem("meet-home") || "null");
+      else localStorage.removeItem("meet-home");
+    } catch (e) { home = null; }
+    if (home && /^\/(account|studio|team)$/.test(home.href)) {
+      document.querySelectorAll('a[href="/signin"]').forEach(function (a) {
+        if (!a.closest(".site-header")) return;
+        a.setAttribute("href", home.href);
+        a.textContent = home.label;
+        a.classList.add("is-account");
+      });
+      document.querySelectorAll('.site-header a[href="/signup"]').forEach(function (a) {
+        var li = a.closest("li"); (li || a).hidden = true;
+      });
+      // Artists and the team already have their place; members may still apply as artists.
+      if (home.kind !== "member") document.querySelectorAll('.site-header a.btn[href="/join"], .site-header .nav-m a[href="/join"]').forEach(function (a) {
+        var li = a.closest("li"); (li || a).hidden = true;
+      });
+    }
+
     // Phone menu: Artists, Sign in and Create an account fold into one panel.
     var toggle = document.querySelector(".nav-toggle");
     var menu = document.getElementById("nav-menu");
