@@ -12,9 +12,9 @@ Status words: **Verified** (tested and passed), **Built, not verified** (impleme
 | Public fields only (no email, legal name, links, traditions) | Verified | Live probe of the four public views |
 | Artwork prices public only by the artist's choice | Verified | Phase 3 test; live probe returns no unchosen price |
 | Unpublished items blocked by direct address | Verified | Phase 4 test; artist and artwork pages show "not available" |
-| Visitors limited to the public website's functions | Built, not verified | Update 011 and Phase 4 test to run |
-| Artists cannot approve themselves; review rules on edit | Built, not verified | Phase 4 test to run (column rights already in place) |
-| Role limits (viewer, sales, member) | Verified / Built | Phase 3 test verified sales and members; viewer and sales extras in Phase 4 test |
+| Visitors limited to the public website's functions | Verified | Update 011 run; Phase 4 test (22/22); live probe: permission denied |
+| Artists cannot approve themselves; review rules on edit | Verified | Phase 4 test (22/22); Phase 2 test |
+| Role limits (viewer, sales, member) | Verified | Phase 3 test (53/53, rerun after update 011); Phase 4 test (22/22) |
 | Secrets not in the website code | Verified | Code scan: only the public key in the browser; server keys in Netlify settings |
 | Server functions refuse unsigned requests | Verified | Live: every private function answers 401 without a sign-in; health check founders only |
 | Member sign-up, confirmation, sign-in, password reset | Built, not verified | Needs a real email test (sign-ups were switched off at last check) |
