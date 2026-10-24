@@ -379,3 +379,7 @@ label.row > input[type="checkbox"] { flex: none; width: 20px; height: 20px; marg
 
 /* Way back to the public website from the studio and member account. */
 @media (max-width: 420px) { .site-link { display: none; } }
+
+/* Content areas receive focus after each page change (for screen readers);
+   they are not controls, so no focus frame is drawn around them. */
+[tabindex="-1"]:focus { outline: none; }

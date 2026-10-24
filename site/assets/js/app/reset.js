@@ -6,6 +6,9 @@
   var $ = function (id) { return document.getElementById(id); };
   $("logo").insertAdjacentHTML("afterbegin", M.LOGO);
 
+  // An earlier error disappears as soon as the address is edited.
+  $("email").addEventListener("input", function () { $("err").hidden = true; });
+
   $("f-reset").addEventListener("submit", async function (e) {
     e.preventDefault();
     var email = $("email").value.trim();
