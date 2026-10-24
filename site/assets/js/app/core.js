@@ -280,7 +280,7 @@
     function settle(t) { current = t; waiting.splice(0).forEach(function (w) { w(t); }); }
     loadTurnstile().then(function (ts) {
       id = ts.render(el, {
-        sitekey: key, appearance: "interaction-only", "refresh-expired": "auto",
+        sitekey: key, appearance: "interaction-only", theme: "light", "refresh-expired": "auto",
         callback: settle,
         "expired-callback": function () { current = null; },
         "error-callback": function () { current = null; }
