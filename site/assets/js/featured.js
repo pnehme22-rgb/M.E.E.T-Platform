@@ -19,26 +19,23 @@
       var urls = await P.signUrls(artists.map(function (a) { return a.cover_path || a.avatar_path; })
         .concat(works.map(function (w) { return (w.images || [])[0]; })));
 
-      var html = "";
-      if (artists.length) {
-        html += '<div class="featured-row"><h3>Artists</h3><div class="dir-grid">' + artists.map(function (a) {
-          var src = urls[a.cover_path || a.avatar_path];
-          return '<a class="a-card" href="' + P.artistUrl(a.id) + '"><span class="a-media">' +
-            (src ? '<img src="' + esc(src) + '" alt="" loading="lazy" decoding="async">' : '<span class="card-initial" aria-hidden="true">' + esc((a.display_name || "?").charAt(0)) + "</span>") +
-            '</span><span class="a-name">' + esc(a.display_name) + "</span>" +
-            (a.main_discipline ? '<span class="a-disc">' + esc(a.main_discipline) + "</span>" : "") +
-            (P.place(a) ? '<span class="a-place">' + esc(P.place(a)) + "</span>" : "") + "</a>";
-        }).join("") + "</div></div>";
-      }
-      if (works.length) {
-        html += '<div class="featured-row"><h3>Artworks</h3><div class="w-grid">' + works.map(function (w) {
-          var src = urls[(w.images || [])[0]];
-          return '<a class="w-card" href="' + P.artworkUrl(w.id) + '"><span class="w-media">' +
-            (src ? '<img src="' + esc(src) + '" alt="" loading="lazy" decoding="async">' : "") + "</span>" +
-            '<span class="w-title">' + esc(w.title || "Untitled") + "</span>" +
-            '<span class="w-meta">' + esc(w.artist_name) + "</span></a>";
-        }).join("") + "</div></div>";
-      }
+      // One row of cards, artists first, each labelled. A small selection then
+      // reads as a deliberate edit rather than a half-empty grid.
+      var cards = artists.map(function (a) {
+        var src = urls[a.cover_path || a.avatar_path];
+        return '<a class="a-card" href="' + P.artistUrl(a.id) + '"><span class="a-media">' +
+          (src ? '<img src="' + esc(src) + '" alt="" loading="lazy" decoding="async">' : '<span class="card-initial" aria-hidden="true">' + esc((a.display_name || "?").charAt(0)) + "</span>") +
+          '</span><span class="feat-kind">Artist</span><span class="a-name">' + esc(a.display_name) + "</span>" +
+          (a.main_discipline ? '<span class="a-disc">' + esc(a.main_discipline) + "</span>" : "") +
+          (P.place(a) ? '<span class="a-place">' + esc(P.place(a)) + "</span>" : "") + "</a>";
+      }).concat(works.map(function (w) {
+        var src = urls[(w.images || [])[0]];
+        return '<a class="a-card" href="' + P.artworkUrl(w.id) + '"><span class="a-media">' +
+          (src ? '<img src="' + esc(src) + '" alt="" loading="lazy" decoding="async">' : "") + "</span>" +
+          '<span class="feat-kind">Artwork</span><span class="a-name">' + esc(w.title || "Untitled") + "</span>" +
+          '<span class="a-disc">' + esc(w.artist_name) + "</span></a>";
+      }));
+      var html = '<div class="feat-grid">' + cards.join("") + "</div>";
       document.getElementById("featured-list").innerHTML = html;
       section.hidden = false;
     } catch (err) {

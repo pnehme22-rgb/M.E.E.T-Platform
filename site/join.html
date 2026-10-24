@@ -62,7 +62,7 @@
     <aside class="join-intro" aria-labelledby="join-title">
       <p class="kicker">Artist registration</p>
       <h1 class="display join-title" id="join-title">Join the M.E.E.T. <em>Artist Community</em></h1>
-      <p class="lede">A few short questions. No account or password needed. It only takes a few minutes.</p>
+      <p class="lede">A few short questions about you and your practice. No account or password needed, and it only takes a few minutes.</p>
 
       <figure class="join-figure">
         <div class="frame">
@@ -73,10 +73,11 @@
       <div class="join-next">
         <h2>What happens next</h2>
         <ol>
-          <li>The M.E.E.T. team reads every application.</li>
-          <li>As M.E.E.T. takes shape, registered artists hear about it first.</li>
+          <li>The M.E.E.T. team reviews every application and may write to you with a question.</li>
+          <li>If your application is approved, we email you a link to open your artist studio.</li>
+          <li>In your studio you add your profile and artworks. Each one appears on M.E.E.T. after the team has reviewed it.</li>
         </ol>
-        <p class="fine">Registering does not guarantee acceptance, paid work, commissions or a collaboration.</p>
+        <p class="fine">Applying does not guarantee acceptance, sales, commissions or collaborations.</p>
       </div>
     </aside>
 
@@ -96,6 +97,7 @@
 
         <fieldset>
           <legend><span class="n">01</span> About you</legend>
+          <p class="fieldset-note">How we can reach you. Only the M.E.E.T. team sees these details.</p>
 
           <div class="field">
             <label for="full_name">Full name</label>
@@ -141,6 +143,7 @@
 
         <fieldset>
           <legend><span class="n">02</span> Your practice</legend>
+          <p class="fieldset-note">What you make and how you make it.</p>
 
           <div class="field">
             <label for="primary_discipline">Main discipline</label>
@@ -231,7 +234,7 @@
           <div class="choices">
             <label class="choice" for="interest_commissions">
               <input id="interest_commissions" name="interest_commissions" type="checkbox" value="yes">
-              <span><b>Commission enquiries</b> I would like to hear from people who may want to commission my work.</span>
+              <span><b>Commission inquiries</b> I would like to hear from people who may want to commission my work.</span>
             </label>
             <label class="choice" for="interest_collaboration">
               <input id="interest_collaboration" name="interest_collaboration" type="checkbox" value="yes">
@@ -280,18 +283,28 @@
       <div class="join-next join-next-mobile" id="next-mobile">
         <h2>What happens next</h2>
         <ol>
-          <li>The M.E.E.T. team reads every application.</li>
-          <li>As M.E.E.T. takes shape, registered artists hear about it first.</li>
+          <li>The M.E.E.T. team reviews every application and may write to you with a question.</li>
+          <li>If your application is approved, we email you a link to open your artist studio.</li>
+          <li>In your studio you add your profile and artworks. Each one appears on M.E.E.T. after the team has reviewed it.</li>
         </ol>
-        <p class="fine">Registering does not guarantee acceptance, paid work, commissions or a collaboration.</p>
+        <p class="fine">Applying does not guarantee acceptance, sales, commissions or collaborations.</p>
       </div>
 
       <section class="success" id="success" hidden aria-labelledby="success-title">
         <p class="kicker plain">Application received</p>
         <h2 class="display success-title" id="success-title" tabindex="-1">Thank you, <em id="success-name">artist</em>.</h2>
-        <p class="lede">Your application has been saved. The M.E.E.T. team reads every one and may contact you at <b id="success-email"></b> if we need more information.</p>
+        <p class="lede">Your application has reached the M.E.E.T. team.</p>
         <p class="ref">Your reference: <b id="success-ref"></b></p>
-        <p class="fine">Registering does not guarantee acceptance, paid work, commissions or a collaboration. We do not send an automatic confirmation email, so you may want to note your reference.</p>
+        <p class="fine">Please keep this reference. We do not send an automatic confirmation email.</p>
+        <div class="join-next success-next">
+          <h2>What happens next</h2>
+          <ol>
+            <li><span>The M.E.E.T. team reviews your application. If we need more information, we write to you <span id="success-email-line">by email</span>.</span></li>
+            <li>If your application is approved, we email you a link to open your artist studio.</li>
+            <li>In your studio you add your profile and artworks. Each one appears on M.E.E.T. after the team has reviewed it.</li>
+          </ol>
+          <p class="fine">Applying does not guarantee acceptance, sales, commissions or collaborations.</p>
+        </div>
         <div class="success-actions">
           <a class="btn" href="/">
             Back to M.E.E.T.

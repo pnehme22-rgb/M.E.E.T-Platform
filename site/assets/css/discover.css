@@ -244,3 +244,7 @@
 .inq-done h3 { font-family: var(--display); font-weight: 400; font-size: 1.8rem; margin: 0 0 8px; }
 .inq-done p { color: var(--ink-soft); }
 @media (max-width: 860px) { .inq { grid-template-columns: 1fr; } }
+
+.feat-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 400px)); gap: clamp(28px, 3vw, 44px) var(--col-gap); }
+.feat-kind { font-size: 12px; font-weight: 600; letter-spacing: .16em; text-transform: uppercase; color: var(--oxblood); margin-bottom: 6px; }
+@media (max-width: 560px) { .feat-grid { grid-template-columns: 1fr 1fr; gap: 28px 14px; } }

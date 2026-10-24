@@ -69,11 +69,13 @@
 }
 .form-note .opt { margin: 0; color: var(--muted); }
 
+/* Each section of the form is its own panel, so the five steps read as groups. */
 fieldset {
-  border: 0;
-  margin: 0 0 56px;
-  padding: 36px 0 0;
-  border-top: 1px solid var(--line);
+  border: 1px solid var(--line);
+  border-radius: 22px;
+  background: var(--paper);
+  margin: 0 0 20px;
+  padding: clamp(22px, 3vw, 36px);
   min-width: 0;
 }
 legend {
@@ -97,7 +99,7 @@ legend .n {
   min-width: 1.6em;
 }
 legend .opt { font-size: 14px; }
-.fieldset-note { color: var(--muted); font-size: 15px; margin: -10px 0 24px; }
+.fieldset-note { color: var(--muted); font-size: 15px; margin: -14px 0 26px; }
 
 .field { margin-bottom: 26px; }
 .field:last-child { margin-bottom: 0; }
@@ -369,3 +371,14 @@ input:focus, select:focus, textarea:focus {
 .combo-list li[aria-selected="true"] { box-shadow: inset 2px 0 0 var(--oxblood); }
 .combo-list .combo-empty { color: var(--hint); cursor: default; font-size: 14px; }
 .combo-list .combo-empty:hover { background: transparent; }
+
+/* Panels: form choices sit on the ivory page colour so they stand out from the panel. */
+fieldset .choice { background: var(--ivory); }
+fieldset .choice:has(input:checked) { background: #fff; }
+.submit-row { margin-top: 32px; }
+.success-next { margin: 8px 0 28px; }
+@media (max-width: 560px) {
+  fieldset { border-radius: 18px; padding: 20px 18px; }
+}
+/* After sending, the steps appear once, in the confirmation. */
+.is-done .join-intro .join-next { display: none; }

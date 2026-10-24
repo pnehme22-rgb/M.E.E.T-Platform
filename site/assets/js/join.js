@@ -453,7 +453,8 @@
 
   function showSuccess(reference) {
     document.getElementById("success-name").textContent = value("artist_name") || value("full_name");
-    document.getElementById("success-email").textContent = value("email");
+    // Only name the address when we have it, so the sentence always reads correctly.
+    document.getElementById("success-email-line").textContent = value("email") ? "at " + value("email") : "by email";
     document.getElementById("success-ref").textContent = reference;
     clearDraft();
     form.hidden = true;

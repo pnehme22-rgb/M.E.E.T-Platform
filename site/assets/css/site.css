@@ -1068,3 +1068,14 @@ body.paused *, body.paused *::before, body.paused *::after { animation-play-stat
   .nav-links.open li:last-child a { border-bottom: 0; }
   .nav-links.open a::after { display: none; }
 }
+
+/* --------------------------------------------------------------------------
+   Homepage: second hero action and the visitors band
+   -------------------------------------------------------------------------- */
+.hero-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 16px 28px; }
+.visitors { margin-top: clamp(96px, 12vw, 180px); padding-top: clamp(40px, 5vw, 64px); border-top: 1px solid var(--line); }
+.visitor-grid { list-style: none; margin: 0 0 36px; padding: 0; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--col-gap); }
+.visitor-grid h3 { font-family: var(--display); font-weight: 400; font-size: clamp(1.6rem, 2.2vw, 2rem); margin: 0 0 10px; }
+.visitor-grid p { color: var(--muted); max-width: 36ch; margin: 0; }
+.visitor-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 14px 28px; margin: 0; }
+@media (max-width: 860px) { .visitor-grid { grid-template-columns: 1fr; gap: 28px; } }

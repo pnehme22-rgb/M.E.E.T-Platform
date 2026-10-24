@@ -31,7 +31,7 @@
     return;
   }
   if (params.get("out")) message("You have signed out.", "ok");
-  if (params.get("noaccess")) message("This account does not have access yet. If you think this is a mistake, write to minds.exploring.traditions@gmail.com.", "warn");
+  if (params.get("noaccess")) message("This sign-in is not linked to a member account, an artist studio or the team. If you applied as an artist, we email you a link once your application is approved. For help, write to minds.exploring.traditions@gmail.com.", "warn");
   if (params.get("reset")) message("Your password has been updated. Please sign in.", "ok");
 
   async function go() {
@@ -39,7 +39,7 @@
     if (dest === null) {
       await M.sb.auth.signOut();
       show("step-password");
-      message("This account does not have access yet. If you think this is a mistake, write to minds.exploring.traditions@gmail.com.", "warn");
+      message("This sign-in is not linked to a member account, an artist studio or the team. If you applied as an artist, we email you a link once your application is approved. For help, write to minds.exploring.traditions@gmail.com.", "warn");
       return;
     }
     if (dest.indexOf("/signin?step=code") === 0) { await sendCode(); return; }
