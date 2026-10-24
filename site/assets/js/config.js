@@ -4,8 +4,8 @@
 window.MEET_CONFIG = {
   supabaseUrl: "https://tklhucdxrgkbkjkaturg.supabase.co",
   supabaseAnonKey: "sb_publishable_UA48mOS3QNtZvxKqmSiIhw_l99hKBs3",
-  // Cloudflare Turnstile site key (public). Leave empty until CAPTCHA
-  // protection is switched on in Supabase › Authentication › Attack Protection;
-  // the secret key goes only into Supabase, never here.
-  turnstileSiteKey: ""
+  // Cloudflare Turnstile site key (public, for meetstudio.art). The matching
+  // secret key is kept only in Supabase › Authentication › Attack Protection.
+  // To switch bot protection off: turn it off in Supabase first, then empty this.
+  turnstileSiteKey: "0x4AAAAAAFkgso1MHsnVyK8g"
 };
