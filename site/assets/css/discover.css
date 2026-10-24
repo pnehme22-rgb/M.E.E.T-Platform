@@ -99,8 +99,8 @@
 .dir-empty p { color: var(--muted); }
 
 @media (max-width: 860px) {
-  .filters { grid-template-columns: 1fr 1fr; }
-  .flt-clear { justify-self: start; }
+  .filters { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  .flt-clear { grid-column: 1 / -1; justify-self: start; min-height: 36px; }
 }
 @media (max-width: 560px) {
   .filters { grid-template-columns: 1fr; }

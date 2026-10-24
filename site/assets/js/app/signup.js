@@ -146,6 +146,7 @@
       var m = r.error.message || "";
       var text = /already registered|already exists/i.test(m) ? "An account with this email already exists. Please sign in, or reset your password."
         : /password/i.test(m) && /weak|short|characters|pwned|leaked/i.test(m) ? "Please choose a stronger password: at least 8 characters, and not one used on other sites."
+        : /signups? not allowed|signup.*disabled/i.test(m) ? "New accounts are paused at the moment. Please try again later, or write to minds.exploring.traditions@gmail.com."
         : /rate|too many/i.test(m) ? "Too many attempts. Please wait a few minutes and try again."
         : /Database error|saving new user/i.test(m) ? "Some details could not be saved. Please check the form and try again."
         : /fetch|network/i.test(m) ? "We could not reach the server. Please check your connection and try again."

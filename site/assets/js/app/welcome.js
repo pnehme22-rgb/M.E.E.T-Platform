@@ -56,22 +56,9 @@
     if (r.error) { show("step-expired"); return; }
     if (type === "magiclink" || type === "signup") { finish(); return; }
     $("pw-for").textContent = "For " + (r.data.user && r.data.user.email || "your account") + ".";
-    await prepareMfa();
     show("step-password");
     $("pw1").focus();
   });
-
-  // Accounts with two-step sign-in (the team) must enter their code before
-  // Supabase allows a password change.
-  var mfaFactor = null;
-  async function prepareMfa() {
-    var aal = await M.sb.auth.mfa.getAuthenticatorAssuranceLevel();
-    if (aal.data && aal.data.nextLevel === "aal2" && aal.data.currentLevel !== "aal2") {
-      var list = await M.sb.auth.mfa.listFactors();
-      var f = (list.data && list.data.totp || []).filter(function (x) { return x.status === "verified"; })[0];
-      if (f) { mfaFactor = f.id; $("mfa-box").hidden = false; }
-    }
-  }
 
   $("f-password").addEventListener("submit", async function (e) {
     e.preventDefault();
@@ -80,14 +67,6 @@
     err.textContent = problem; err.hidden = !problem;
     if (problem) return;
     M.setBusy($("b-password"), true, "Saving");
-    if (mfaFactor) {
-      var code = $("mfa-code").value.replace(/\D/g, "");
-      if (code.length !== 6) { M.setBusy($("b-password"), false); err.textContent = "Please enter the 6-digit code from your authenticator app."; err.hidden = false; return; }
-      var v = await M.sb.auth.mfa.challengeAndVerify({ factorId: mfaFactor, code: code });
-      if (v.error) { M.setBusy($("b-password"), false); err.textContent = "That code did not work. Codes change every 30 seconds, so please try the newest one."; err.hidden = false; return; }
-      mfaFactor = null;
-      $("mfa-box").hidden = true;
-    }
     var r = await M.sb.auth.updateUser({ password: a });
     M.setBusy($("b-password"), false);
     if (r.error) {
@@ -113,7 +92,7 @@
     }
     // No link in the address: someone already confirmed it and may still need a password.
     var s = await M.session();
-    if (s) { $("pw-for").textContent = "For " + s.user.email + "."; await prepareMfa(); show("step-password"); return; }
+    if (s) { $("pw-for").textContent = "For " + s.user.email + "."; show("step-password"); return; }
     show("step-expired");
   })();
 })();

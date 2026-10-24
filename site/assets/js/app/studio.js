@@ -46,6 +46,7 @@
         viewTerms();
         return;
       }
+      document.body.classList.remove("onboarding");
       renderNav(view === "work" ? "works" : view);
       if (view === "") await viewOverview();
       else if (view === "profile") await viewProfile();
@@ -60,26 +61,40 @@
 
   /* ---------------- artist terms (one-time agreement) ---------------- */
 
+  // Plain-language summary of /artist-terms. Keep the two in step: any change
+  // in meaning belongs in a new terms version (TERMS_VERSION above).
+  var TERMS_POINTS = [
+    ["Your work stays yours", "You keep the copyright in your artworks, photographs and texts. Nothing in these terms transfers ownership to M.E.E.T."],
+    ["What becomes public", "When the M.E.E.T. team approves your profile or an artwork, it becomes public on M.E.E.T. straight away. Drafts, items waiting for review and anything not approved stay private. If you change something that is already public, it is hidden again until the team has reviewed the change."],
+    ["What always stays private", "Your legal name, email address, social media and website links are never shown publicly. Only the M.E.E.T. team can see them."],
+    ["How M.E.E.T. may use approved work", "M.E.E.T. may show it on its website and use it to present and promote M.E.E.T., for example on social media, in newsletters and in printed materials, always credited to you. This permission is free of charge, non-exclusive and worldwide. M.E.E.T. never sells your images, never licenses them to others and never uses them to train AI."],
+    ["You can change your mind", "You can ask us to remove an artwork, or your whole studio, at any time. We remove it from M.E.E.T. within 30 days. Printed materials that were already produced cannot be recalled."],
+    ["What you confirm", "The works you add are your own, or made with collaborators who agree to them being shown. You have the right to share the photographs you upload, and your descriptions and details are honest."],
+    ["What M.E.E.T. does not promise", "Being part of M.E.E.T. does not guarantee sales, commissions, exhibitions or collaborations."]
+  ];
+
   function viewTerms() {
+    document.body.classList.add("onboarding");
     main.innerHTML =
-      '<div class="head"><div><span class="eyebrow">Before you begin</span><h1>Your work, <em>your rights</em></h1>' +
-      "<p>A short agreement about how M.E.E.T. may show your work. Please read it once.</p></div></div>" +
-      '<div class="panel stack">' +
-      '<ul class="stack" style="gap:10px;margin:0;padding-left:20px">' +
-      "<li><b>Your work stays yours.</b> You keep the copyright in your artworks, photographs and texts.</li>" +
-      "<li><b>Once the team approves something, it becomes public</b> on M.E.E.T. straight away. M.E.E.T. may also use it to present and promote M.E.E.T. (social media, newsletters, printed materials), always credited to you.</li>" +
-      "<li><b>Only what the team approves is public.</b> Your legal name, email and social links stay private. Drafts and changes waiting for review stay private too.</li>" +
-      "<li><b>You can change your mind:</b> ask us to remove anything, or your whole studio, at any time.</li>" +
-      "<li><b>You confirm</b> the works are your own and you may share the photographs.</li>" +
-      "<li>M.E.E.T. never sells your images, never licenses them to others, and never uses them to train AI.</li>" +
-      "</ul>" +
-      '<p class="small"><a class="link" href="/artist-terms" target="_blank" rel="noopener">Read the full Artist terms</a> (opens in a new tab) · <a class="link" href="/privacy" target="_blank" rel="noopener">Privacy notice</a></p>' +
-      '<label class="row" style="gap:12px;align-items:flex-start;font-weight:500"><input type="checkbox" id="agree" style="width:22px;height:22px;margin-top:2px;accent-color:var(--accent)"> <span>I have read and agree to the M.E.E.T. Artist terms.</span></label>' +
+      '<article class="agree" aria-labelledby="agree-title">' +
+      '<header class="agree-head"><span class="eyebrow">Before you open your studio</span>' +
+      '<h1 id="agree-title">Your work, <em>your rights</em></h1>' +
+      '<p class="agree-lede">Before you add your profile and artworks, please read how M.E.E.T. shows and protects your work. ' +
+      "It takes about two minutes. You agree once, and again only if these terms change.</p></header>" +
+      '<ol class="agree-points">' + TERMS_POINTS.map(function (p, i) {
+        return '<li><span class="agree-n" aria-hidden="true">' + (i < 9 ? "0" : "") + (i + 1) + "</span><div><h2>" + esc(p[0]) + "</h2><p>" + esc(p[1]) + "</p></div></li>";
+      }).join("") + "</ol>" +
+      '<p class="agree-docs">This page is a summary. The <a class="link" href="/artist-terms" target="_blank" rel="noopener">full Artist terms</a> and the ' +
+      '<a class="link" href="/privacy" target="_blank" rel="noopener">privacy notice</a> apply; both open in a new tab.</p>' +
+      '<section class="agree-box" aria-label="Your agreement">' +
+      '<label class="agree-check"><input type="checkbox" id="agree"><span>I have read the M.E.E.T. Artist terms (version ' + esc(TERMS_VERSION) + ") and I agree to them.</span></label>" +
       '<p class="err" id="terms-err" role="alert" hidden></p>' +
-      '<div class="row"><button class="btn" type="button" id="b-agree">Agree and open my studio</button></div></div>';
+      '<div class="agree-act"><button class="btn" type="button" id="b-agree">Agree and open my studio</button>' +
+      '<p class="small muted">We record the date and the version of the terms you agree to.</p></div></section>' +
+      "</article>";
     main.querySelector("#b-agree").addEventListener("click", async function () {
       var err = main.querySelector("#terms-err");
-      if (!main.querySelector("#agree").checked) { err.textContent = "Please tick the box to agree to the Artist terms."; err.hidden = false; return; }
+      if (!main.querySelector("#agree").checked) { err.textContent = "Please tick the box to confirm that you agree to the Artist terms."; err.hidden = false; main.querySelector("#agree").focus(); return; }
       err.hidden = true;
       M.setBusy(this, true, "Saving");
       var r = await sb.rpc("accept_terms", { p_version: TERMS_VERSION });
@@ -147,7 +162,7 @@
       '<label class="f">Main discipline<span class="hint">Your main art form, for example porcelain painting.</span><input class="inp" name="craft" maxlength="120" value="' + esc(a.craft) + '"></label>' +
       '<div class="grid2"><label class="f">Other disciplines <span class="opt">optional</span><span class="hint">Other kinds of art you also practise.</span><input class="inp" name="other_disciplines" maxlength="400" value="' + esc(a.other_disciplines || "") + '"></label>' +
       '<label class="f">Techniques and materials <span class="opt">optional</span><span class="hint">How you work: techniques, tools, materials.</span><input class="inp" name="techniques" maxlength="400" value="' + esc(a.techniques) + '"></label></div>' +
-      ("traditions" in a ? '<label class="f">Cultural traditions <span class="opt">optional</span><span class="hint">Traditions, heritage or schools your practice comes from, for example Damascene inlay or Japanese kintsugi.</span><input class="inp" name="traditions" maxlength="400" value="' + esc(a.traditions || "") + '"></label>' : "") +
+      ("traditions" in a ? '<label class="f">Cultural traditions <span class="opt">optional</span><span class="hint">Traditions, heritage or schools your practice comes from, for example Damascene inlay or Japanese kintsugi. Shown on your public profile once approved.</span><input class="inp" name="traditions" maxlength="400" value="' + esc(a.traditions || "") + '"></label>' : "") +
       '<label class="f">Biography and approach<span class="hint">What you make, how you learned it, how you approach your work, what you are exploring now. At least 40 characters.</span>' +
       '<textarea class="inp" name="bio" rows="7" maxlength="1500">' + esc(a.bio) + "</textarea></label></div>" +
       '<div class="panel stack"><h3 style="font-size:24px">Links</h3>' +

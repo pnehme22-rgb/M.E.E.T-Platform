@@ -53,7 +53,7 @@ export default handle(async (req) => {
     paragraphs: [
       `Dear ${esc(firstName(app.full_name))},`,
       "Thank you for sharing your work with us. We are delighted to tell you that your application to M.E.E.T. has been approved, and we warmly welcome you to the community.",
-      "Your next step is to open your studio. Set your password with the button below, then add your profile and a few of your works. The M.E.E.T. team reviews each studio with care before it is shown to anyone.",
+      "Your next step is to open your studio. Set your password with the button below, then add your profile and a few of your works. The M.E.E.T. team reviews your profile and each artwork before they appear publicly on M.E.E.T.",
     ],
     cta: { label: "Open my studio", url },
     after: ["For your security, this link works for 24 hours. If it expires, simply reply to this email and we will send you a new one."],

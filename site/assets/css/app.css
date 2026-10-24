@@ -1,31 +1,32 @@
 /* ==========================================================================
-   M.E.E.T. platform: account area (sign-in, team console, artist studio)
-   Follows the prototype's design system v2: Cormorant Garamond for voice,
-   Manrope for interface, soft radii, pill controls, one easing curve.
+   M.E.E.T. platform: account area (sign-in, sign-up, member account,
+   artist studio, team console). Shares the public site's identity:
+   Instrument Serif for voice, Instrument Sans for interface, ivory paper,
+   ink and oxblood. Soft radii, pill controls, one easing curve.
    ========================================================================== */
 
 :root {
-  --bg: #f5efe1;
-  --surface: #fbf8f1;
-  --ink: #133458;
-  --muted: #56627a;
-  --line: #e3d8c2;
-  --hairline: #e8dfcd;
-  --accent: #790d16;
-  --accent-deep: #5c0a11;
-  --on-accent: #f5efe1;
-  --sand: #efe3cb;
-  --blue: #dce6ee;
+  --bg: #f6f0e5;
+  --surface: #fbf8f2;
+  --ink: #18213a;
+  --muted: #545a69;
+  --line: #ddd2bf;
+  --hairline: #e6dccb;
+  --accent: #7a1420;
+  --accent-deep: #5d0f18;
+  --on-accent: #fbf8f2;
+  --sand: #ede3d1;
+  --blue: #dfe7ee;
   --ok: #2f6b4f;
   --ok-soft: #ddebdf;
   --warn: #8a5a12;
   --warn-soft: #f3e3c3;
-  --serif: "Cormorant Garamond", Georgia, "Times New Roman", serif;
-  --sans: "Manrope", ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+  --serif: "Instrument Serif", "Iowan Old Style", Georgia, serif;
+  --sans: "Instrument Sans", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
   --ease: cubic-bezier(.16, 1, .3, 1);
   --r: 18px;
   --r-sm: 12px;
-  --lift: 0 1px 2px rgba(19, 52, 88, .05), 0 12px 32px -12px rgba(19, 52, 88, .18);
+  --lift: 0 1px 2px rgba(24, 33, 58, .05), 0 12px 32px -12px rgba(24, 33, 58, .18);
 }
 
 *, *::before, *::after { box-sizing: border-box; }
@@ -44,7 +45,7 @@ img { display: block; max-width: 100%; }
 a { color: inherit; }
 button, input, select, textarea { font: inherit; color: inherit; }
 button { cursor: pointer; }
-h1, h2, h3 { font-family: var(--serif); font-weight: 400; margin: 0; line-height: 1; letter-spacing: -.015em; }
+h1, h2, h3 { font-family: var(--serif); font-weight: 400; margin: 0; line-height: 1.04; letter-spacing: -.01em; }
 h1 em, h2 em, h3 em { font-style: italic; color: var(--accent); }
 p { margin: 0; }
 :focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
@@ -77,7 +78,7 @@ p { margin: 0; }
 }
 .btn:hover { background: var(--accent-deep); border-color: var(--accent-deep); }
 .btn.navy { background: var(--ink); border-color: var(--ink); color: var(--bg); }
-.btn.navy:hover { background: #0d2542; }
+.btn.navy:hover { background: #0d1d37; }
 .btn.line { background: transparent; color: var(--ink); border-color: color-mix(in srgb, var(--ink) 35%, transparent); }
 .btn.line:hover { border-color: var(--ink); background: color-mix(in srgb, var(--ink) 5%, transparent); }
 .btn.quiet { background: transparent; border-color: transparent; color: var(--accent); padding: 0 8px; }
@@ -150,8 +151,8 @@ select.inp {
 .hdr-in { max-width: 1440px; margin: 0 auto; height: 68px; padding: 0 max(16px, env(safe-area-inset-left, 0px));
   display: flex; align-items: center; justify-content: space-between; gap: 16px; }
 .logo { display: inline-flex; align-items: center; gap: 10px; text-decoration: none; color: var(--ink); }
-.logo svg { width: 40px; height: 27px; }
-.logo span { font-family: var(--serif); font-size: 25px; letter-spacing: .06em; font-weight: 500; }
+.logo svg { width: 45px; height: 30px; }
+.logo span { font-family: var(--serif); font-size: 24px; letter-spacing: .06em; font-weight: 400; }
 .logo small { font-family: var(--sans); font-size: 11px; letter-spacing: .2em; text-transform: uppercase; color: var(--muted); margin-left: 6px; }
 .hdr-right { display: flex; align-items: center; gap: 12px; font-size: 13.5px; }
 
@@ -196,7 +197,8 @@ select.inp {
   text-align: left; text-decoration: none; color: inherit; display: flex; flex-direction: column; gap: 6px;
   transition: box-shadow .5s var(--ease), transform .5s var(--ease); }
 a.kpi:hover { box-shadow: var(--lift); transform: translateY(-2px); }
-.kpi b { font-family: var(--serif); font-weight: 400; font-size: 44px; line-height: .9; }
+/* Counts use the sans: the serif "1" reads like a letter l at this size. */
+.kpi b { font-family: var(--sans); font-weight: 500; font-size: 38px; line-height: 1; letter-spacing: -.02em; }
 .kpi span { font-size: 13px; color: var(--muted); }
 
 .filters { display: flex; flex-wrap: wrap; gap: 10px 14px; align-items: center; }
@@ -288,7 +290,7 @@ a.lrow:hover { background: color-mix(in srgb, var(--sand) 55%, transparent); }
 }
 
 /* ---------- refinements after the phone check ---------- */
-/* Cormorant draws old-style figures (1 looks like I, 0 like O): use lining figures everywhere. */
+/* Lining, even-width figures for counts and dates. */
 html, h1, h2, h3, .kpi b, .badge, .num { font-variant-numeric: lining-nums tabular-nums; font-feature-settings: "lnum" 1, "tnum" 1; }
 /* Tick boxes stay on the same line as their text. */
 label.row { flex-wrap: nowrap; align-items: flex-start; gap: 10px; }
@@ -300,7 +302,7 @@ label.row > input[type="checkbox"] { flex: none; width: 20px; height: 20px; marg
   .hdr-in { height: 60px; }
   .kpis { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
   .kpi { padding: 12px 14px; gap: 4px; }
-  .kpi b { font-size: 32px; }
+  .kpi b { font-size: 30px; }
   .kpi span { font-size: 12.5px; line-height: 1.35; }
   .head h1 { font-size: 36px; }
   .rblock, .panel { padding: 18px; }
@@ -323,3 +325,29 @@ label.row > input[type="checkbox"] { flex: none; width: 20px; height: 20px; marg
 .fs legend { font-family: var(--serif); font-size: 24px; padding: 0; margin-bottom: 4px; }
 .acct-type { display: inline-flex; align-items: center; gap: 8px; }
 .coming { border: 1px dashed var(--line); border-radius: var(--r-sm); padding: 18px 20px; color: var(--muted); font-size: 14.5px; }
+
+/* ---------- artist terms agreement (studio onboarding) ---------- */
+.onboarding .shell { grid-template-columns: minmax(0, 1fr); }
+.onboarding .side { display: none; }
+.agree { width: min(100%, 760px); margin: 8px auto 0; display: flex; flex-direction: column; gap: 36px; }
+.agree-head { display: flex; flex-direction: column; gap: 14px; }
+.agree-head h1 { font-size: clamp(40px, 5.4vw, 64px); }
+.agree-lede { font-size: 17px; line-height: 1.6; color: var(--muted); max-width: 60ch; }
+.agree-points { list-style: none; margin: 0; padding: 0; border-top: 1px solid var(--line); }
+.agree-points li { display: grid; grid-template-columns: 56px minmax(0, 1fr); gap: 4px 16px; padding: 22px 0; border-bottom: 1px solid var(--line); }
+.agree-n { font-size: 12px; font-weight: 600; letter-spacing: .16em; line-height: 1; color: var(--accent); padding-top: 9px; }
+.agree-points h2 { font-size: 25px; line-height: 1.15; margin-bottom: 8px; }
+.agree-points p { font-size: 15.5px; line-height: 1.65; color: var(--ink); max-width: 62ch; }
+.agree-docs { font-size: 14.5px; color: var(--muted); }
+.agree-box { background: var(--surface); border: 1px solid var(--hairline); border-radius: var(--r); padding: 24px 26px; display: flex; flex-direction: column; gap: 18px; }
+.agree-check { display: flex; gap: 14px; align-items: flex-start; font-size: 16px; font-weight: 500; line-height: 1.5; cursor: pointer; }
+.agree-check input { flex: none; width: 22px; height: 22px; margin: 1px 0 0; accent-color: var(--accent); cursor: pointer; }
+.agree-act { display: flex; flex-wrap: wrap; align-items: center; gap: 12px 20px; }
+@media (max-width: 560px) {
+  .agree { gap: 28px; }
+  .agree-points li { grid-template-columns: minmax(0, 1fr); padding: 20px 0; }
+  .agree-n { padding: 0 0 6px; }
+  .agree-points h2 { font-size: 23px; }
+  .agree-box { padding: 20px; }
+  .agree-act .btn { width: 100%; }
+}

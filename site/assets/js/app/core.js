@@ -34,7 +34,8 @@
     if (mins < 1) return "just now";
     if (mins < 60) return Math.round(mins) + " min ago";
     if (mins < 60 * 24) return Math.round(mins / 60) + " h ago";
-    if (mins < 60 * 24 * 14) return Math.round(mins / 1440) + " days ago";
+    var days = Math.round(mins / 1440);
+    if (days < 14) return days === 1 ? "yesterday" : days + " days ago";
     return fmtDate(iso);
   }
 

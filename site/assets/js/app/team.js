@@ -250,7 +250,7 @@
     return '<div class="mail-preview"><p><b>Subject:</b> Welcome to M.E.E.T., ' + esc(a.artist_name) + "</p><hr style=\"border:0;border-top:1px solid #eee\">" +
       "<p>Dear " + esc(firstName(a.full_name)) + ",</p>" +
       "<p>Thank you for sharing your work with us. We are delighted to tell you that your application to M.E.E.T. has been approved, and we warmly welcome you to the community.</p>" +
-      "<p>Your next step is to open your studio. Set your password with the button below, then add your profile and a few of your works. The M.E.E.T. team reviews each studio with care before it is shown to anyone.</p>" +
+      "<p>Your next step is to open your studio. Set your password with the button below, then add your profile and a few of your works. The M.E.E.T. team reviews your profile and each artwork before they appear publicly on M.E.E.T.</p>" +
       '<p><span class="btn sm" style="pointer-events:none">Open my studio</span></p>' +
       "<p>For your security, this link works for 24 hours. If it expires, simply reply to this email and we will send you a new one.</p>" +
       "<p>With warm regards,<br>The M.E.E.T. team<br><i>Mind Exploring Every Tradition</i></p></div>";
@@ -396,7 +396,7 @@
       "<h2>" + (again ? "Send a new studio <em>link</em>" : "Approve <em>" + esc(a.artist_name) + "</em>") + "</h2>" +
       "<p class=\"muted\">" + (again
         ? "A fresh link will be emailed to " + esc(a.email) + ". The old one stops working."
-        : "This creates their private studio and sends this email to " + esc(a.email) + " from minds.exploring.traditions@gmail.com.") + "</p>" +
+        : "This creates their private studio and sends this email to " + esc(a.email) + " from hello@meetstudio.art. Their reply reaches the team inbox.") + "</p>" +
       welcomePreview(a) +
       '<p class="err" id="m-err" hidden></p>' +
       '<div class="row"><button class="btn" type="button" id="m-go">' + (again ? "Send new link" : "Approve and send email") + '</button><button class="btn line" type="button" data-close>Cancel</button></div>',

@@ -5,11 +5,11 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="robots" content="noindex, nofollow">
 <title>Sign in | M.E.E.T.</title>
-<meta name="theme-color" content="#f5efe1">
+<meta name="theme-color" content="#f6f0e5">
 <link rel="icon" href="/assets/img/brand/mark.svg" type="image/svg+xml">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;1,400&family=Manrope:wght@400;500;600;700&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@400;500;600;700&family=Instrument+Serif:ital@0;1&display=swap">
 <link rel="stylesheet" href="/assets/css/app.css">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.50.0/dist/umd/supabase.js" defer></script>
 <script src="/assets/js/config.js" defer></script>
@@ -30,9 +30,9 @@
 
     <!-- 1. Email and password -->
     <section id="step-password" class="stack" aria-labelledby="t-signin">
-      <span class="eyebrow">Members</span>
+      <span class="eyebrow">Your account</span>
       <h1 id="t-signin">Sign <em>in</em></h1>
-      <p class="muted">For M.E.E.T. members, approved artists and the M.E.E.T. team.</p>
+      <p class="muted">For members, approved artists and the M.E.E.T. team.</p>
       <form id="f-password" class="panel" novalidate>
         <label class="f">Email
           <input class="inp" id="email" name="email" type="email" autocomplete="username" autocapitalize="off" spellcheck="false" required>
@@ -45,7 +45,7 @@
         <a class="link small" href="/reset">Forgotten your password?</a>
         <div id="resend-box" hidden><button class="btn line sm" type="button" id="b-resend-confirm">Send the confirmation email again</button></div>
       </form>
-      <p class="small muted">New to M.E.E.T.? <a class="link" href="/signup">Create an account</a> to discover artists. Artists <a class="link" href="/join">apply here</a>; approved artists receive an email to set their password.</p>
+      <p class="small muted">New to M.E.E.T.? <a class="link" href="/signup">Create an account</a>.<br>Are you an artist? <a class="link" href="/join">Apply to join M.E.E.T.</a> When your application is approved, we email you a link to set your password.</p>
     </section>
 
     <!-- 2. Team members: confirm with a code sent by email -->

@@ -922,6 +922,10 @@ main:focus { outline: none; }
   color: var(--ink-soft);
 }
 .footer-col a:hover { color: var(--oxblood); }
+.footer-col a[href^="mailto:"] { overflow-wrap: anywhere; }
+@media (max-width: 560px) {
+  .footer-col:last-of-type { grid-column: 1 / -1; }
+}
 .footer-col p { margin: 0; }
 .unconfigured { color: var(--hint); font-style: italic; }
 

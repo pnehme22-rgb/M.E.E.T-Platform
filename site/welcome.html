@@ -6,11 +6,11 @@
 <meta name="robots" content="noindex, nofollow">
 <meta name="referrer" content="no-referrer">
 <title>Welcome | M.E.E.T.</title>
-<meta name="theme-color" content="#f5efe1">
+<meta name="theme-color" content="#f6f0e5">
 <link rel="icon" href="/assets/img/brand/mark.svg" type="image/svg+xml">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;1,400&family=Manrope:wght@400;500;600;700&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@400;500;600;700&family=Instrument+Serif:ital@0;1&display=swap">
 <link rel="stylesheet" href="/assets/css/app.css">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.50.0/dist/umd/supabase.js" defer></script>
 <script src="/assets/js/config.js" defer></script>
@@ -31,7 +31,7 @@
     <!-- The link from the email lands here. A button press confirms it, so
          email security scanners that open links cannot use it up. -->
     <section id="step-open" class="stack" hidden>
-      <span class="eyebrow" id="open-eyebrow">Welcome to M.E.E.T.</span>
+      <span class="eyebrow" id="open-eyebrow">Your account</span>
       <h1 id="open-title">Welcome to <em>M.E.E.T.</em></h1>
       <p class="muted" id="open-text">Press continue to choose your password and open your account.</p>
       <div class="panel">
@@ -51,12 +51,6 @@
         <label class="f">Type it again
           <input class="inp" id="pw2" type="password" autocomplete="new-password" minlength="8" required>
         </label>
-        <div class="f" id="mfa-box" hidden>
-          <label class="f" for="mfa-code">6-digit code from your authenticator app
-            <input class="inp code-inp" id="mfa-code" inputmode="numeric" autocomplete="one-time-code" maxlength="6" pattern="[0-9]{6}">
-          </label>
-          <span class="hint">Your account uses two-step sign-in, so a code is needed to change the password.</span>
-        </div>
         <p class="err" id="err-password" role="alert" hidden></p>
         <button class="btn block" type="submit" id="b-password">Save and continue</button>
       </form>
