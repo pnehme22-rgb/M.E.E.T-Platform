@@ -60,7 +60,7 @@
     var m = (err && (err.message || err.error_description || err.error)) || String(err || "");
     if (/Failed to fetch|NetworkError|network/i.test(m)) return "We could not reach the server. Please check your connection and try again.";
     if (/JWT|expired|not authenticated/i.test(m)) return "Your session has ended. Please sign in again.";
-    if (/^Please complete the security check/.test(m)) return m;
+    if (/^(Please complete the security check|The security check could not run)/.test(m)) return m;
     if (/captcha/i.test(m)) return "The security check did not pass. Please wait a moment and try again.";
     if (/not allowed|permission|42501/i.test(m)) return "Your account does not have permission to do this.";
     return m || "Something went wrong. Please try again.";
@@ -278,27 +278,35 @@
     var key = CFG.turnstileSiteKey;
     if (!key || !el) return { enabled: false, token: function () { return Promise.resolve(undefined); }, reset: function () {} };
     var id = null, current = null, waiting = [], failed = null;
-    function settle(t) { current = t; waiting.splice(0).forEach(function (w) { w(t); }); }
+    function settle(t) { current = t; failed = null; waiting.splice(0).forEach(function (w) { w.ok(t); }); }
+    function fail(err) { failed = err; waiting.splice(0).forEach(function (w) { w.no(err); }); }
     loadTurnstile().then(function (ts) {
+      // Always visible: people see "Verifying…" and "Success", or a failure,
+      // instead of an invisible check that can fail without notice.
       id = ts.render(el, {
-        sitekey: key, appearance: "interaction-only", theme: "light", "refresh-expired": "auto",
+        sitekey: key, appearance: "always", theme: "light", size: "flexible", "refresh-expired": "auto",
         callback: settle,
         "expired-callback": function () { current = null; },
-        "error-callback": function () { current = null; }
+        "error-callback": function (code) {
+          current = null;
+          fail(new Error("The security check could not run in this browser (Cloudflare code " + (code || "unknown") +
+            "). Please reload the page. If it happens again, try another browser, or switch off private browsing or content blockers for meetstudio.art."));
+          return true;
+        }
       });
-    }).catch(function (err) { failed = err; });
+    }).catch(fail);
     return {
       enabled: true,
       token: function () {
         if (failed) return Promise.reject(failed);
         if (current) return Promise.resolve(current);
         return new Promise(function (resolve, reject) {
-          waiting.push(resolve);
+          waiting.push({ ok: resolve, no: reject });
           setTimeout(function () { reject(new Error("Please complete the security check just above the button (tick the box if one appears), then press the button again.")); }, 20000);
         });
       },
       // Tokens work once: get a fresh one after every request.
-      reset: function () { current = null; if (id !== null && window.turnstile) window.turnstile.reset(id); }
+      reset: function () { current = null; failed = null; if (id !== null && window.turnstile) window.turnstile.reset(id); }
     };
   }
 

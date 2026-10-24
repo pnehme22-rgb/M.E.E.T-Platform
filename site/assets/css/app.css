@@ -390,4 +390,4 @@ label.row > input[type="checkbox"] { flex: none; width: 20px; height: 20px; marg
 
 /* Bot protection widget: invisible unless Cloudflare needs a click. */
 .captcha:empty { display: none; }
-.captcha { display: flex; justify-content: center; }
+.captcha { display: block; width: 100%; min-height: 65px; }
