@@ -33,17 +33,17 @@ var STATUS_LABEL = {
   new: 'New', in_review: 'In review', more_info: 'More information requested', approved: 'Approved', declined: 'Declined'
 };
 
-// The shared secret. Never commit the real value: when pasting this script
-// into Apps Script, replace PASTE-THE-SECRET-HERE with the secret that the
-// Supabase webhook sends (or set the SECRET script property).
-var DEFAULT_SECRET = 'PASTE-THE-SECRET-HERE';
+// The shared secret lives only in this script's private settings
+// (Project Settings > Script properties > SECRET), never in the code.
+// Without it, every request is refused.
 
 function doPost(e) {
   var lock = LockService.getScriptLock();
   lock.waitLock(20000);
   try {
     var data = JSON.parse((e && e.postData && e.postData.contents) || '{}');
-    var secret = (PropertiesService.getScriptProperties().getProperty('SECRET') || DEFAULT_SECRET).trim();
+    var secret = (PropertiesService.getScriptProperties().getProperty('SECRET') || '').trim();
+    if (secret.length < 32) return text_('not configured: set the SECRET script property');
     if (data.secret !== secret) return text_('forbidden: secret does not match');
     if (!data.reference) return text_('missing reference');
 
