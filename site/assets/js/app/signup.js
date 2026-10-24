@@ -31,6 +31,7 @@
 
   $("logo").insertAdjacentHTML("afterbegin", M.LOGO);
   var guard = M.captcha($("captcha"));
+  var guardResend = null;   // its own check on the "Check your email" screen, created when shown
 
   // Country suggestions from the same list the artist registration uses.
   (window.MEET_PLACES || []).forEach(function (c) {
@@ -153,6 +154,7 @@
         : /password/i.test(m) && /weak|short|characters|pwned|leaked/i.test(m) ? "Please choose a stronger password: at least 8 characters, and not one used on other sites."
         : /signups? not allowed|signup.*disabled/i.test(m) ? "New accounts are paused at the moment. Please try again later, or write to minds.exploring.traditions@gmail.com."
         : /rate|too many/i.test(m) ? "Too many attempts. Please wait a few minutes and try again."
+        : /^Please complete the security check/.test(m) ? m
         : /captcha|security check/i.test(m) ? "The security check did not pass. Please wait a moment and try again."
         : /Database error|saving new user/i.test(m) ? "Some details could not be saved. Please check the form and try again."
         : /fetch|network/i.test(m) ? "We could not reach the server. Please check your connection and try again."
@@ -165,6 +167,7 @@
     $("done-email").textContent = lastEmail;
     form.reset();
     show("step-done");
+    if (!guardResend) guardResend = M.captcha($("captcha-resend"));
     $("t-done").focus();
   });
 
@@ -172,9 +175,9 @@
     if (!lastEmail) return;
     M.setBusy(this, true, "Sending");
     var r;
-    try { r = await M.sb.auth.resend({ type: "signup", email: lastEmail, options: { captchaToken: await guard.token() } }); }
+    try { r = await M.sb.auth.resend({ type: "signup", email: lastEmail, options: { captchaToken: await guardResend.token() } }); }
     catch (ex) { r = { error: ex }; }
-    guard.reset();
+    guardResend.reset();
     M.setBusy(this, false);
     message(r.error ? M.friendlyError(r.error) : "We sent the confirmation email again to " + lastEmail + ".", r.error ? "err" : "ok");
   });

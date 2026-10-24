@@ -139,12 +139,11 @@
         </label>
         <span class="err" data-err="consent" hidden></span>
 
+        <div class="captcha" id="captcha"></div>
         <p class="err" id="err-form" role="alert" hidden></p>
         <button class="btn block" type="submit" id="b-submit">Create my account</button>
       </form>
     </section>
-
-    <div class="captcha" id="captcha"></div>
 
     <!-- 3. Check your inbox -->
     <section id="step-done" class="stack" hidden aria-labelledby="t-done">
@@ -152,6 +151,7 @@
       <h1 id="t-done" tabindex="-1">Check your <em>email</em></h1>
       <p class="muted">We sent a confirmation link to <b id="done-email"></b>. Open it and press the button to activate your account. It can take a few minutes, and it may land in your spam folder.</p>
       <div class="panel stack">
+        <div class="captcha" id="captcha-resend"></div>
         <button class="btn line" type="button" id="b-resend">Send the email again</button>
         <a class="link small" href="/signin">Go to sign in</a>
       </div>

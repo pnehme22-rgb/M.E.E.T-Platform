@@ -60,6 +60,7 @@
     var m = (err && (err.message || err.error_description || err.error)) || String(err || "");
     if (/Failed to fetch|NetworkError|network/i.test(m)) return "We could not reach the server. Please check your connection and try again.";
     if (/JWT|expired|not authenticated/i.test(m)) return "Your session has ended. Please sign in again.";
+    if (/^Please complete the security check/.test(m)) return m;
     if (/captcha/i.test(m)) return "The security check did not pass. Please wait a moment and try again.";
     if (/not allowed|permission|42501/i.test(m)) return "Your account does not have permission to do this.";
     return m || "Something went wrong. Please try again.";
@@ -293,7 +294,7 @@
         if (current) return Promise.resolve(current);
         return new Promise(function (resolve, reject) {
           waiting.push(resolve);
-          setTimeout(function () { reject(new Error("The security check has not finished yet. Please wait a moment and try again.")); }, 20000);
+          setTimeout(function () { reject(new Error("Please complete the security check just above the button (tick the box if one appears), then press the button again.")); }, 20000);
         });
       },
       // Tokens work once: get a fresh one after every request.
