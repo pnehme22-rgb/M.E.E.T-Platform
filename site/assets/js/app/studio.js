@@ -6,7 +6,7 @@
   "use strict";
   var M = window.MEET, sb, me, artist;
   var esc = M.esc;
-  var TERMS_VERSION = "2026-10-21";   // change when the Artist terms change; artists then agree again
+  var TERMS_VERSION = "2026-10-24";   // change when the Artist terms change; artists then agree again
   var main = document.getElementById("main");
   var nav = document.getElementById("nav");
 
@@ -14,7 +14,7 @@
     draft: ["Draft", "", "Not sent for review yet."],
     submitted: ["Waiting for review", "blue", "The M.E.E.T. team is reviewing this."],
     changes_requested: ["Changes requested", "warn", "The team has asked for a few changes. See their note below."],
-    approved: ["Approved", "ok", "Approved by the M.E.E.T. team."],
+    approved: ["Approved", "ok", "Approved by the M.E.E.T. team, and public on M.E.E.T."],
     declined: ["Not accepted", "", "This was not accepted. You can write to us if you have questions."]
   };
   function tag(s) { var t = STATUS[s] || [s, ""]; return '<span class="tag ' + t[1] + '">' + esc(t[0]) + "</span>"; }
@@ -67,8 +67,8 @@
       '<div class="panel stack">' +
       '<ul class="stack" style="gap:10px;margin:0;padding-left:20px">' +
       "<li><b>Your work stays yours.</b> You keep the copyright in your artworks, photographs and texts.</li>" +
-      "<li><b>Once the team approves something,</b> M.E.E.T. may show it on the platform after launch, and use it to present and promote M.E.E.T. (social media, newsletters, printed materials), always credited to you.</li>" +
-      "<li><b>Nothing is public before launch,</b> and we will write to you before your profile goes live.</li>" +
+      "<li><b>Once the team approves something, it becomes public</b> on M.E.E.T. straight away. M.E.E.T. may also use it to present and promote M.E.E.T. (social media, newsletters, printed materials), always credited to you.</li>" +
+      "<li><b>Only what the team approves is public.</b> Your legal name, email and social links stay private. Drafts and changes waiting for review stay private too.</li>" +
       "<li><b>You can change your mind:</b> ask us to remove anything, or your whole studio, at any time.</li>" +
       "<li><b>You confirm</b> the works are your own and you may share the photographs.</li>" +
       "<li>M.E.E.T. never sells your images, never licenses them to others, and never uses them to train AI.</li>" +
@@ -102,7 +102,7 @@
     ];
     main.innerHTML =
       '<div class="head"><div><span class="eyebrow">Your studio</span><h1>Welcome, <em>' + esc((artist.display_name || artist.legal_name || "").split(" ")[0] || "artist") + "</em></h1>" +
-      "<p>This is your private space on M.E.E.T. Build your profile and add your works. The team reviews everything before M.E.E.T. launches.</p></div></div>" +
+      "<p>This is your space on M.E.E.T. Build your profile and add your works. The team reviews each one, and what they approve becomes public on M.E.E.T.</p></div></div>" +
       '<div class="kpis">' +
       '<a class="kpi" href="#/profile"><span>Profile</span>' + tag(artist.profile_status) + "</a>" +
       '<a class="kpi" href="#/works"><b class="num">' + works.length + "</b><span>Artworks added</span></a>" +
@@ -150,7 +150,7 @@
       '<div class="row"><button class="btn line" type="submit" id="b-save">Save changes</button>' +
       (a.profile_status === "submitted" ? '<span class="small muted">Waiting for review. Saving changes sends it back to draft.</span>'
         : '<button class="btn" type="button" id="b-submit">Save and send for review</button>') + "</div>" +
-      (a.profile_status === "approved" ? '<p class="small muted">Your profile is approved. If you change it, it goes back to the team for a quick review.</p>' : "") +
+      (a.profile_status === "approved" ? '<p class="small muted">Your profile is approved and public. If you change it, it is hidden until the team has reviewed the change.</p>' : "") +
       "</form>";
     M.hydrateMedia(main);
 

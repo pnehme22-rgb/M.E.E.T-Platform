@@ -33,7 +33,7 @@ export default handle(async (req) => {
       subject = type === "profile" ? "Your M.E.E.T. profile is approved" : `“${title}” is approved`;
       mail = renderMail({
         preheader: `Good news about ${type === "profile" ? "your profile" : "your artwork"}.`,
-        paragraphs: [`Dear ${esc(name)},`, `Good news: the M.E.E.T. team has approved ${what}. It stays private until M.E.E.T. launches, and we will ask you before anything goes live.`],
+        paragraphs: [`Dear ${esc(name)},`, `Good news: the M.E.E.T. team has approved ${what}. ${type === "profile" ? "Your profile is now public on M.E.E.T." : "It appears publicly on M.E.E.T. alongside your approved profile."}`],
         quote: note || undefined,
         cta: studio,
       });

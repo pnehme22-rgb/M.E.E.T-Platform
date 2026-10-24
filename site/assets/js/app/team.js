@@ -516,7 +516,7 @@
     var rows = (ar.data || []).filter(function (a) { return filter !== "review" || a.profile_status === "submitted" || waiting[a.id]; });
     main.innerHTML =
       '<div class="head"><div><span class="eyebrow">Approved artists</span><h1>Artists</h1>' +
-      "<p>Artists you have approved, and the studios they are building. Nothing here is public until M.E.E.T. launches.</p></div>" +
+      "<p>Artists you have approved, and the studios they are building. Approved profiles and approved artworks are public on M.E.E.T.</p></div>" +
       '<div class="row"><button class="btn line sm" type="button" id="export-artists">Export artists CSV</button></div></div>' +
       '<div class="chips"><a class="chip" href="#/artists" aria-pressed="' + (!filter) + '">All · ' + (ar.data || []).length + '</a>' +
       '<a class="chip" href="#/artists?filter=review" aria-pressed="' + (filter === "review") + '">Needs review</a></div>' +
@@ -537,6 +537,15 @@
     if (!a) { main.innerHTML = '<div class="empty">This artist could not be found. <a class="link" href="#/artists">Back to artists</a></div>'; return; }
     var wr = await sb.from("artworks").select("*").eq("artist_id", id).order("created_at", { ascending: false });
     var works = wr.data || [];
+    // Public visibility is decided by the database (see the public_artists view).
+    var pr = await sb.rpc("artist_is_public", { p_artist: id });
+    var isPublic = pr.data === true;
+    var whyNot = a.profile_status !== "approved" ? "the profile is not approved yet"
+      : !a.terms_accepted_at ? "the artist has not agreed to the Artist terms yet"
+      : "the artist must agree to the latest Artist terms (they are asked when they next open their studio)";
+    var publicLine = isPublic
+      ? '<span class="tag ok">Public on M.E.E.T.</span>'
+      : '<span class="tag">Not public</span> <span class="small muted">because ' + esc(whyNot) + "</span>";
 
     // Each button names what it acts on, so a profile is never approved by
     // mistake when an artwork was meant (and the other way round).
@@ -555,6 +564,7 @@
       '<div class="head"><div><span class="eyebrow">Studio</span><h1>' + esc(a.display_name || a.legal_name) + "</h1><p>" + esc(a.craft) + " · " + esc(place(a)) +
       ' · <a class="link" href="mailto:' + esc(a.email) + '">' + esc(a.email) + "</a></p></div>" +
       '<div class="row">' + (a.application_id ? '<a class="btn line sm" href="#/application/' + a.application_id + '">Original application</a>' : "") + "</div></div>" +
+      '<div class="row" style="gap:8px">' + publicLine + "</div>" +
       '<div class="rblock"><div class="between"><h3>Profile</h3>' + tag(REVIEW_STATUS, a.profile_status) + "</div>" +
       (a.cover_path ? '<img class="cover-lg" alt="Cover photo" data-media="' + esc(a.cover_path) + '">' : "") +
       '<div class="row" style="gap:18px;align-items:flex-start">' +
@@ -574,7 +584,8 @@
       '<h2 style="font-size:32px;margin-top:8px">Works · ' + works.length + "</h2>" +
       (works.length ? works.map(function (w) {
         var size = [w.height, w.width, w.depth].filter(function (x) { return x; }).join(" × ");
-        return '<div class="rblock"><div class="between"><h3>' + esc(w.title || "Untitled") + "</h3>" + tag(REVIEW_STATUS, w.status) + "</div>" +
+        return '<div class="rblock"><div class="between"><h3>' + esc(w.title || "Untitled") + "</h3>" +
+          '<div class="row" style="gap:6px">' + (w.status === "approved" && isPublic ? '<span class="tag ok">Public</span>' : "") + tag(REVIEW_STATUS, w.status) + "</div></div>" +
           '<div class="gallery">' + (w.images || []).map(function (p) { return '<img alt="" data-media="' + esc(p) + '">'; }).join("") + "</div>" +
           '<div class="kv">' + (w.year ? "<span>Year</span><b>" + w.year + "</b>" : "") + (w.materials ? "<span>Materials</span><b>" + esc(w.materials) + "</b>" : "") +
           (size ? "<span>Size</span><b>" + esc(size + " " + w.unit) + "</b>" : "") +
@@ -607,7 +618,7 @@
       "<h2>" + label + " <em>" + (type === "profile" ? "profile" : "artwork") + "</em></h2>" +
       '<p class="notice">You are about to ' + label.toLowerCase() + " " + subject + ".</p>" +
       (needsText ? '<label class="f">What should ' + esc(firstName(artist.display_name || artist.legal_name)) + " change?<textarea class=\"inp\" id=\"m-f\" rows=\"5\" maxlength=\"4000\" placeholder=\"Be specific and kind, for example: Please add a photograph of the whole piece in daylight.\"></textarea></label>"
-                 : '<p class="muted">The artist will see this as approved in their studio. It stays private until M.E.E.T. launches.</p>') +
+                 : '<p class="muted">' + (type === "profile" ? "Approving makes this profile public on M.E.E.T. (once the artist has agreed to the current Artist terms)." : "Approving makes this artwork public on M.E.E.T. as soon as the artist's profile is public.") + '</p>') +
       '<label class="row small" style="font-weight:500"><input type="checkbox" id="m-mail" ' + (decision === "declined" ? "" : "checked") + "> Email " + esc(artist.email) + " about this</label>" +
       '<p class="err" id="m-err" hidden></p>' +
       '<div class="row"><button class="btn' + (decision === "declined" ? " danger" : "") + '" type="button" id="m-go">' + label + " " + (type === "profile" ? "profile" : "artwork") + '</button><button class="btn line" type="button" data-close>Cancel</button></div>',
