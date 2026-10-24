@@ -2,13 +2,15 @@
    directory, artist profiles, artwork pages and the homepage selection.
    Visitors read only the database's public views (approved artists and
    approved artworks, safe columns only) and the photographs that belong to
-   them. No sign-in, nothing private. */
+   them. A signed-in member can also send an inquiry to an artist. */
 (function () {
   "use strict";
 
   var CFG = window.MEET_CONFIG || {};
+  // Shares the sign-in of the account pages (same storage key), so a signed-in
+  // member can send an inquiry from an artist profile.
   var sb = CFG.supabaseUrl && window.supabase ? window.supabase.createClient(CFG.supabaseUrl, CFG.supabaseAnonKey, {
-    auth: { persistSession: false, autoRefreshToken: false, detectSessionInUrl: false }
+    auth: { persistSession: true, autoRefreshToken: true, detectSessionInUrl: false, storageKey: "meet-auth" }
   }) : null;
 
   function esc(s) {
@@ -60,7 +62,35 @@
     return /^[0-9a-f-]{36}$/i.test(id) ? id.toLowerCase() : "";
   }
 
+  // The signed-in person's member account, if any (null for visitors).
+  async function member() {
+    if (!sb) return { session: null, account: null };
+    var s = (await sb.auth.getSession()).data.session;
+    if (!s) return { session: null, account: null };
+    var r = await sb.from("member_accounts").select("id, account_type, full_name, country").eq("id", s.user.id).maybeSingle();
+    return { session: s, account: r.data || null };
+  }
+
+  async function api(name, body) {
+    var s = sb && (await sb.auth.getSession()).data.session;
+    if (!s) throw new Error("Please sign in again.");
+    var res = await fetch("/api/" + name, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", "Authorization": "Bearer " + s.access_token },
+      body: JSON.stringify(body || {})
+    });
+    var data = await res.json().catch(function () { return {}; });
+    if (!res.ok || data.ok === false) throw new Error(data.message || "Something went wrong. Please try again.");
+    return data;
+  }
+
+  function money(amount, currency) {
+    try { return new Intl.NumberFormat("en-GB", { style: "currency", currency: currency, currencyDisplay: "code", minimumFractionDigits: 0, maximumFractionDigits: 2 }).format(amount); }
+    catch (e) { return currency + " " + Number(amount).toLocaleString("en-GB"); }
+  }
+
   window.MEET_PUBLIC = {
+    member: member, api: api, money: money,
     sb: sb, esc: esc, terms: terms, signUrls: signUrls, dims: dims, place: place,
     artistUrl: artistUrl, artworkUrl: artworkUrl, idFromPath: idFromPath
   };

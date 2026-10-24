@@ -1,10 +1,11 @@
-/* M.E.E.T. team console: applications, artists, members, homepage, team, activity.
+/* M.E.E.T. team console: applications, artists, members, inquiries, homepage,
+   sales (projects, follow-ups, reports), team, activity.
    Every read and write goes through the signed-in team member's session, so
    the database's row level security decides what is allowed. Approvals and
    emails go through Netlify functions (/api/...). */
 (function () {
   "use strict";
-  var M = window.MEET, sb, me, canEdit;
+  var M = window.MEET, sb, me, canEdit, isSales;
   var esc = M.esc;
   var main = document.getElementById("main");
   var nav = document.getElementById("nav");
@@ -38,7 +39,12 @@
     var p = await sb.from("artists").select("profile_status");
     var w = await sb.from("artworks").select("status");
     var del = await sb.from("member_accounts").select("id", { count: "exact", head: true }).not("deletion_requested_at", "is", null);
-    var c = { apps: {}, profiles: 0, works: 0, deletions: del.count || 0 };
+    var c = { apps: {}, profiles: 0, works: 0, deletions: del.count || 0, projects: 0, overdue: 0 };
+    if (isSales) {
+      var np = await sb.from("project_requests").select("id", { count: "exact", head: true }).eq("status", "new");
+      var od = await sb.from("project_tasks").select("id", { count: "exact", head: true }).eq("done", false).eq("assigned_to", me.user.id).lt("due_on", new Date().toISOString().slice(0, 10));
+      c.projects = np.count || 0; c.overdue = od.count || 0;
+    }
     (a.data || []).forEach(function (r) { c.apps[r.status] = (c.apps[r.status] || 0) + 1; });
     c.profiles = (p.data || []).filter(function (r) { return r.profile_status === "submitted"; }).length;
     c.works = (w.data || []).filter(function (r) { return r.status === "submitted"; }).length;
@@ -53,14 +59,19 @@
       ["applications", "Applications", (c.apps.new || 0)],
       ["artists", "Artists", c.profiles + c.works],
       ["members", "Members", c.deletions],
+      ["inquiries", "Artist inquiries", 0],
       ["homepage", "Homepage", 0],
       ["activity", "Activity log", 0]
     ];
-    if (me.role === "founder") items.splice(5, 0, ["team", "Team", 0]);
-    nav.innerHTML = '<p class="nav-l">Workspaces</p>' + items.map(function (i) {
+    if (me.role === "founder") items.splice(6, 0, ["team", "Team", 0]);
+    function link(i) {
       return '<a class="ni" href="#/' + i[0] + '"' + (current === i[0] ? ' aria-current="page"' : "") + ">" + esc(i[1]) +
         (i[2] ? '<span class="badge">' + i[2] + "</span>" : "") + "</a>";
-    }).join("") +
+    }
+    var sales = isSales ? [["projects", "Projects", c.projects], ["followups", "Follow-ups", c.overdue]] : [];
+    if (me.role === "founder") sales.push(["reports", "Reports", 0]);
+    nav.innerHTML = '<p class="nav-l">Workspaces</p>' + items.map(link).join("") +
+      (sales.length ? '<p class="nav-l">Sales</p>' + sales.map(link).join("") : "") +
       '<p class="nav-l">Private</p>' +
       '<a class="ni" href="/prototype/" target="_blank" rel="noopener">Platform prototype</a>' +
       '<a class="ni" href="/" target="_blank" rel="noopener">Public website</a>';
@@ -78,7 +89,7 @@
 
   async function route() {
     var r = parseHash();
-    var section = { application: "applications", artist: "artists", member: "members" }[r.view] || r.view;
+    var section = { application: "applications", artist: "artists", member: "members", inquiry: "inquiries", project: "projects" }[r.view] || r.view;
     main.onclick = null;
     try {
       var c = await renderNav(section);
@@ -90,6 +101,12 @@
       else if (r.view === "members") await viewMembers(r.q);
       else if (r.view === "member") await viewMember(r.id);
       else if (r.view === "homepage") await viewHomepage();
+      else if (r.view === "inquiries") await viewInquiries(r.q);
+      else if (r.view === "inquiry") await viewInquiry(r.id);
+      else if (r.view === "projects" && isSales) await viewProjects(r.q);
+      else if (r.view === "project" && isSales) await viewProject(r.id);
+      else if (r.view === "followups" && isSales) await viewFollowups(r.q);
+      else if (r.view === "reports" && me.role === "founder") await viewReports(r.q);
       else if (r.view === "team" && me.role === "founder") await viewTeam();
       else if (r.view === "activity") await viewActivity();
       else location.hash = "#/overview";
@@ -386,7 +403,9 @@
       "team.invite": "Team member invited", "team.update": "Team member updated",
       "artist.terms_accepted": "Artist terms agreed", "artist.deleted": "Artist and their data deleted", "application.deleted": "Application deleted",
       "featured.add": "Featured on the homepage", "featured.remove": "Removed from the homepage",
-      "member.deletion_requested": "Member asked to delete their account", "member.deleted": "Member account deleted"
+      "member.deletion_requested": "Member asked to delete their account", "member.deleted": "Member account deleted",
+      "inquiry.created": "Inquiry sent to an artist", "inquiry.viewed": "Inquiry viewed by the artist", "inquiry.responded": "Artist replied to an inquiry",
+      "inquiry.closed": "Inquiry closed by the artist", "inquiry.open": "Inquiry reopened by the artist", "project.status": "Project status changed"
     })[a] || a;
   }
 
@@ -815,11 +834,533 @@
   }
 
   /* ------------------------------------------------------------------ */
+  /* Artist inquiries (tracking only: artists answer from their studio)  */
+  /* ------------------------------------------------------------------ */
+
+  var INQ_STATUS = { new: ["New", "red"], viewed: ["Viewed", "blue"], responded: ["Responded", "ok"], closed: ["Closed", ""] };
+  var INQ_TOPIC = { artwork: "An artwork", commission: "A commission", collaboration: "A collaboration or project", other: "Something else" };
+  var ACCOUNT_LABEL = { personal: "Personal", professional: "Professional", business: "Business & Organization" };
+
+  async function artistNames(ids) {
+    var out = {};
+    if (!ids.length) return out;
+    var r = await sb.from("artists").select("id, display_name, legal_name").in("id", ids);
+    (r.data || []).forEach(function (a) { out[a.id] = a.display_name || a.legal_name; });
+    return out;
+  }
+  function uniq(list) { return list.filter(function (v, i, a) { return v && a.indexOf(v) === i; }); }
+  function countryOptions(values, current, allLabel) {
+    return '<option value="">' + esc(allLabel) + "</option>" + uniq(values.map(function (v) { return v || "Not recorded"; })).sort().map(function (c) {
+      return '<option' + (c === current ? " selected" : "") + ">" + esc(c) + "</option>";
+    }).join("");
+  }
+
+  async function viewInquiries(q) {
+    var status = q.get("status") || "", country = q.get("country") || "", term = (q.get("q") || "").trim().toLowerCase();
+    var r = await sb.from("artist_inquiries").select("*").order("created_at", { ascending: false }).limit(5000);
+    if (r.error) throw r.error;
+    var all = r.data || [];
+    var names = await artistNames(uniq(all.map(function (x) { return x.artist_id; })));
+    var rows = all.filter(function (x) {
+      if (status && x.status !== status) return false;
+      if (country && (x.member_country || "Not recorded") !== country) return false;
+      return !term || [x.member_name, x.member_country, names[x.artist_id], x.artwork_title, x.message].join(" ").toLowerCase().indexOf(term) !== -1;
+    });
+    main.innerHTML =
+      '<div class="head"><div><span class="eyebrow">Members and artists</span><h1>Artist inquiries</h1>' +
+      "<p>Inquiries members sent to artists, and how far each one has gone. Artists read and answer them in their studio; this page is for following their progress.</p></div></div>" +
+      '<div class="filters"><div class="chips" role="group" aria-label="Filter by status">' + [["", "All"]].concat(Object.keys(INQ_STATUS).map(function (k) { return [k, INQ_STATUS[k][0]]; })).map(function (c) {
+        var n = c[0] ? all.filter(function (x) { return x.status === c[0]; }).length : all.length;
+        return '<button class="chip" type="button" data-f="status" data-v="' + c[0] + '" aria-pressed="' + (status === c[0]) + '">' + esc(c[1]) + " · " + n + "</button>";
+      }).join("") + "</div>" +
+      '<div class="toolbar"><label class="visually-hidden" for="f-country">Member country</label><select class="inp" id="f-country">' + countryOptions(all.map(function (x) { return x.member_country; }), country, "All countries") + "</select>" +
+      '<label class="visually-hidden" for="search">Search inquiries</label><input class="inp search" id="search" type="search" placeholder="Search member, artist, message" value="' + esc(q.get("q") || "") + '"></div></div>' +
+      (rows.length ? '<div class="list">' + rows.map(function (x) {
+        return '<a class="lrow" href="#/inquiry/' + x.id + '"><div class="lm"><b>' + esc(x.member_name) + " → " + esc(names[x.artist_id] || "Artist") + '</b><span class="muted small">' +
+          esc(ACCOUNT_LABEL[x.member_type]) + " · " + esc(x.member_country || "Country not recorded") + " · " + esc(INQ_TOPIC[x.topic]) + (x.artwork_title ? ": “" + esc(x.artwork_title) + "”" : "") + "</span></div>" +
+          '<div class="ls">' + tag(INQ_STATUS, x.status) + '<span class="muted small">' + esc(M.fmtWhen(x.created_at)) + "</span></div></a>";
+      }).join("") + "</div>" : '<div class="empty">' + (all.length ? "No inquiries match these filters." : "No inquiries yet. They appear here when a member writes to an artist from a public profile.") + "</div>");
+    hashFilters("inquiries", q);
+  }
+
+  // Shared filter wiring for list views: chips, selects and search update the address.
+  function hashFilters(view, q) {
+    function go(k, v) {
+      var p = new URLSearchParams(q.toString());
+      if (v) p.set(k, v); else p.delete(k);
+      if (k !== "page") p.delete("page");
+      location.hash = "#/" + view + (p.toString() ? "?" + p.toString() : "");
+    }
+    main.querySelectorAll("[data-f]").forEach(function (b) { b.addEventListener("click", function () { go(b.getAttribute("data-f"), b.getAttribute("data-v")); }); });
+    main.querySelectorAll("select[data-sel]").forEach(function (s) { s.addEventListener("change", function () { go(s.getAttribute("data-sel"), s.value); }); });
+    var c = main.querySelector("#f-country");
+    if (c) c.addEventListener("change", function () { go("country", c.value); });
+    var search = main.querySelector("#search"), timer;
+    if (search) search.addEventListener("input", function () {
+      clearTimeout(timer);
+      timer = setTimeout(function () { go("q", search.value.trim()); setTimeout(function () { var s = document.getElementById("search"); if (s) { s.focus(); s.setSelectionRange(s.value.length, s.value.length); } }, 50); }, 400);
+    });
+  }
+
+  async function viewInquiry(id) {
+    var r = await sb.from("artist_inquiries").select("*").eq("id", id).maybeSingle();
+    if (r.error) throw r.error;
+    var x = r.data;
+    if (!x) { main.innerHTML = '<div class="empty">This inquiry could not be found. <a class="link" href="#/inquiries">Back to inquiries</a></div>'; return; }
+    var names = await artistNames([x.artist_id]);
+    var m = await sb.from("member_accounts").select("email, phone").eq("id", x.member_id).maybeSingle();
+    var hist = await sb.from("audit_log").select("at, action").eq("target_id", id).order("at", { ascending: true });
+    main.innerHTML =
+      '<a class="link small" href="#/inquiries">Back to inquiries</a>' +
+      '<div class="head"><div><span class="eyebrow">Inquiry · ' + esc(M.fmtDate(x.created_at, true)) + "</span><h1>" + esc(x.member_name) + " → " + esc(names[x.artist_id] || "Artist") + "</h1>" +
+      "<p>" + esc(INQ_TOPIC[x.topic]) + (x.artwork_title ? ": “" + esc(x.artwork_title) + "”" : "") + "</p></div><div>" + tag(INQ_STATUS, x.status) + "</div></div>" +
+      '<div class="rgrid"><div class="stack">' +
+      '<div class="rblock"><h3>Message</h3><p class="prose">' + esc(x.message) + "</p></div>" +
+      '<div class="rblock"><h3>Artist\'s reply</h3>' + (x.response ? '<p class="prose">' + esc(x.response) + "</p>" : '<p class="small muted">No reply yet.</p>') + "</div></div>" +
+      '<aside class="raside"><div class="panel stack" style="gap:10px"><h3 style="font-size:22px">Member</h3><div class="kv">' +
+      "<span>Name</span><b>" + esc(x.member_name) + "</b><span>Account type</span><b>" + esc(ACCOUNT_LABEL[x.member_type]) + "</b>" +
+      "<span>Country</span><b>" + esc(x.member_country || "Not recorded") + "</b>" +
+      (m.data ? '<span>Email</span><b><a class="link" href="mailto:' + esc(m.data.email) + '">' + esc(m.data.email) + "</a></b>" + (m.data.phone ? "<span>Phone</span><b>" + esc(m.data.phone) + "</b>" : "") : "") +
+      '</div><p class="small muted">The artist sees the name, account type and country only.</p></div>' +
+      '<div class="panel stack" style="gap:10px"><h3 style="font-size:22px">Artist</h3><a class="link" href="#/artist/' + x.artist_id + '">' + esc(names[x.artist_id] || "Open artist") + "</a></div>" +
+      '<div class="panel stack" style="gap:10px"><h3 style="font-size:22px">Progress</h3><div class="timeline">' +
+      "<div><b>Sent</b><br><span class=\"muted small\">" + esc(M.fmtDate(x.created_at, true)) + "</span></div>" +
+      (x.viewed_at ? "<div><b>Viewed by the artist</b><br><span class=\"muted small\">" + esc(M.fmtDate(x.viewed_at, true)) + "</span></div>" : "") +
+      (x.responded_at ? "<div><b>Artist replied</b><br><span class=\"muted small\">" + esc(M.fmtDate(x.responded_at, true)) + "</span></div>" : "") +
+      (x.closed_at ? "<div><b>Closed</b><br><span class=\"muted small\">" + esc(M.fmtDate(x.closed_at, true)) + "</span></div>" : "") +
+      ((hist.data || []).filter(function (h) { return h.action === "inquiry.open"; }).map(function (h) { return "<div><b>Reopened</b><br><span class=\"muted small\">" + esc(M.fmtDate(h.at, true)) + "</span></div>"; }).join("")) +
+      "</div></div></aside></div>";
+  }
+
+  /* ------------------------------------------------------------------ */
+  /* Sales: project requests, pipeline, matching, follow-ups, revenue    */
+  /* ------------------------------------------------------------------ */
+
+  var PIPE = [["new", "New", "red"], ["contacted", "Contacted", "blue"], ["proposal_sent", "Proposal Sent", "blue"],
+    ["negotiation", "Negotiation", "warn"], ["confirmed", "Project Confirmed", "ok"], ["not_confirmed", "Not Confirmed", ""]];
+  var PROJECT_STATUS = {}; PIPE.forEach(function (p) { PROJECT_STATUS[p[0]] = [p[1], p[2]]; });
+  var REASONS = [["budget", "Budget didn't fit"], ["timeline", "Timeline didn't fit"], ["changed_mind", "Client changed their mind"],
+    ["no_response", "No response from client"], ["match", "Artist or artwork match wasn't suitable"], ["requirements", "Project requirements changed"], ["other", "Other"]];
+  var REASON_LABEL = {}; REASONS.forEach(function (r) { REASON_LABEL[r[0]] = r[1]; });
+  var PAYMENT = [["not_recorded", "Not recorded"], ["not_due", "Not due yet"], ["awaiting", "Awaiting payment"], ["partly_paid", "Partly paid"], ["paid", "Paid in full"], ["not_applicable", "Not applicable"]];
+  var PAYMENT_LABEL = {}; PAYMENT.forEach(function (p) { PAYMENT_LABEL[p[0]] = p[1]; });
+  var CLIENT_VIEW = { new: "received", confirmed: "confirmed", not_confirmed: "closed" };
+  function clientStatus(s) { return CLIENT_VIEW[s] || "in_discussion"; }
+  var CLIENT_LABEL = { received: "Received", in_discussion: "In discussion", confirmed: "Confirmed", closed: "Closed" };
+  function clientName(p) { return p.client_organization ? p.client_organization + " (" + p.client_name + ")" : p.client_name; }
+  function money(n, cur) {
+    if (n === null || n === undefined || n === "") return "";
+    try { return new Intl.NumberFormat("en-GB", { style: "currency", currency: cur || "USD", currencyDisplay: "code", minimumFractionDigits: 0, maximumFractionDigits: 2 }).format(n); }
+    catch (e) { return (cur || "") + " " + Number(n).toLocaleString("en-GB"); }
+  }
+  function today() { var d = new Date(); return new Date(d.getTime() - d.getTimezoneOffset() * 60000).toISOString().slice(0, 10); }
+  function salesPeople() { return cache.team.filter(function (m) { return m.active && (m.role === "founder" || m.role === "sales"); }); }
+
+  async function viewProjects(q) {
+    var status = q.get("status") || "", who = q.get("who") || "", country = q.get("country") || "";
+    var term = (q.get("q") || "").trim().toLowerCase(), sort = q.get("sort") || "new", page = Math.max(1, parseInt(q.get("page") || "1", 10));
+    var r = await sb.from("project_requests").select("*").order("created_at", { ascending: false }).limit(5000);
+    if (r.error) throw r.error;
+    var all = r.data || [];
+    var base = all.filter(function (p) {
+      if (who === "mine" && p.assigned_to !== me.user.id) return false;
+      if (who === "none" && p.assigned_to) return false;
+      if (country && (p.client_country || "Not recorded") !== country) return false;
+      return !term || [p.reference, p.client_name, p.client_organization, p.client_country, p.artwork_type, p.description, p.location].join(" ").toLowerCase().indexOf(term) !== -1;
+    });
+    var rows = base.filter(function (p) { return !status || p.status === status; });
+    rows.sort(function (a, b) {
+      if (sort === "old") return a.created_at < b.created_at ? -1 : 1;
+      if (sort === "updated") return a.updated_at < b.updated_at ? 1 : -1;
+      return a.created_at < b.created_at ? 1 : -1;
+    });
+    var per = 20, pages = Math.max(1, Math.ceil(rows.length / per));
+    if (page > pages) page = pages;
+    var shown = rows.slice((page - 1) * per, page * per);
+    main.innerHTML =
+      '<div class="head"><div><span class="eyebrow">Sales</span><h1>Project requests</h1>' +
+      "<p>Requests from Professional and Business &amp; Organization members. Founders manage every project; sales team members manage the projects assigned to them.</p></div></div>" +
+      '<nav class="pipe" aria-label="Pipeline">' + PIPE.map(function (s) {
+        var n = base.filter(function (p) { return p.status === s[0]; }).length;
+        return '<a href="#" data-f="status" data-v="' + (status === s[0] ? "" : s[0]) + '" aria-pressed="' + (status === s[0]) + '"><b>' + n + "</b>" + esc(s[1]) + "</a>";
+      }).join("") + "</nav>" +
+      '<div class="toolbar">' +
+      '<label class="visually-hidden" for="f-who">Assignment</label><select class="inp" id="f-who" data-sel="who">' +
+      [["", "Everyone's projects"], ["mine", "Assigned to me"], ["none", "Unassigned"]].map(function (o) { return '<option value="' + o[0] + '"' + (who === o[0] ? " selected" : "") + ">" + esc(o[1]) + "</option>"; }).join("") + "</select>" +
+      '<label class="visually-hidden" for="f-country">Client country</label><select class="inp" id="f-country">' + countryOptions(all.map(function (p) { return p.client_country; }), country, "All countries") + "</select>" +
+      '<label class="visually-hidden" for="f-sort">Sort</label><select class="inp" id="f-sort" data-sel="sort">' +
+      [["new", "Newest first"], ["old", "Oldest first"], ["updated", "Recently updated"]].map(function (o) { return '<option value="' + o[0] + '"' + (sort === o[0] ? " selected" : "") + ">" + esc(o[1]) + "</option>"; }).join("") + "</select>" +
+      '<label class="visually-hidden" for="search">Search projects</label><input class="inp search" id="search" type="search" placeholder="Search reference, client, artwork" value="' + esc(q.get("q") || "") + '"></div>' +
+      (shown.length ? '<div class="list">' + shown.map(function (p) {
+        return '<a class="lrow" href="#/project/' + p.id + '"><div class="lm"><b>' + esc(p.reference) + " · " + esc(clientName(p)) + '</b><span class="muted small">' +
+          esc(p.artwork_type) + " · " + esc(ACCOUNT_LABEL[p.client_type]) + " · " + esc(p.client_country || "Country not recorded") + "</span></div>" +
+          '<div class="ls">' + tag(PROJECT_STATUS, p.status) + '<span class="muted small">' + (p.assigned_to ? esc(teamName(p.assigned_to)) : "Unassigned") + " · " + esc(M.fmtWhen(p.created_at)) + "</span></div></a>";
+      }).join("") + "</div>" : '<div class="empty">' + (all.length ? "No projects match these filters." : "No project requests yet. They arrive here when a Professional or Business member sends one from their account.") + "</div>") +
+      (pages > 1 ? '<div class="pager"><span class="muted">Page ' + page + " of " + pages + " · " + rows.length + " projects</span><span class=\"row\">" +
+        (page > 1 ? '<button class="btn line sm" type="button" data-f="page" data-v="' + (page - 1) + '">Previous</button>' : "") +
+        (page < pages ? '<button class="btn line sm" type="button" data-f="page" data-v="' + (page + 1) + '">Next</button>' : "") + "</span></div>" : "");
+    main.querySelectorAll(".pipe a").forEach(function (a) { a.addEventListener("click", function (e) { e.preventDefault(); }); });
+    hashFilters("projects", q);
+  }
+
+  // Suggests public artists for a project from what is recorded: disciplines,
+  // techniques, the materials of their approved artworks, and their country.
+  // Nothing else is assumed (no availability, prices or capabilities).
+  var STOP = "about also artwork artworks being between could every from have hotel into large looking made make more need office piece pieces project should small some space that their there these they this those want which while with would your".split(" ");
+  function words(text) {
+    return uniq(String(text || "").toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "").split(/[^a-z]+/).filter(function (w) { return w.length > 3 && STOP.indexOf(w) === -1; }));
+  }
+  function termList(text) { return String(text || "").split(/[,;\/\n·•|]+/).map(function (t) { return t.trim(); }).filter(function (t) { return t.length > 1; }); }
+  function matchArtists(p, artists, works) {
+    var projectWords = words([p.artwork_type, p.description, p.style_refs, p.quantity_dims].join(" "));
+    var place = String(p.location || "").toLowerCase();
+    function hits(term) { var w = words(term); return w.length && w.some(function (x) { return projectWords.indexOf(x) !== -1 || projectWords.some(function (y) { return y.length > 4 && (y.indexOf(x) === 0 || x.indexOf(y) === 0); }); }); }
+    return artists.map(function (a) {
+      var why = [], score = 0;
+      termList([a.main_discipline, a.other_disciplines].join(",")).forEach(function (t) { if (hits(t)) { why.push("Discipline: " + t); score += 3; } });
+      termList(a.techniques).forEach(function (t) { if (hits(t)) { why.push("Technique: " + t); score += 2; } });
+      uniq(works.filter(function (w) { return w.artist_id === a.id; }).map(function (w) { return w.materials; }).join(",").split(/[,;\/\n]+/).map(function (t) { return t.trim(); }))
+        .forEach(function (t) { if (t && hits(t) && why.indexOf("Technique: " + t) === -1) { why.push("Artwork material: " + t); score += 2; } });
+      if (a.country && place && place.indexOf(a.country.toLowerCase()) !== -1) { why.push("Based in " + a.country + ", the project location"); score += 2; }
+      else if (a.country && p.client_country && a.country === p.client_country) { why.push("Based in " + a.country + ", the client's country"); score += 1; }
+      return { artist: a, why: uniq(why), score: score };
+    }).filter(function (m) { return m.score > 0; }).sort(function (x, y) { return y.score - x.score; });
+  }
+
+  var EVENT_LABEL = {
+    created: "Request received", status: "Status changed", reopened: "Reopened", assigned: "Assignment changed",
+    artist_considered: "Artist considered", artist_recommended: "Artist recommended", artist_removed: "Artist removed from the list",
+    task_added: "Follow-up added", task_done: "Follow-up completed", task_reopened: "Follow-up reopened", task_deleted: "Follow-up deleted", money: "Value and revenue updated"
+  };
+  function eventText(e) {
+    var d = e.detail || {};
+    if (e.kind === "status" || e.kind === "reopened") return (PROJECT_STATUS[d.from] || [d.from])[0] + " → " + (PROJECT_STATUS[d.to] || [d.to])[0] + (d.reason ? " · " + (REASON_LABEL[d.reason] || d.reason) : "") + (d.note ? ": " + d.note : "");
+    if (e.kind === "assigned") return d.to_name ? "Assigned to " + d.to_name : "Unassigned";
+    if (/^artist_/.test(e.kind)) return d.name || "";
+    if (/^task_/.test(e.kind)) return d.title || "";
+    if (e.kind === "money") return [d.payment_status ? "Payment: " + (PAYMENT_LABEL[d.payment_status] || d.payment_status) : ""].join("");
+    return "";
+  }
+
+  async function viewProject(id) {
+    var pr = await sb.from("project_requests").select("*").eq("id", id).maybeSingle();
+    if (pr.error) throw pr.error;
+    var p = pr.data;
+    if (!p) { main.innerHTML = '<div class="empty">This project could not be found. <a class="link" href="#/projects">Back to projects</a></div>'; return; }
+    var res = await Promise.all([
+      sb.rpc("can_manage_project", { p_id: id }),
+      sb.from("project_notes").select("*").eq("project_id", id).order("created_at", { ascending: true }),
+      sb.from("project_artists").select("*").eq("project_id", id).order("updated_at", { ascending: false }),
+      sb.from("project_tasks").select("*").eq("project_id", id).order("due_on", { ascending: true }),
+      sb.from("project_events").select("*").eq("project_id", id).order("at", { ascending: false }).limit(100),
+      p.member_id ? sb.from("member_accounts").select("email, phone, professional_website, business_website").eq("id", p.member_id).maybeSingle() : Promise.resolve({ data: null }),
+      sb.from("public_artists").select("id, display_name, main_discipline, other_disciplines, techniques, country, city").order("display_name"),
+      sb.from("public_artworks").select("artist_id, materials")
+    ]);
+    var manage = res[0].data === true, notes = res[1].data || [], chosen = res[2].data || [], tasks = res[3].data || [], events = res[4].data || [];
+    var contact = res[5].data, publicArtists = res[6].data || [], publicWorks = res[7].data || [];
+    var chosenIds = chosen.map(function (c) { return c.artist_id; });
+    var names = {}; publicArtists.forEach(function (a) { names[a.id] = a.display_name; });
+    Object.assign(names, await artistNames(chosenIds.filter(function (i) { return !names[i]; })));
+    var suggestions = matchArtists(p, publicArtists, publicWorks).filter(function (m) { return chosenIds.indexOf(m.artist.id) === -1; }).slice(0, 8);
+    var others = publicArtists.filter(function (a) { return chosenIds.indexOf(a.id) === -1; });
+    var t = today();
+    var assignee = p.assigned_to ? teamName(p.assigned_to) : "";
+    var canClaim = !p.assigned_to && me.role === "sales";
+
+    function field(label, v) { return v ? "<span>" + esc(label) + "</span><b>" + v + "</b>" : ""; }
+    var dis = manage ? "" : " disabled";
+
+    main.innerHTML =
+      '<a class="link small" href="#/projects">Back to projects</a>' +
+      '<div class="head"><div><span class="eyebrow">' + esc(p.reference) + " · received " + esc(M.fmtDate(p.created_at, true)) + "</span>" +
+      "<h1>" + esc(p.client_organization || p.client_name) + "</h1><p>" + esc(p.artwork_type) + "</p></div>" +
+      '<div class="row">' + tag(PROJECT_STATUS, p.status) + "</div></div>" +
+      (!manage ? '<div class="notice">' + (canClaim ? "Nobody is working on this project yet. Take it to manage it." : "You can read this project and add notes. Founders and the assigned team member can change it.") + "</div>" : "") +
+      '<div class="rgrid"><div class="stack">' +
+
+      '<section class="rblock"><h3>The request</h3><p class="prose">' + esc(p.description) + '</p><div class="kv">' +
+      field("Type of artwork", esc(p.artwork_type)) +
+      field("Estimated budget", p.budget_undecided ? "Not decided yet" : esc(p.budget)) +
+      field("Timeline", p.timeline_undecided ? "Not decided yet" : esc(p.timeline)) +
+      field("Location", esc(p.location)) + field("Quantity and dimensions", esc(p.quantity_dims)) + field("Style and references", esc(p.style_refs)) +
+      "</div></section>" +
+
+      '<section class="rblock"><div class="between"><h3>Artists</h3><span class="small muted">Internal. Nothing here is sent to the client.</span></div>' +
+      (chosen.length ? chosen.map(function (c) {
+        return '<div class="match"><div><b>' + esc(names[c.artist_id] || "Artist") + "</b> " + (c.state === "recommended" ? '<span class="tag ok">Recommended</span>' : '<span class="tag">Considered</span>') +
+          (c.reason ? '<p class="small" style="margin-top:4px">' + esc(c.reason) + "</p>" : "") + "</div>" +
+          '<div class="row" style="align-self:start">' + (names[c.artist_id] && publicArtists.some(function (a) { return a.id === c.artist_id; }) ? '<a class="link small" href="/artists/' + c.artist_id + '" target="_blank" rel="noopener">Profile</a>' : '<span class="small muted">No longer public</span>') +
+          (manage ? '<button class="btn line sm" type="button" data-artist="' + c.artist_id + '" data-state="' + (c.state === "recommended" ? "considered" : "recommended") + '" data-reason="' + esc(c.reason) + '">' + (c.state === "recommended" ? "Mark as considered" : "Recommend") + "</button>" +
+            '<button class="btn quiet sm" type="button" data-unartist="' + c.artist_id + '">Remove</button>' : "") + "</div></div>";
+      }).join("") : '<p class="small muted">No artists recorded yet.</p>') +
+      '<h4 style="margin:10px 0 0;font-size:14px">Possible matches</h4><p class="small muted">From approved, public profiles only, based on recorded disciplines, techniques, artwork materials and country.</p>' +
+      (suggestions.length ? suggestions.map(function (m) {
+        var a = m.artist;
+        return '<div class="match"><div><b>' + esc(a.display_name) + '</b> <span class="small muted">' + esc([a.main_discipline, place(a)].filter(Boolean).join(" · ")) + "</span>" +
+          '<div class="why">' + m.why.map(function (w) { return "<span>" + esc(w) + "</span>"; }).join("") + "</div></div>" +
+          '<div class="row" style="align-self:start"><a class="link small" href="/artists/' + a.id + '" target="_blank" rel="noopener">Profile</a>' +
+          (manage ? '<button class="btn line sm" type="button" data-artist="' + a.id + '" data-state="considered" data-reason="' + esc(m.why.join("; ")) + '">Consider</button>' : "") + "</div></div>";
+      }).join("") : '<p class="small muted">No public artist matches the words in this request. You can still choose one below.</p>') +
+      (manage && others.length ? '<div class="row"><label class="visually-hidden" for="pick-artist">Choose a public artist</label><select class="inp" id="pick-artist" style="width:auto;flex:1;min-width:220px">' +
+        others.map(function (a) { return '<option value="' + a.id + '">' + esc(a.display_name + (a.main_discipline ? " · " + a.main_discipline : "")) + "</option>"; }).join("") +
+        '</select><button class="btn line sm" type="button" id="b-pick">Consider this artist</button></div>' : "") +
+      "</section>" +
+
+      '<section class="rblock"><h3>Follow-ups</h3>' +
+      (tasks.length ? '<div class="list">' + tasks.map(function (k) {
+        var late = !k.done && k.due_on < t, can = manage || k.assigned_to === me.user.id;
+        return '<div class="lrow"><div class="lm"><b>' + (k.done ? "✓ " : "") + esc(k.title) + '</b><span class="muted small">' + esc(teamName(k.assigned_to) || "Unassigned") + " · due " + esc(M.fmtDate(k.due_on)) +
+          (k.notes ? " · " + esc(k.notes) : "") + "</span></div>" +
+          '<div class="row">' + (late ? '<span class="tag overdue">Overdue</span>' : k.done ? '<span class="tag ok">Done</span>' : "") +
+          (can ? '<button class="btn line sm" type="button" data-task="' + k.id + '" data-done="' + (!k.done) + '">' + (k.done ? "Reopen" : "Mark done") + "</button>" : "") +
+          (manage ? '<button class="btn quiet sm" type="button" data-deltask="' + k.id + '" aria-label="Delete follow-up">Delete</button>' : "") + "</div></div>";
+      }).join("") + "</div>" : '<p class="small muted">No follow-ups yet.</p>') +
+      (manage ? '<form class="stack" id="task-form" novalidate style="gap:10px"><div class="grid2"><label class="f">Follow-up<input class="inp" name="title" maxlength="200" placeholder="For example: send the proposal"></label>' +
+        '<label class="f">Due date<input class="inp" name="due" type="date" value="' + t + '"></label></div>' +
+        '<div class="grid2"><label class="f">Assigned to<select class="inp" name="assignee">' + salesPeople().map(function (m) { return '<option value="' + m.user_id + '"' + (m.user_id === (p.assigned_to || me.user.id) ? " selected" : "") + ">" + esc(m.name) + "</option>"; }).join("") + "</select></label>" +
+        '<label class="f"><span>Notes <span class="opt">optional</span></span><input class="inp" name="notes" maxlength="2000"></label></div>' +
+        '<p class="err" id="task-err" hidden></p><div><button class="btn line sm" type="submit">Add follow-up</button></div></form>' : "") +
+      "</section>" +
+
+      '<section class="rblock"><h3>Value and revenue</h3><p class="small muted">Recorded by hand. The client\'s project value and M.E.E.T.\'s own revenue are kept apart, and nothing is calculated from a rate. Payment status is what the team records; the website does not process or verify payments.</p>' +
+      '<form class="money" id="money" novalidate>' +
+      '<label class="f">Currency<input class="inp" name="currency" maxlength="3" list="currencies" autocapitalize="characters" value="' + esc(p.currency) + '"' + dis + '></label>' +
+      '<label class="f">Estimated project value <span class="hint">The client\'s budget for the whole project.</span><input class="inp" name="estimated_value" inputmode="decimal" value="' + esc(p.estimated_value == null ? "" : p.estimated_value) + '"' + dis + "></label>" +
+      '<label class="f full">Agreed M.E.E.T. fee or commission <span class="hint">As agreed with the client or artist, for example "10% of the artwork price" or "USD 3,000".</span><input class="inp" name="fee_terms" maxlength="300" value="' + esc(p.fee_terms) + '"' + dis + "></label>" +
+      '<label class="f">Final project value <span class="hint">Once confirmed.</span><input class="inp" name="final_value" inputmode="decimal" value="' + esc(p.final_value == null ? "" : p.final_value) + '"' + (manage && p.status === "confirmed" ? "" : " disabled") + "></label>" +
+      '<label class="f">Final M.E.E.T. revenue <span class="hint">What M.E.E.T. earns. Once confirmed.</span><input class="inp" name="final_revenue" inputmode="decimal" value="' + esc(p.final_revenue == null ? "" : p.final_revenue) + '"' + (manage && p.status === "confirmed" ? "" : " disabled") + "></label>" +
+      '<label class="f">Payment status <span class="hint">Recorded by hand.</span><select class="inp" name="payment_status"' + dis + ">" + PAYMENT.map(function (o) { return '<option value="' + o[0] + '"' + (p.payment_status === o[0] ? " selected" : "") + ">" + esc(o[1]) + "</option>"; }).join("") + "</select></label>" +
+      '<label class="f full">Notes and dates <span class="opt">optional</span><textarea class="inp" name="revenue_notes" rows="3" maxlength="2000"' + dis + ">" + esc(p.revenue_notes) + "</textarea></label>" +
+      (manage ? '<p class="err full" id="money-err" hidden></p><div class="full"><button class="btn line sm" type="submit">Save value and revenue</button></div>' : "") +
+      '</form><datalist id="currencies"><option>AED</option><option>USD</option><option>EUR</option><option>GBP</option><option>SAR</option></datalist></section>' +
+
+      '<section class="rblock"><h3>Internal notes</h3><p class="small muted">Visible to founders and the sales team only. Never shown to the client or to artists.</p>' +
+      (notes.map(function (n) { return '<div class="note"><span class="muted">' + esc(teamName(n.author) || "Team") + " · " + esc(M.fmtDate(n.created_at, true)) + "</span>" + esc(n.body).replace(/\n/g, "<br>") + "</div>"; }).join("") || '<p class="small muted">No notes yet.</p>') +
+      '<label class="f">Add a note<textarea class="inp" id="note" rows="3" maxlength="4000"></textarea></label><div><button class="btn line sm" type="button" id="b-note">Save note</button></div></section>' +
+      "</div>" +
+
+      '<aside class="raside">' +
+      '<div class="panel stack" style="gap:10px"><h3 style="font-size:22px">Pipeline</h3>' + tag(PROJECT_STATUS, p.status) +
+      (p.status === "not_confirmed" && p.not_confirmed_reason ? '<p class="small">Reason: ' + esc(REASON_LABEL[p.not_confirmed_reason]) + (p.not_confirmed_note ? ". " + esc(p.not_confirmed_note) : "") + "</p>" : "") +
+      '<p class="small muted">The client sees: ' + esc(CLIENT_LABEL[clientStatus(p.status)]) + ".</p>" +
+      (manage ? '<button class="btn sm" type="button" id="b-status">' + (p.status === "not_confirmed" ? "Reopen or change status" : "Change status") + "</button>" : "") + "</div>" +
+      '<div class="panel stack" style="gap:10px"><h3 style="font-size:22px">Responsible</h3>' +
+      "<p>" + (assignee ? "<b>" + esc(assignee) + "</b>" + (p.assigned_to === me.user.id ? " (you)" : "") : '<span class="muted">Nobody yet</span>') + "</p>" +
+      (me.role === "founder" ? '<label class="visually-hidden" for="assign">Assign to</label><select class="inp" id="assign"><option value="">Unassigned</option>' +
+        salesPeople().map(function (m) { return '<option value="' + m.user_id + '"' + (p.assigned_to === m.user_id ? " selected" : "") + ">" + esc(m.name) + "</option>"; }).join("") + "</select>"
+        : canClaim ? '<button class="btn line sm" type="button" id="b-claim">Take this project</button>' : "") + "</div>" +
+      '<div class="panel stack" style="gap:10px"><h3 style="font-size:22px">Client</h3><div class="kv">' +
+      field("Name", esc(p.client_name)) + field(p.client_type === "business" ? "Organization" : "Company or studio", esc(p.client_organization)) +
+      field("Account type", esc(ACCOUNT_LABEL[p.client_type])) + field("Country", esc(p.client_country || "Not recorded")) +
+      (contact ? field("Email", '<a class="link" href="mailto:' + esc(contact.email) + '">' + esc(contact.email) + "</a>") + field("Phone", esc(contact.phone)) : "") +
+      "</div>" + (!p.member_id ? '<p class="small muted">The client\'s account has been deleted.</p>' : "") + "</div>" +
+      '<div class="panel stack" style="gap:10px"><h3 style="font-size:22px">History</h3><div class="timeline">' +
+      (events.map(function (e) { return "<div><b>" + esc(EVENT_LABEL[e.kind] || e.kind) + "</b>" + (eventText(e) ? "<br>" + esc(eventText(e)) : "") + '<br><span class="muted small">' + esc(e.actor_name || "Client") + " · " + esc(M.fmtDate(e.at, true)) + "</span></div>"; }).join("") || '<p class="small muted">No history yet.</p>') +
+      "</div></div></aside></div>";
+
+    function reload() { viewProject(id); renderNav("projects"); }
+    async function call(fn, args, done) { var r = await sb.rpc(fn, args); if (r.error) { fail(r.error); return false; } if (done) M.toast(done); reload(); return true; }
+
+    var assign = main.querySelector("#assign");
+    if (assign) assign.addEventListener("change", function () { call("assign_project", { p_id: id, p_user: assign.value || null }, "Assignment updated."); });
+    var claim = main.querySelector("#b-claim");
+    if (claim) claim.addEventListener("click", function () { call("assign_project", { p_id: id, p_user: me.user.id }, "This project is now yours."); });
+    var bs = main.querySelector("#b-status");
+    if (bs) bs.addEventListener("click", function () { openProjectStatus(p, reload); });
+    main.querySelector("#b-note").addEventListener("click", async function () {
+      var body = main.querySelector("#note").value.trim();
+      if (!body) { M.toast("Write a note first."); return; }
+      M.setBusy(this, true, "Saving");
+      if (!(await call("add_project_note", { p_id: id, p_body: body }, "Note saved."))) M.setBusy(this, false);
+    });
+    var pick = main.querySelector("#b-pick");
+    if (pick) pick.addEventListener("click", function () { openArtistReason(id, main.querySelector("#pick-artist").value, names[main.querySelector("#pick-artist").value] || publicArtists.filter(function (a) { return a.id === main.querySelector("#pick-artist").value; })[0].display_name, "considered", "", reload); });
+    var tf = main.querySelector("#task-form");
+    if (tf) tf.addEventListener("submit", async function (e) {
+      e.preventDefault();
+      var err = main.querySelector("#task-err");
+      if (tf.elements.title.value.trim().length < 2 || !tf.elements.due.value) { err.textContent = "Please describe the follow-up and choose a due date."; err.hidden = false; return; }
+      await call("add_project_task", { p_id: id, p_title: tf.elements.title.value, p_assignee: tf.elements.assignee.value || null, p_due: tf.elements.due.value, p_notes: tf.elements.notes.value }, "Follow-up added.");
+    });
+    var mf = main.querySelector("#money");
+    if (mf && manage) mf.addEventListener("submit", async function (e) {
+      e.preventDefault();
+      var v = {}, err = main.querySelector("#money-err");
+      ["currency", "estimated_value", "fee_terms", "final_value", "final_revenue", "payment_status", "revenue_notes"].forEach(function (k) { if (!mf.elements[k].disabled) v[k] = mf.elements[k].value.trim(); });
+      if (mf.elements.final_value.disabled) { v.final_value = p.final_value == null ? "" : String(p.final_value); v.final_revenue = p.final_revenue == null ? "" : String(p.final_revenue); }
+      ["estimated_value", "final_value", "final_revenue"].forEach(function (k) { v[k] = String(v[k] || "").replace(/[\s,]/g, ""); });
+      var r = await sb.rpc("update_project_money", { p_id: id, p: v });
+      if (r.error) { err.textContent = M.friendlyError(r.error); err.hidden = false; return; }
+      M.toast("Value and revenue saved."); reload();
+    });
+    main.onclick = function (e) {
+      var a = e.target.closest("[data-artist]"), u = e.target.closest("[data-unartist]"), k = e.target.closest("[data-task]"), d = e.target.closest("[data-deltask]");
+      if (a) openArtistReason(id, a.getAttribute("data-artist"), names[a.getAttribute("data-artist")] || "this artist", a.getAttribute("data-state"), a.getAttribute("data-reason") || "", reload);
+      if (u) call("remove_project_artist", { p_id: id, p_artist: u.getAttribute("data-unartist") }, "Removed from the list.");
+      if (k) call("set_project_task_done", { p_task: k.getAttribute("data-task"), p_done: k.getAttribute("data-done") === "true" }, "Follow-up updated.");
+      if (d && confirm("Delete this follow-up?")) call("delete_project_task", { p_task: d.getAttribute("data-deltask") }, "Follow-up deleted.");
+    };
+  }
+
+  function openArtistReason(projectId, artistId, name, state, reason, done) {
+    M.modal(
+      "<h2>" + (state === "recommended" ? "Recommend" : "Consider") + " <em>" + esc(name) + "</em></h2>" +
+      '<p class="muted">Why is this artist a good match? This stays internal: nothing is sent to the client until the team decides to share it.</p>' +
+      '<label class="f">Reason<textarea class="inp" id="m-why" rows="4" maxlength="2000">' + esc(reason) + "</textarea></label>" +
+      '<p class="err" id="m-err" hidden></p><div class="row"><button class="btn" type="button" id="m-go">Save</button><button class="btn line" type="button" data-close>Cancel</button></div>',
+      function (box, close) {
+        box.querySelector("#m-go").addEventListener("click", async function () {
+          var why = box.querySelector("#m-why").value.trim(), err = box.querySelector("#m-err");
+          if (why.length < 3) { err.textContent = "Please write why this artist could be a good match."; err.hidden = false; return; }
+          M.setBusy(this, true, "Saving");
+          var r = await sb.rpc("set_project_artist", { p_id: projectId, p_artist: artistId, p_state: state, p_reason: why });
+          if (r.error) { M.setBusy(this, false); err.textContent = M.friendlyError(r.error); err.hidden = false; return; }
+          close(); M.toast(state === "recommended" ? "Artist recommended." : "Artist added as considered."); done();
+        });
+      });
+  }
+
+  function openProjectStatus(p, done) {
+    M.modal(
+      "<h2>Pipeline <em>status</em></h2><p class=\"muted\">" + esc(p.reference) + " · " + esc(p.client_organization || p.client_name) + "</p>" +
+      '<label class="f">New status<select class="inp" id="m-status">' + PIPE.map(function (s) { return '<option value="' + s[0] + '"' + (s[0] === p.status ? " selected" : "") + ">" + esc(s[1]) + "</option>"; }).join("") + "</select></label>" +
+      '<fieldset class="fs" id="m-reasons" hidden><legend style="font-family:var(--sans);font-size:13px;font-weight:600">Why was it not confirmed?</legend>' +
+      REASONS.map(function (r) { return '<label class="row small" style="font-weight:500"><input type="radio" name="m-reason" value="' + r[0] + '"' + (p.not_confirmed_reason === r[0] ? " checked" : "") + "> " + esc(r[1]) + "</label>"; }).join("") +
+      '<label class="f"><span>Explanation <span class="opt" id="m-note-opt">optional</span></span><textarea class="inp" id="m-note" rows="3" maxlength="1000">' + esc(p.not_confirmed_note || "") + "</textarea></label></fieldset>" +
+      '<label class="row small" style="font-weight:500" id="m-mail-row" hidden><input type="checkbox" id="m-mail"> <span id="m-mail-text"></span></label>' +
+      '<p class="err" id="m-err" hidden></p><div class="row"><button class="btn" type="button" id="m-go">Save status</button><button class="btn line" type="button" data-close>Cancel</button></div>',
+      function (box, close) {
+        var sel = box.querySelector("#m-status");
+        function sync() {
+          var to = sel.value, nc = to === "not_confirmed";
+          box.querySelector("#m-reasons").hidden = !nc;
+          var cFrom = clientStatus(p.status), cTo = clientStatus(to), show = cFrom !== cTo && cTo !== "received";
+          box.querySelector("#m-mail-row").hidden = !show;
+          box.querySelector("#m-mail").checked = show && cTo !== "closed";
+          box.querySelector("#m-mail-text").textContent = "Email the client that their request is now “" + CLIENT_LABEL[cTo] + "”";
+          var other = (box.querySelector('input[name="m-reason"]:checked') || {}).value === "other";
+          box.querySelector("#m-note-opt").textContent = other ? "required for Other" : "optional";
+        }
+        sel.addEventListener("change", sync);
+        box.querySelectorAll('input[name="m-reason"]').forEach(function (r) { r.addEventListener("change", sync); });
+        sync();
+        box.querySelector("#m-go").addEventListener("click", async function () {
+          var to = sel.value, err = box.querySelector("#m-err");
+          var reason = (box.querySelector('input[name="m-reason"]:checked') || {}).value || null, note = box.querySelector("#m-note").value.trim();
+          if (to === "not_confirmed" && !reason) { err.textContent = "Please choose why the project was not confirmed."; err.hidden = false; return; }
+          if (to === "not_confirmed" && reason === "other" && note.length < 3) { err.textContent = "Please explain the reason."; err.hidden = false; return; }
+          M.setBusy(this, true, "Saving");
+          try {
+            var res = await M.api("sales-status", { id: p.id, status: to, reason: to === "not_confirmed" ? reason : null, note: to === "not_confirmed" ? note : "", notify: !box.querySelector("#m-mail-row").hidden && box.querySelector("#m-mail").checked });
+            close(); M.toast(!res.changed ? "No change." : res.emailed ? "Status saved. The client was emailed." : "Status saved."); done();
+          } catch (ex) { M.setBusy(this, false); err.textContent = M.friendlyError(ex); err.hidden = false; }
+        });
+      });
+  }
+
+  async function viewFollowups(q) {
+    var tab = q.get("tab") || "overdue", who = q.get("who") || "mine";
+    var r = await sb.from("project_tasks").select("*, project_requests(id, reference, client_name, client_organization, assigned_to)").order("due_on", { ascending: true }).limit(5000);
+    if (r.error) throw r.error;
+    var t = today();
+    var all = (r.data || []).filter(function (k) { return who !== "mine" || k.assigned_to === me.user.id; });
+    var groups = {
+      overdue: all.filter(function (k) { return !k.done && k.due_on < t; }),
+      upcoming: all.filter(function (k) { return !k.done && k.due_on >= t; }),
+      done: all.filter(function (k) { return k.done; }).reverse()
+    };
+    var rows = groups[tab] || [];
+    main.innerHTML =
+      '<div class="head"><div><span class="eyebrow">Sales</span><h1>Follow-ups</h1><p>Tasks attached to projects. ' +
+      "A reminder email goes to each person on the morning a follow-up is due, and again each morning while it is overdue.</p></div></div>" +
+      '<div class="filters"><div class="chips" role="group" aria-label="Which follow-ups">' +
+      [["overdue", "Overdue"], ["upcoming", "Upcoming"], ["done", "Completed"]].map(function (c) {
+        return '<button class="chip" type="button" data-f="tab" data-v="' + c[0] + '" aria-pressed="' + (tab === c[0]) + '">' + esc(c[1]) + " · " + groups[c[0]].length + "</button>";
+      }).join("") + "</div>" +
+      '<div class="toolbar"><label class="visually-hidden" for="f-who">Whose follow-ups</label><select class="inp" id="f-who" data-sel="who">' +
+      [["mine", "Assigned to me"], ["all", "Everyone"]].map(function (o) { return '<option value="' + o[0] + '"' + (who === o[0] ? " selected" : "") + ">" + esc(o[1]) + "</option>"; }).join("") + "</select></div></div>" +
+      (rows.length ? '<div class="list">' + rows.map(function (k) {
+        var pr = k.project_requests || {};
+        return '<div class="lrow"><div class="lm"><b>' + esc(k.title) + '</b><span class="muted small"><a class="link" href="#/project/' + pr.id + '">' + esc(pr.reference || "") + " · " + esc(pr.client_organization || pr.client_name || "") + "</a> · " + esc(teamName(k.assigned_to) || "Unassigned") + (k.notes ? " · " + esc(k.notes) : "") + "</span></div>" +
+          '<div class="ls">' + (tab === "overdue" ? '<span class="tag overdue">Due ' + esc(M.fmtDate(k.due_on)) + "</span>" : '<span class="muted small">' + (tab === "done" ? "Done " + esc(M.fmtDate(k.done_at)) : "Due " + esc(M.fmtDate(k.due_on))) + "</span>") +
+          (k.assigned_to === me.user.id || me.role === "founder" || pr.assigned_to === me.user.id ? '<button class="btn line sm" type="button" data-task="' + k.id + '" data-done="' + (!k.done) + '">' + (k.done ? "Reopen" : "Mark done") + "</button>" : "") + "</div></div>";
+      }).join("") + "</div>" : '<div class="empty">' + (tab === "overdue" ? "Nothing overdue." : tab === "upcoming" ? "No upcoming follow-ups." : "No completed follow-ups yet.") + "</div>");
+    hashFilters("followups", q);
+    main.onclick = async function (e) {
+      var k = e.target.closest("[data-task]");
+      if (!k) return;
+      var x = await sb.rpc("set_project_task_done", { p_task: k.getAttribute("data-task"), p_done: k.getAttribute("data-done") === "true" });
+      if (x.error) return fail(x.error);
+      M.toast("Follow-up updated."); route();
+    };
+  }
+
+  /* Founders: reports by registered country. Counts are counts, never revenue,
+     and amounts in different currencies are never added together. */
+  async function viewReports(q) {
+    var country = q.get("country") || "";
+    var res = await Promise.all([
+      sb.from("artist_inquiries").select("status, member_country").limit(20000),
+      sb.from("project_requests").select("status, client_country, currency, estimated_value, final_value, final_revenue, payment_status, not_confirmed_reason").limit(20000)
+    ]);
+    if (res[0].error) throw res[0].error;
+    if (res[1].error) throw res[1].error;
+    var inq = res[0].data || [], prj = res[1].data || [];
+    function c(v) { return v || "Not recorded"; }
+    var countries = uniq(inq.map(function (x) { return c(x.member_country); }).concat(prj.map(function (x) { return c(x.client_country); }))).sort();
+    var inqF = inq.filter(function (x) { return !country || c(x.member_country) === country; });
+    var prjF = prj.filter(function (x) { return !country || c(x.client_country) === country; });
+    function byCountry(list, key) { var m = {}; list.forEach(function (x) { (m[c(x[key])] = m[c(x[key])] || []).push(x); }); return Object.keys(m).sort().map(function (k) { return [k, m[k]]; }); }
+    function n(list, f) { return list.filter(f).length; }
+    function table(head, rows) {
+      return '<div class="rwrap"><table class="rtable"><thead><tr>' + head.map(function (h, i) { return "<th" + (i ? ' class="n"' : "") + ">" + esc(h) + "</th>"; }).join("") + "</tr></thead><tbody>" +
+        (rows.length ? rows.map(function (r) { return "<tr>" + r.map(function (v, i) { return "<td" + (i ? ' class="n"' : "") + ">" + v + "</td>"; }).join("") + "</tr>"; }).join("") : '<tr><td colspan="' + head.length + '" class="muted">No data yet.</td></tr>') +
+        "</tbody></table></div>";
+    }
+    function sums(list, key) {
+      var m = {};
+      list.forEach(function (x) { if (x[key] != null && x.currency) m[x.currency] = (m[x.currency] || 0) + Number(x[key]); });
+      var k = Object.keys(m);
+      return k.length ? k.sort().map(function (cur) { return esc(money(m[cur], cur)); }).join("<br>") : '<span class="muted">None recorded</span>';
+    }
+    var open = prjF.filter(function (x) { return ["new", "contacted", "proposal_sent", "negotiation"].indexOf(x.status) !== -1; });
+    var confirmed = prjF.filter(function (x) { return x.status === "confirmed"; });
+    main.innerHTML =
+      '<div class="head"><div><span class="eyebrow">Founders</span><h1>Reports</h1>' +
+      "<p>By each person's registered country, as given in their account. Inquiry counts are not revenue. Amounts in different currencies are shown separately and never added together.</p></div>" +
+      '<div class="toolbar"><label class="visually-hidden" for="f-country">Country</label><select class="inp" id="f-country">' + countryOptions(countries, country, "All countries") + "</select></div></div>" +
+      '<section class="rblock"><h3>Revenue records</h3><p class="small muted">From the figures the team recorded by hand.</p>' +
+      table(["", "Projects", "Amounts"], [
+        ["Open pipeline, estimated project value", String(open.length), sums(open, "estimated_value")],
+        ["Confirmed projects, final project value", String(confirmed.length), sums(confirmed, "final_value")],
+        ["Confirmed projects, recorded M.E.E.T. revenue", String(confirmed.length), sums(confirmed, "final_revenue")],
+        ["Confirmed projects marked paid in full", String(n(confirmed, function (x) { return x.payment_status === "paid"; })), ""]
+      ]) + "</section>" +
+      '<section class="rblock"><h3>Artist inquiries by country</h3>' +
+      table(["Member country", "Total", "New", "Viewed", "Responded", "Closed"], byCountry(inqF, "member_country").map(function (r) {
+        return [esc(r[0]), String(r[1].length)].concat(["new", "viewed", "responded", "closed"].map(function (s) { return String(n(r[1], function (x) { return x.status === s; })); }));
+      })) + "</section>" +
+      '<section class="rblock"><h3>Project requests by country and pipeline status</h3>' +
+      table(["Client country", "Total"].concat(PIPE.map(function (s) { return s[1]; })), byCountry(prjF, "client_country").map(function (r) {
+        return [esc(r[0]), String(r[1].length)].concat(PIPE.map(function (s) { return String(n(r[1], function (x) { return x.status === s[0]; })); }));
+      })) + "</section>" +
+      '<section class="rblock"><h3>Confirmed projects by country</h3>' +
+      table(["Client country", "Confirmed", "Final project value", "Recorded M.E.E.T. revenue"], byCountry(confirmed, "client_country").map(function (r) {
+        return [esc(r[0]), String(r[1].length), sums(r[1], "final_value"), sums(r[1], "final_revenue")];
+      })) + "</section>" +
+      '<section class="rblock"><h3>Why projects were not confirmed</h3>' +
+      table(["Reason", "Projects"], REASONS.map(function (r) { return [esc(r[1]), String(n(prjF, function (x) { return x.status === "not_confirmed" && x.not_confirmed_reason === r[0]; }))]; })
+        .filter(function (r) { return r[1] !== "0"; })) + "</section>";
+    hashFilters("reports", q);
+  }
+
+  /* ------------------------------------------------------------------ */
   /* Team (founders only)                                                */
   /* ------------------------------------------------------------------ */
 
   var ROLES = [["founder", "Founder · everything"], ["operations", "Operations · applications and studios"], ["verification", "Verification · reviews"],
-    ["partnerships", "Partnerships · reviews"], ["viewer", "Viewer · can look, cannot change"]];
+    ["partnerships", "Partnerships · reviews"], ["sales", "Sales · project requests and clients"], ["viewer", "Viewer · can look, cannot change"]];
 
   async function viewTeam() {
     var t = await sb.from("team_members").select("user_id, name, email, role, active, created_at").order("created_at");
@@ -876,7 +1417,9 @@
       '<div class="head"><div><span class="eyebrow">Accountability</span><h1>Activity log</h1><p>The latest 300 actions taken in the console and in artists\' studios.</p></div></div>' +
       ((r.data || []).length ? '<div class="list">' + r.data.map(function (h) {
         var href = h.target_type === "application" ? "#/application/" + h.target_id : h.target_type === "artist" ? "#/artist/" + h.target_id
-          : h.target_type === "member" && h.action !== "member.deleted" ? "#/member/" + h.target_id : "";
+          : h.target_type === "member" && h.action !== "member.deleted" ? "#/member/" + h.target_id
+          : h.target_type === "inquiry" ? "#/inquiry/" + h.target_id
+          : h.target_type === "project" && isSales ? "#/project/" + h.target_id : "";
         return (href ? '<a class="lrow" href="' + href + '">' : '<div class="lrow">') +
           '<div class="lm"><b>' + esc(actionLabel(h.action)) + '</b><span class="muted small">' + esc(h.actor_name || "System") + "</span></div>" +
           '<div class="ls"><span class="muted small">' + esc(M.fmtDate(h.at, true)) + "</span></div>" + (href ? "</a>" : "</div>");
@@ -894,7 +1437,9 @@
     me = await M.requireTeam();
     if (!me) return;
     sb = M.sb;
-    canEdit = me.role !== "viewer";
+    // The sales role works in Sales; elsewhere it can look but not change.
+    canEdit = me.role !== "viewer" && me.role !== "sales";
+    isSales = me.role === "founder" || me.role === "sales";
     document.getElementById("who").textContent = me.member.name;
     var t = await sb.from("team_members").select("user_id, name, email, role, active");
     cache.team = t.data || [];

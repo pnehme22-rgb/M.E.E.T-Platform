@@ -3,7 +3,7 @@
 
 import { handle, teamCaller, readJson, json, HttpError, accountLink, audit, renderMail, sendMail, esc, firstName } from "../lib/server.ts";
 
-const ROLES = ["operations", "verification", "partnerships", "viewer"];
+const ROLES = ["operations", "verification", "partnerships", "sales", "viewer"];
 
 export default handle(async (req) => {
   const c = await teamCaller(req, { founder: true });

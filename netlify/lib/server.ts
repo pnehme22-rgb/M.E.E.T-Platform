@@ -81,7 +81,7 @@ export async function sessionConfirmed(svc: SupabaseClient, userId: string, toke
 
 // Confirms the request comes from an active team member who completed
 // the emailed-code step. Founders-only and editors-only checks are optional.
-export async function teamCaller(req: Request, need: { founder?: boolean; editor?: boolean } = {}): Promise<Caller> {
+export async function teamCaller(req: Request, need: { founder?: boolean; editor?: boolean; sales?: boolean } = {}): Promise<Caller> {
   const header = req.headers.get("authorization") || "";
   const token = header.startsWith("Bearer ") ? header.slice(7) : "";
   if (!token) throw new HttpError(401, "Please sign in again.");
@@ -101,8 +101,38 @@ export async function teamCaller(req: Request, need: { founder?: boolean; editor
     .eq("user_id", data.user.id).maybeSingle();
   if (!member || !member.active) throw new HttpError(403, "Your account does not have access to the team console.");
   if (need.founder && member.role !== "founder") throw new HttpError(403, "Only founders can do this.");
-  if (need.editor && member.role === "viewer") throw new HttpError(403, "Your role can view but not change records.");
+  if (need.editor && (member.role === "viewer" || member.role === "sales")) throw new HttpError(403, "Your role can view but not change records.");
+  if (need.sales && member.role !== "founder" && member.role !== "sales") throw new HttpError(403, "Only founders and the sales team can do this.");
   return { user: data.user, member, token, db: userClient(token), svc };
+}
+
+// Any signed-in person (member or artist). Their own token is used for the
+// database call, so row level security and the database checks apply.
+export interface Person { user: User; token: string; db: SupabaseClient; svc: SupabaseClient }
+export async function personCaller(req: Request): Promise<Person> {
+  const header = req.headers.get("authorization") || "";
+  const token = header.startsWith("Bearer ") ? header.slice(7) : "";
+  if (!token) throw new HttpError(401, "Please sign in again.");
+  const svc = serviceClient();
+  const { data, error } = await svc.auth.getUser(token);
+  if (error || !data.user) throw new HttpError(401, "Your session has ended. Please sign in again.");
+  return { user: data.user, token, db: userClient(token), svc };
+}
+
+// Turns a database refusal into a message for the person (our own messages
+// are written for people; anything else becomes a generic one).
+export function dbError(error: { code?: string; message?: string } | null): never {
+  const m = (error && error.message) || "";
+  if (error && (error.code === "22023" || error.code === "42501") && m && !/^not allowed$/i.test(m)) throw new HttpError(400, m);
+  if (error && error.code === "42501") throw new HttpError(403, "Your account does not have permission to do this.");
+  console.error("DB ERROR", error);
+  throw new HttpError(500, "Something went wrong on our side. Nothing was changed. Please try again.");
+}
+
+// Active founders and sales team members, for sales notifications.
+export async function salesTeamEmails(svc: SupabaseClient): Promise<string[]> {
+  const { data } = await svc.from("team_members").select("email, role").eq("active", true);
+  return (data || []).filter((t) => t.role === "founder" || t.role === "sales").map((t) => t.email).filter(Boolean);
 }
 
 export async function audit(c: Caller, action: string, type: string, id: string, detail: Record<string, unknown> = {}) {

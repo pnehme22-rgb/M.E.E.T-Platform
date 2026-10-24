@@ -73,6 +73,10 @@ export default handle(async (req) => {
     // Never remove a login that also belongs to the team or to an artist studio.
     const { data: member } = await c.svc.from("team_members").select("user_id").eq("user_id", id).maybeSingle();
     const { data: artist } = await c.svc.from("artists").select("id").eq("id", id).maybeSingle();
+    // Sales records keep the project and its figures, without the person's name.
+    // Their inquiries to artists are removed with the account.
+    const { error: e0 } = await c.svc.from("project_requests").update({ client_name: "Deleted member" }).eq("member_id", id);
+    if (e0 && e0.code !== "42P01") throw e0;
     if (member || artist) {
       const { error } = await c.svc.from("member_accounts").delete().eq("id", id);
       if (error) throw error;

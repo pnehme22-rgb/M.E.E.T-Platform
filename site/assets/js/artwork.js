@@ -1,6 +1,6 @@
 /* M.E.E.T. public artwork page: photographs, title, artist, description and
-   the details the artist supplied. Only fields that exist are shown. There
-   is no buying here. */
+   the details the artist supplied. Only fields that exist are shown, and a
+   price only when the artist chose to show it. There is no buying here. */
 (function () {
   "use strict";
   var P = window.MEET_PUBLIC, esc = P.esc;
@@ -41,6 +41,9 @@
       row("Materials", w.materials);
       row("Dimensions", P.dims(w));
       if (w.edition_type) row("Edition", w.edition_type === "Limited edition" && w.edition_size ? "Limited edition of " + w.edition_size : w.edition_type);
+      // Only a price the artist chose to show reaches this page (see public_artworks).
+      if (w.price != null && w.currency) row("Price", P.money(w.price, w.currency));
+      else if (w.price_on_request) row("Price", "Price on request");
 
       view.removeAttribute("aria-busy");
       view.innerHTML =
@@ -60,7 +63,8 @@
               (P.place(a) ? '<span class="wk-place">' + esc(P.place(a)) + "</span>" : "") + "</p>" +
             (details.length ? '<dl class="wk-details">' + details.join("") + "</dl>" : "") +
             (w.description ? '<div class="wk-desc">' + String(w.description).split(/\n{2,}/).map(function (p) { return "<p>" + esc(p.trim()).replace(/\n/g, "<br>") + "</p>"; }).join("") + "</div>" : "") +
-            '<p><a class="btn btn-small" href="' + P.artistUrl(a.id) + '">More from ' + esc(a.display_name) + "</a></p>" +
+            '<p class="wk-act"><a class="btn btn-small" href="' + P.artistUrl(a.id) + "?artwork=" + encodeURIComponent(w.id) + '#inquire">Inquire about this artwork</a>' +
+            '<a class="text-link" href="' + P.artistUrl(a.id) + '">More from ' + esc(a.display_name) + "</a></p>" +
           "</div>" +
         "</div>";
 

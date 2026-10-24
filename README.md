@@ -37,3 +37,14 @@ The test `supabase/tests/phase1_publishing_test.sql` checks these rules inside a
 - Artists can add optional cultural traditions; editing them sends an approved profile back to review like any other change.
 
 The test `supabase/tests/phase2_accounts_test.sql` checks sign-ups, permissions, the account type lock, traditions and the homepage rules inside a cancelled transaction.
+
+## Inquiries and sales (Phase 3)
+
+- **Artist inquiries:** signed-in members write to a public artist from their profile (`/api/inquiry`, database function `create_inquiry`). The artist sees the member's name, account type and country, never their email or phone, and replies once from their studio; the reply is emailed to the member. Statuses: New, Viewed, Responded, Closed. The console tracks every inquiry (Artist inquiries).
+- **Project requests:** Professional and Business & Organization members send requests from their account (`/api/project-request`). They see their own requests through `my_project_requests()` with a simple status (Received, In discussion, Confirmed, Closed); the sales tables are readable by founders and the `sales` role only.
+- **Sales dashboard** (console › Sales): pipeline New → Contacted → Proposal Sent → Negotiation → Project Confirmed / Not Confirmed (reason required, reopening recorded); assignment; artist matching from public profiles only (disciplines, techniques, artwork materials, country; never cultural traditions); internal notes; follow-ups; value and revenue recorded by hand; country reports for founders.
+- **Permissions:** founders manage everything; `sales` members see all projects and manage those assigned to them (they can take an unassigned one). The `sales` role cannot change applications, artists or members. All writes go through database functions that check this.
+- **Follow-up reminders:** `followup-reminders` is a Netlify scheduled function (daily at 06:00 UTC). Check it in Netlify › Logs › Functions.
+- **Prices:** an artwork's price is public only when the artist chooses "Show this price"; otherwise the public view returns no number. Existing artworks start with the price not shown.
+
+The test `supabase/tests/phase3_sales_test.sql` checks prices, inquiries, project requests and sales permissions inside a cancelled transaction.

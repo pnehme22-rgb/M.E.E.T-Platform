@@ -1,4 +1,5 @@
-/* M.E.E.T. member account: profile, security, enquiries, deletion request.
+/* M.E.E.T. member account: profile, security, inquiries to artists,
+   project requests (Professional and Business), deletion request.
    Members can only read and edit their own row (database row level security);
    the account type and email cannot be changed here. */
 (function () {
@@ -25,8 +26,9 @@
   }
 
   function renderNav(current) {
-    var items = [["", "Overview"], ["profile", "Profile"], ["security", "Security"], ["enquiries", "Enquiries"]];
+    var items = [["", "Overview"], ["inquiries", "Inquiries"]];
     if (acct.account_type !== "personal") items.push(["projects", "Project requests"]);
+    items.push(["profile", "Profile"], ["security", "Security"]);
     items.push(["delete", "Delete account"]);
     nav.innerHTML = items.map(function (i) {
       return '<a class="ni" href="#/' + i[0] + '"' + (current === i[0] ? ' aria-current="page"' : "") + ">" + esc(i[1]) + "</a>";
@@ -41,14 +43,17 @@
 
   async function route() {
     var view = location.hash.replace(/^#\/?/, "").split("/")[0] || "";
+    main.onclick = null;
     try {
       await load();
       renderNav(view);
       if (view === "") viewOverview();
       else if (view === "profile") viewProfile();
       else if (view === "security") viewSecurity();
-      else if (view === "enquiries") viewComing("Enquiries", "Messages you send to artists through M.E.E.T. will appear here, with their status. Sending enquiries opens in the next stage of M.E.E.T.");
-      else if (view === "projects" && acct.account_type !== "personal") viewComing("Project requests", "Project requests you submit to the M.E.E.T. team (for example artwork for a hotel, office or home) will appear here with their status. This opens in the next stage of M.E.E.T.");
+      else if (view === "inquiries") await viewInquiries();
+      else if (view === "projects" && acct.account_type !== "personal") {
+        if (location.hash.split("/")[2] === "new") viewProjectForm(); else await viewProjects();
+      }
       else if (view === "delete") viewDelete();
       else location.hash = "#/";
     } catch (err) {
@@ -65,9 +70,11 @@
       "<p>Your M.E.E.T. account. Discover artists from different cultures, materials and disciplines.</p></div></div>" +
       (acct.deletion_requested_at ? '<div class="notice warn">You asked us to delete this account on ' + esc(M.fmtDate(acct.deletion_requested_at)) + ". The M.E.E.T. team will complete it and confirm by email.</div>" : "") +
       '<div class="kpis">' +
-      '<a class="kpi" href="/artists"><span>Discover</span><b style="font-size:28px">Artists</b><span>Browse the M.E.E.T. artist directory</span></a>' +
-      '<a class="kpi" href="#/profile"><span>Your details</span><b style="font-size:28px">Profile</b><span>' + esc(name) + " · " + esc(acct.country) + "</span></a>" +
-      '<a class="kpi" href="#/security"><span>Sign-in</span><b style="font-size:28px">Security</b><span>Password and devices</span></a></div>';
+      '<a class="kpi" href="/artists"><span>Discover</span><b class="word">Artists</b><span>Browse the M.E.E.T. artist directory</span></a>' +
+      '<a class="kpi" href="#/profile"><span>Your details</span><b class="word">Profile</b><span>' + esc(name) + " · " + esc(acct.country) + "</span></a>" +
+      '<a class="kpi" href="#/inquiries"><span>Your messages</span><b class="word">Inquiries</b><span>To artists, and their replies</span></a>' +
+      (acct.account_type !== "personal" ? '<a class="kpi" href="#/projects"><span>Sourcing</span><b class="word">Projects</b><span>Ask the team to find artists for a project</span></a>' : "") +
+      "</div>";
   }
 
   function viewProfile() {
@@ -145,11 +152,120 @@
     });
   }
 
-  function viewComing(title, text) {
+  /* ---------------- inquiries to artists ---------------- */
+
+  var INQ_STATUS = { new: ["New", "red"], viewed: ["Viewed", "blue"], responded: ["Responded", "ok"], closed: ["Closed", ""] };
+  var TOPIC = { artwork: "An artwork", commission: "A commission", collaboration: "A collaboration or project", other: "Something else" };
+  function tagOf(map, k) { var t = map[k] || [k, ""]; return '<span class="tag ' + t[1] + '">' + esc(t[0]) + "</span>"; }
+
+  async function viewInquiries() {
+    var r = await sb.from("artist_inquiries").select("*").eq("member_id", acct.id).order("created_at", { ascending: false });
+    if (r.error) throw r.error;
+    var rows = r.data || [];
+    var names = {};
+    if (rows.length) {
+      var ids = rows.map(function (x) { return x.artist_id; }).filter(function (v, i, a) { return a.indexOf(v) === i; });
+      var pa = await sb.from("public_artists").select("id, display_name").in("id", ids);
+      (pa.data || []).forEach(function (x) { names[x.id] = x.display_name; });
+    }
     main.innerHTML =
-      '<div class="head"><div><span class="eyebrow">' + esc(title) + "</span><h1>" + esc(title) + "</h1></div></div>" +
-      '<div class="coming">' + esc(text) + "</div>" +
-      '<div class="empty">Nothing here yet.</div>';
+      '<div class="head"><div><span class="eyebrow">Your inquiries</span><h1>Inquiries to <em>artists</em></h1>' +
+      "<p>Messages you sent to artists through M.E.E.T., and their replies. Artists see your name, account type and country, never your email address or phone number.</p></div>" +
+      '<div class="row"><a class="btn line sm" href="/artists">Discover artists</a></div></div>' +
+      (rows.length ? '<div class="stack" style="gap:12px">' + rows.map(function (q) {
+        var name = names[q.artist_id];
+        return '<article class="rblock"><div class="between"><h3 style="font-size:24px">' +
+          (name ? '<a class="link" href="/artists/' + q.artist_id + '">' + esc(name) + "</a>" : "An artist no longer on M.E.E.T.") + "</h3>" + tagOf(INQ_STATUS, q.status) + "</div>" +
+          '<p class="small muted">' + esc(TOPIC[q.topic] || "") + (q.artwork_title ? ": “" + esc(q.artwork_title) + "”" : "") + " · sent " + esc(M.fmtDate(q.created_at, true)) + "</p>" +
+          '<div class="note"><span class="muted">Your message</span>' + esc(q.message).replace(/\n/g, "<br>") + "</div>" +
+          (q.response ? '<div class="note reply"><span class="muted">Reply from ' + esc(name || "the artist") + ", " + esc(M.fmtDate(q.responded_at, true)) + "</span>" + esc(q.response).replace(/\n/g, "<br>") + "</div>" : "") +
+          "</article>";
+      }).join("") + "</div>"
+        : '<div class="empty">You have not sent any inquiries yet. Open an artist\'s profile and use "Inquire about this artist".</div>');
+  }
+
+  /* ---------------- project requests (Professional and Business) ---------------- */
+
+  var CLIENT_STATUS = {
+    received: ["Received", "blue", "The M.E.E.T. team has your request and will review it."],
+    in_discussion: ["In discussion", "warn", "The M.E.E.T. team is working on your request and will be in touch by email."],
+    confirmed: ["Confirmed", "ok", "Your project is confirmed."],
+    closed: ["Closed", "", "This request is closed. You are welcome to send a new one."]
+  };
+
+  async function viewProjects() {
+    var r = await sb.rpc("my_project_requests");
+    if (r.error) throw r.error;
+    var rows = r.data || [];
+    main.innerHTML =
+      '<div class="head"><div><span class="eyebrow">For ' + esc(acct.account_type === "business" ? "Business & Organization" : "Professional") + " accounts</span>" +
+      "<h1>Project <em>requests</em></h1><p>Looking for artwork for a hotel, an office, a home or another project? Describe it and the M.E.E.T. team will help you find suitable artists.</p></div>" +
+      '<div class="row"><a class="btn" href="#/projects/new">New project request</a></div></div>' +
+      (rows.length ? '<div class="stack" style="gap:12px">' + rows.map(function (q) {
+        var st = CLIENT_STATUS[q.client_status] || [q.client_status, "", ""];
+        return '<article class="rblock"><div class="between"><h3 style="font-size:24px">' + esc(q.artwork_type) + "</h3>" +
+          '<span class="tag ' + st[1] + '">' + esc(st[0]) + "</span></div>" +
+          '<p class="small muted">' + esc(q.reference) + " · sent " + esc(M.fmtDate(q.created_at)) + " · " + esc(st[2]) + "</p>" +
+          '<p class="prose">' + esc(q.description) + "</p>" +
+          '<div class="kv"><span>Budget</span><b>' + (q.budget_undecided ? "Not decided yet" : esc(q.budget)) + "</b>" +
+          "<span>Timeline</span><b>" + (q.timeline_undecided ? "Not decided yet" : esc(q.timeline)) + "</b>" +
+          (q.location ? "<span>Location</span><b>" + esc(q.location) + "</b>" : "") +
+          (q.quantity_dims ? "<span>Quantity and dimensions</span><b>" + esc(q.quantity_dims) + "</b>" : "") +
+          (q.style_refs ? "<span>Style and references</span><b>" + esc(q.style_refs) + "</b>" : "") + "</div></article>";
+      }).join("") + "</div>"
+        : '<div class="empty">You have not sent a project request yet.</div>');
+  }
+
+  function viewProjectForm() {
+    main.innerHTML =
+      '<a class="link small" href="#/projects">Back to project requests</a>' +
+      '<div class="head"><div><span class="eyebrow">New project request</span><h1>Tell us about your <em>project</em></h1>' +
+      "<p>Share what you know. If something is not decided yet, say so: the team will help you work it out.</p></div></div>" +
+      '<form class="panel stack" id="prj" novalidate>' +
+      '<label class="f">Project description<span class="hint">What is the project, where will the artwork live, and what should it feel like?</span>' +
+      '<textarea class="inp" name="description" rows="6" maxlength="4000"></textarea></label>' +
+      '<label class="f">Type of artwork<span class="hint">For example: large ceramic wall piece, a series of textile works, sculpture for a lobby.</span>' +
+      '<input class="inp" name="artwork_type" maxlength="200"></label>' +
+      '<div class="grid2"><div class="f"><label class="f" for="p-budget">Estimated budget<span class="hint">With the currency, for example AED 40,000 to 60,000.</span></label>' +
+      '<input class="inp" id="p-budget" name="budget" maxlength="200"><label class="row small" style="font-weight:500"><input type="checkbox" name="budget_undecided"> Not decided yet</label></div>' +
+      '<div class="f"><label class="f" for="p-time">Timeline<span class="hint">For example: installed by March 2027.</span></label>' +
+      '<input class="inp" id="p-time" name="timeline" maxlength="200"><label class="row small" style="font-weight:500"><input type="checkbox" name="timeline_undecided"> Not decided yet</label></div></div>' +
+      '<label class="f"><span>Project location <span class="opt">optional</span></span><input class="inp" name="location" maxlength="200" placeholder="City and country"></label>' +
+      '<label class="f"><span>Quantity and dimensions <span class="opt">optional</span></span><textarea class="inp" name="quantity_dims" rows="3" maxlength="1000"></textarea></label>' +
+      '<label class="f"><span>Style and references <span class="opt">optional</span></span><span class="hint">Colours, materials, moods, or links to images you like.</span><textarea class="inp" name="style_refs" rows="3" maxlength="2000"></textarea></label>' +
+      '<p class="small muted">Your request is linked to your account: ' + esc(acct.account_type === "business" ? acct.business_name : acct.company_name || acct.full_name) + ", " + esc(acct.country) + ". Only you and the M.E.E.T. team can see it.</p>" +
+      '<p class="err" id="prj-err" role="alert" hidden></p>' +
+      '<div class="row"><button class="btn" type="submit" id="b-prj">Send project request</button><a class="btn line" href="#/projects">Cancel</a></div></form>';
+    var f = main.querySelector("#prj");
+    ["budget", "timeline"].forEach(function (k) {
+      f.elements[k + "_undecided"].addEventListener("change", function () { f.elements[k].disabled = this.checked; if (this.checked) f.elements[k].value = ""; });
+    });
+    f.addEventListener("submit", async function (e) {
+      e.preventDefault();
+      var err = main.querySelector("#prj-err");
+      var v = {
+        description: f.elements.description.value.trim(), artwork_type: f.elements.artwork_type.value.trim(),
+        budget: f.elements.budget.value.trim(), budget_undecided: f.elements.budget_undecided.checked,
+        timeline: f.elements.timeline.value.trim(), timeline_undecided: f.elements.timeline_undecided.checked,
+        location: f.elements.location.value.trim(), quantity_dims: f.elements.quantity_dims.value.trim(), style_refs: f.elements.style_refs.value.trim()
+      };
+      var problem = v.description.length < 20 ? ["description", "Please describe the project in at least 20 characters."]
+        : v.artwork_type.length < 2 ? ["artwork_type", "Please tell us what type of artwork you are looking for."]
+        : !v.budget && !v.budget_undecided ? ["budget", "Please give an estimated budget, or tick “Not decided yet”."]
+        : !v.timeline && !v.timeline_undecided ? ["timeline", "Please give a timeline, or tick “Not decided yet”."] : null;
+      if (problem) { err.textContent = problem[1]; err.hidden = false; f.elements[problem[0]].focus(); return; }
+      err.hidden = true;
+      var b = main.querySelector("#b-prj");
+      M.setBusy(b, true, "Sending");
+      try {
+        var res = await M.api("project-request", v);
+        main.innerHTML = '<div class="panel stack" role="status"><span class="eyebrow">Request sent</span><h1>Thank you</h1>' +
+          "<p>We have received your project request with the reference <b>" + esc(res.reference) + "</b>. " +
+          (res.emailed && res.emailed.member === false ? "We could not send the confirmation email, but your request is saved. " : "We have emailed you a confirmation. ") +
+          "The M.E.E.T. team will review it and contact you by email.</p>" +
+          '<div class="row"><a class="btn line" href="#/projects">View my project requests</a></div></div>';
+      } catch (ex) { M.setBusy(b, false); err.textContent = M.friendlyError(ex); err.hidden = false; }
+    });
   }
 
   function viewDelete() {

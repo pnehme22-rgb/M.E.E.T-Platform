@@ -225,3 +225,22 @@
   .featured .dir-grid { grid-template-columns: 1fr 1fr; gap: 28px 14px; }
 }
 .featured-head .h2 .kicker { display: flex; }
+
+/* ---------- Inquiry (artist profile) ---------- */
+.inq { display: grid; grid-template-columns: minmax(0, 4fr) minmax(0, 7fr); gap: clamp(24px, 5vw, 80px); margin-top: clamp(56px, 7vw, 100px); padding-top: clamp(40px, 5vw, 64px); border-top: 1px solid var(--line); }
+.inq-intro p { color: var(--muted); max-width: 40ch; }
+.inq-body > p { color: var(--ink-soft); max-width: 60ch; }
+.inq-form { display: grid; gap: 18px; max-width: 640px; }
+.inq-form textarea {
+  width: 100%; min-height: 150px; padding: 14px 16px; border: 1px solid var(--line-strong); border-radius: 14px;
+  background: var(--paper); font: 400 16px/1.55 var(--sans); color: var(--ink); resize: vertical;
+}
+.inq-form textarea:focus-visible { outline: 2px solid var(--oxblood); outline-offset: 2px; }
+.inq-count { font-size: 13px; color: var(--hint); letter-spacing: 0; text-transform: none; font-weight: 400; }
+.inq-privacy { font-size: 14px; color: var(--muted); margin: 0; padding: 14px 16px; border-radius: 14px; background: var(--cream); }
+.inq-err { color: var(--oxblood); font-weight: 600; font-size: 14px; margin: 0; }
+.inq-act, .wk-act { display: flex; flex-wrap: wrap; align-items: center; gap: 14px 24px; }
+.inq-done { padding: 22px 24px; border: 1px solid var(--line); border-radius: 18px; background: var(--paper); }
+.inq-done h3 { font-family: var(--display); font-weight: 400; font-size: 1.8rem; margin: 0 0 8px; }
+.inq-done p { color: var(--ink-soft); }
+@media (max-width: 860px) { .inq { grid-template-columns: 1fr; } }

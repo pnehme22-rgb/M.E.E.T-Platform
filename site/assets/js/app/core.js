@@ -136,7 +136,8 @@
       return safe ? next : "/team";
     }
     if (me.artist) return "/studio";
-    if (me.account) return "/account";
+    // Members may return to the artist profile they were inquiring from.
+    if (me.account) return next && /^\/(artists\/[0-9a-f-]{36}|account)([?#][\w=&#%-]*)?$/i.test(next) ? next : "/account";
     return null;
   }
 

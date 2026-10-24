@@ -26,10 +26,12 @@
     artist = r.data;
   }
 
-  function renderNav(current) {
-    var items = [["", "Overview"], ["profile", "Profile"], ["works", "Artworks"]];
+  async function renderNav(current) {
+    var n = await sb.from("artist_inquiries").select("id", { count: "exact", head: true }).eq("artist_id", artist.id).eq("status", "new");
+    var items = [["", "Overview", 0], ["profile", "Profile", 0], ["works", "Artworks", 0], ["inquiries", "Inquiries", n.count || 0]];
     nav.innerHTML = items.map(function (i) {
-      return '<a class="ni" href="#/' + i[0] + '"' + (current === i[0] ? ' aria-current="page"' : "") + ">" + esc(i[1]) + "</a>";
+      return '<a class="ni" href="#/' + i[0] + '"' + (current === i[0] ? ' aria-current="page"' : "") + ">" + esc(i[1]) +
+        (i[2] ? '<span class="badge" aria-label="' + i[2] + ' new">' + i[2] + "</span>" : "") + "</a>";
     }).join("") + '<a class="ni" href="/welcome">Change password</a>';
   }
 
@@ -47,11 +49,12 @@
         return;
       }
       document.body.classList.remove("onboarding");
-      renderNav(view === "work" ? "works" : view);
+      await renderNav(view === "work" ? "works" : view);
       if (view === "") await viewOverview();
       else if (view === "profile") await viewProfile();
       else if (view === "works") await viewWorks();
       else if (view === "work") await viewWork(parts[1] || "new");
+      else if (view === "inquiries") { if (parts[1]) await viewInquiry(parts[1]); else await viewInquiries(); }
       else location.hash = "#/";
     } catch (err) {
       main.innerHTML = '<div class="empty">This page could not be loaded. ' + esc(M.friendlyError(err)) + "</div>";
@@ -102,6 +105,75 @@
       M.toast("Thank you. Welcome to your studio.");
       route();
     });
+  }
+
+  /* ---------------- inquiries from members ---------------- */
+
+  var INQ = { new: ["New", "red"], viewed: ["Viewed", "blue"], responded: ["Responded", "ok"], closed: ["Closed", ""] };
+  var ACCT = { personal: "Personal", professional: "Professional", business: "Business & Organization" };
+  var TOPIC = { artwork: "An artwork", commission: "A commission", collaboration: "A collaboration or project", other: "Something else" };
+  function inqTag(s) { var t = INQ[s] || [s, ""]; return '<span class="tag ' + t[1] + '">' + esc(t[0]) + "</span>"; }
+
+  async function viewInquiries() {
+    var r = await sb.from("artist_inquiries").select("*").eq("artist_id", artist.id).order("created_at", { ascending: false });
+    if (r.error) throw r.error;
+    var rows = r.data || [];
+    main.innerHTML =
+      '<div class="head"><div><span class="eyebrow">Inquiries</span><h1>Messages from <em>members</em></h1>' +
+      "<p>People who found you on M.E.E.T. and wrote to you. You see their name, account type and country. Contact details are not shared in either direction: reply here and we email your reply to them.</p></div></div>" +
+      (rows.length ? '<div class="list">' + rows.map(function (q) {
+        return '<a class="lrow" href="#/inquiries/' + q.id + '"><div class="lm"><b>' + esc(q.member_name) + '</b><span class="muted small">' +
+          esc(ACCT[q.member_type] || "") + " · " + esc(q.member_country) + " · " + esc(TOPIC[q.topic] || "") + (q.artwork_title ? ": “" + esc(q.artwork_title) + "”" : "") + "</span></div>" +
+          '<div class="ls">' + inqTag(q.status) + '<span class="muted small">' + esc(M.fmtWhen(q.created_at)) + "</span></div></a>";
+      }).join("") + "</div>" : '<div class="empty">No inquiries yet. When a member writes to you from your public profile, it appears here and we email you.</div>');
+  }
+
+  async function viewInquiry(id) {
+    var r = await sb.from("artist_inquiries").select("*").eq("id", id).eq("artist_id", artist.id).maybeSingle();
+    if (r.error) throw r.error;
+    var q = r.data;
+    if (!q) { main.innerHTML = '<div class="empty">This inquiry could not be found. <a class="link" href="#/inquiries">Back to inquiries</a></div>'; return; }
+    if (q.status === "new") {
+      var v = await sb.rpc("set_inquiry_status", { p_id: q.id, p_status: "viewed" });
+      if (!v.error) { q.status = "viewed"; renderNav("inquiries"); }
+    }
+    main.innerHTML =
+      '<a class="link small" href="#/inquiries">Back to inquiries</a>' +
+      '<div class="head"><div><span class="eyebrow">Inquiry · ' + esc(M.fmtDate(q.created_at, true)) + "</span><h1>" + esc(q.member_name) + "</h1>" +
+      "<p>" + esc(ACCT[q.member_type] || "") + " member · " + esc(q.member_country) + "</p></div><div>" + inqTag(q.status) + "</div></div>" +
+      '<div class="rblock"><h3>' + esc(TOPIC[q.topic] || "Inquiry") + (q.artwork_title ? ": “" + esc(q.artwork_title) + "”" : "") + "</h3>" +
+      '<p class="prose">' + esc(q.message) + "</p></div>" +
+      (q.response
+        ? '<div class="rblock"><h3>Your reply</h3><p class="small muted">Sent ' + esc(M.fmtDate(q.responded_at, true)) + ". We emailed it to " + esc(q.member_name) + ".</p><p class=\"prose\">" + esc(q.response) + "</p></div>"
+        : '<form class="panel stack" id="reply" novalidate><h3 style="font-size:24px">Reply</h3>' +
+          '<p class="small muted">You can reply once. We email your reply to ' + esc(q.member_name) + " and show it in their account. If you wish to continue the conversation, you may include your own contact details in your reply.</p>" +
+          '<textarea class="inp" name="response" rows="6" maxlength="2000" aria-label="Your reply"></textarea>' +
+          '<p class="err" id="reply-err" role="alert" hidden></p>' +
+          '<div class="row"><button class="btn" type="submit" id="b-reply">Send reply</button></div></form>') +
+      '<div class="row">' + (q.status === "closed"
+        ? '<button class="btn line sm" type="button" data-inq="open">Reopen inquiry</button>'
+        : '<button class="btn line sm" type="button" data-inq="closed">Close inquiry</button><span class="small muted">Closing marks it as finished. The member sees that it is closed.</span>') + "</div>";
+    var f = main.querySelector("#reply");
+    if (f) f.addEventListener("submit", async function (e) {
+      e.preventDefault();
+      var text = f.elements.response.value.trim(), err = main.querySelector("#reply-err");
+      if (text.length < 10) { err.textContent = "Please write a reply of at least 10 characters."; err.hidden = false; f.elements.response.focus(); return; }
+      var b = main.querySelector("#b-reply");
+      M.setBusy(b, true, "Sending");
+      try {
+        var res = await M.api("inquiry", { action: "reply", id: q.id, response: text });
+        M.toast(res.emailed && res.emailed.member ? "Reply sent." : "Reply saved. The email could not be sent, but the member will see it in their account.");
+        route();
+      } catch (ex) { M.setBusy(b, false); err.textContent = M.friendlyError(ex); err.hidden = false; }
+    });
+    main.onclick = async function (e) {
+      var b = e.target.closest("[data-inq]");
+      if (!b) return;
+      M.setBusy(b, true, "Saving");
+      var x = await sb.rpc("set_inquiry_status", { p_id: q.id, p_status: b.getAttribute("data-inq") });
+      if (x.error) { M.setBusy(b, false); return fail(x.error); }
+      route();
+    };
   }
 
   /* ---------------- overview ---------------- */
@@ -162,7 +234,7 @@
       '<label class="f">Main discipline<span class="hint">Your main art form, for example porcelain painting.</span><input class="inp" name="craft" maxlength="120" value="' + esc(a.craft) + '"></label>' +
       '<div class="grid2"><label class="f">Other disciplines <span class="opt">optional</span><span class="hint">Other kinds of art you also practise.</span><input class="inp" name="other_disciplines" maxlength="400" value="' + esc(a.other_disciplines || "") + '"></label>' +
       '<label class="f">Techniques and materials <span class="opt">optional</span><span class="hint">How you work: techniques, tools, materials.</span><input class="inp" name="techniques" maxlength="400" value="' + esc(a.techniques) + '"></label></div>' +
-      ("traditions" in a ? '<label class="f">Cultural traditions <span class="opt">optional</span><span class="hint">Traditions, heritage or schools your practice comes from, for example Damascene inlay or Japanese kintsugi. Shown on your public profile once approved.</span><input class="inp" name="traditions" maxlength="400" value="' + esc(a.traditions || "") + '"></label>' : "") +
+      ("traditions" in a ? '<label class="f">Cultural traditions <span class="opt">optional</span><span class="hint">Traditions, heritage or schools your practice comes from, for example Damascene inlay or Japanese kintsugi. For the M.E.E.T. team only for now: it is not shown on your public profile.</span><input class="inp" name="traditions" maxlength="400" value="' + esc(a.traditions || "") + '"></label>' : "") +
       '<label class="f">Biography and approach<span class="hint">What you make, how you learned it, how you approach your work, what you are exploring now. At least 40 characters.</span>' +
       '<textarea class="inp" name="bio" rows="7" maxlength="1500">' + esc(a.bio) + "</textarea></label></div>" +
       '<div class="panel stack"><h3 style="font-size:24px">Links</h3>' +
@@ -298,8 +370,11 @@
       '<div class="grid2"><label class="f">Edition<select class="inp" name="edition_type">' + ["One of a kind", "Limited edition", "Open edition"].map(function (x) { return opt(x, w.edition_type); }).join("") + "</select></label>" +
       '<label class="f">Edition size <span class="opt">for limited editions</span><input class="inp" name="edition_size" inputmode="numeric" value="' + esc(w.edition_size || "") + '"></label></div>' +
       '<div class="grid2"><div class="grid2"><label class="f">Currency<select class="inp" name="currency">' + ["AED", "USD", "EUR", "GBP", "SAR"].map(function (x) { return opt(x, w.currency); }).join("") + "</select></label>" +
-      '<label class="f">Price<input class="inp" name="price" inputmode="decimal" value="' + esc(w.price == null ? "" : w.price) + '"></label></div>' +
-      '<label class="row small" style="font-weight:500;align-self:end;min-height:48px"><input type="checkbox" name="price_on_request"' + (w.price_on_request ? " checked" : "") + "> Price on request</label></div>" +
+      '<label class="f"><span>Price <span class="opt">optional with price on request</span></span><input class="inp" name="price" inputmode="decimal" value="' + esc(w.price == null ? "" : w.price) + '"></label></div>' +
+      '<fieldset class="fs" style="gap:8px"><legend style="font-family:var(--sans);font-size:13px;font-weight:600">How should the price appear on M.E.E.T.?</legend>' +
+      '<label class="row small" style="font-weight:500"><input type="radio" name="price_display" value="public"' + (w.price_public && !w.price_on_request ? " checked" : "") + "> Show this price on my public artwork page</label>" +
+      '<label class="row small" style="font-weight:500"><input type="radio" name="price_display" value="request"' + (w.price_on_request ? " checked" : "") + "> Price on request</label>" +
+      '<span class="hint">With price on request, any price you enter stays private to the M.E.E.T. team.</span></fieldset></div>' +
       '<label class="f">Description <span class="opt">optional</span><textarea class="inp" name="description" rows="5" maxlength="1500">' + esc(w.description) + "</textarea></label></div>" +
       '<p class="err" id="wf-err" role="alert" hidden></p>' +
       '<div class="row"><button class="btn line" type="submit" id="b-save">Save</button>' +
@@ -309,14 +384,19 @@
 
     var form = main.querySelector("#wf");
     function num(v) { v = String(v || "").replace(",", ".").trim(); return v === "" ? null : Number(v); }
+    function priceChoice() { var c = form.querySelector('input[name="price_display"]:checked'); return c ? c.value : ""; }
     function values() {
       var e = form.elements;
-      return {
+      var v = {
         title: e.title.value.trim(), year: e.year.value.trim() ? parseInt(e.year.value, 10) : null,
         materials: e.materials.value.trim(), height: num(e.height.value), width: num(e.width.value), depth: num(e.depth.value),
         unit: e.unit.value, edition_type: e.edition_type.value, edition_size: e.edition_size.value.trim() ? parseInt(e.edition_size.value, 10) : null,
-        currency: e.currency.value, price: num(e.price.value), price_on_request: e.price_on_request.checked, description: e.description.value.trim()
+        currency: e.currency.value, price: num(e.price.value), description: e.description.value.trim(),
+        price_on_request: priceChoice() === "request"
       };
+      // Only once the database has the public price choice (update 010).
+      if ("price_public" in w) v.price_public = priceChoice() === "public";
+      return v;
     }
     function check(v) {
       if (v.year !== null && (isNaN(v.year) || v.year < 1900 || v.year > 2100)) return "Please enter the year as four digits, for example 2025.";
@@ -350,7 +430,9 @@
       var missing = [];
       if (!v.title) missing.push("a title");
       if (!(w.images || []).length) missing.push("at least one photograph");
-      if (!v.price_on_request && v.price === null) missing.push("a price, or tick price on request");
+      var choice = priceChoice();
+      if (!choice) missing.push("how the price appears (show the price, or price on request)");
+      else if (choice === "public" && v.price === null) missing.push("the price you want to show");
       if (missing.length) { err.textContent = "Before sending, please add " + missing.join(", ") + "."; err.hidden = false; return; }
       M.setBusy(submit, true, "Sending");
       var ok = await save();

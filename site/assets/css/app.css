@@ -351,3 +351,28 @@ label.row > input[type="checkbox"] { flex: none; width: 20px; height: 20px; marg
   .agree-box { padding: 20px; }
   .agree-act .btn { width: 100%; }
 }
+
+/* ---------- Phase 3: inquiries, sales ---------- */
+.kpi b.word { font-family: var(--serif); font-weight: 400; font-size: 30px; letter-spacing: -.01em; }
+.note.reply { border-left: 3px solid var(--accent); }
+.tag.overdue { background: #f6dede; color: var(--accent); }
+.pipe { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 8px; }
+.pipe a { display: flex; flex-direction: column; gap: 2px; padding: 10px 12px; border: 1px solid var(--hairline); border-radius: var(--r-sm);
+  background: var(--surface); text-decoration: none; color: var(--ink); font-size: 12.5px; }
+.pipe a b { font-size: 22px; font-weight: 500; }
+.pipe a[aria-pressed="true"] { background: var(--ink); color: var(--bg); border-color: var(--ink); }
+.toolbar { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; }
+.toolbar select.inp { width: auto; min-height: 40px; padding: 6px 38px 6px 14px; border-radius: 999px; font-size: 14px; }
+.pager { display: flex; justify-content: space-between; align-items: center; gap: 12px; font-size: 13.5px; }
+.match { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 8px 14px; padding: 12px 0; border-bottom: 1px solid var(--line); }
+.match:last-child { border-bottom: 0; }
+.why { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 4px; }
+.why span { font-size: 12px; padding: 2px 9px; border-radius: 999px; background: var(--sand); }
+.money { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px 14px; }
+.money .full { grid-column: 1 / -1; }
+.rtable { width: 100%; border-collapse: collapse; font-size: 14px; }
+.rtable th, .rtable td { text-align: left; padding: 9px 10px; border-bottom: 1px solid var(--line); vertical-align: top; }
+.rtable th { font-size: 11px; letter-spacing: .14em; text-transform: uppercase; color: var(--muted); font-weight: 700; }
+.rtable td.n, .rtable th.n { text-align: right; font-variant-numeric: tabular-nums; }
+.rwrap { overflow-x: auto; }
+@media (max-width: 820px) { .pipe { grid-template-columns: repeat(3, minmax(0, 1fr)); } .money { grid-template-columns: minmax(0, 1fr); } }

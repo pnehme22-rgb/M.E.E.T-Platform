@@ -1,6 +1,6 @@
 -- =============================================================================
 -- Phase 2 test: member accounts, permissions, traditions and homepage selection.
--- Run in Supabase > SQL Editor AFTER updates 008 and 009.
+-- Run in Supabase > SQL Editor AFTER updates 008, 009 and 010.
 -- Everything happens inside one transaction that is cancelled at the end:
 -- no test data is kept, no emails are sent, nothing real is changed.
 -- Supabase then shows a red message that starts with "PHASE 2 TEST FINISHED"
@@ -174,8 +174,8 @@ insert into featured_items (kind, item_id, position) values
  ('artwork','00000000-0000-4000-8000-0000000002d1',0), ('artwork','00000000-0000-4000-8000-0000000002d2',1);
 
 set local role anon;
-select pg_temp.ok('Cultural traditions appear on the public profile',
-  (select traditions from public_artists where id = '00000000-0000-4000-8000-0000000002b1') = 'Kintsugi');
+select pg_temp.ok('Cultural traditions are not part of the public profile (since update 010)',
+  not exists (select 1 from information_schema.columns where table_name = 'public_artists' and column_name = 'traditions'));
 select pg_temp.ok('Homepage shows a featured public artist', exists (select 1 from public_featured_artists where id = '00000000-0000-4000-8000-0000000002b1'));
 select pg_temp.ok('Homepage never shows a featured artist who is not public (old terms)', not exists (select 1 from public_featured_artists where id = '00000000-0000-4000-8000-0000000002b2'));
 select pg_temp.ok('Homepage shows a featured public artwork with its artist', exists (select 1 from public_featured_artworks where id = '00000000-0000-4000-8000-0000000002d1' and artist_name = 'Public Artist'));
@@ -186,12 +186,19 @@ select pg_temp.ok('Public views still have no private columns', not exists (
     and column_name in ('email','legal_name','instagram','website','other_link','feedback','profile_status','status','phone','reviewed_by','created_by')));
 reset role;
 
--- The artist edits their traditions: the approved profile goes back to review and is hidden.
+-- Traditions are private (update 010): editing them keeps the profile public.
 set local role authenticated;
 select set_config('request.jwt.claims', '{"sub":"00000000-0000-4000-8000-0000000002b1","role":"authenticated"}', true);
 update artists set traditions = 'Kintsugi and raku' where id = '00000000-0000-4000-8000-0000000002b1';
 reset role;
-select pg_temp.ok('Editing traditions sends an approved profile back to review',
+select pg_temp.ok('Editing private traditions does not hide the profile',
+  (select profile_status from artists where id = '00000000-0000-4000-8000-0000000002b1') = 'approved');
+-- Editing the biography does send it back to review.
+set local role authenticated;
+select set_config('request.jwt.claims', '{"sub":"00000000-0000-4000-8000-0000000002b1","role":"authenticated"}', true);
+update artists set bio = 'A changed biography' where id = '00000000-0000-4000-8000-0000000002b1';
+reset role;
+select pg_temp.ok('Editing the biography sends an approved profile back to review',
   (select profile_status from artists where id = '00000000-0000-4000-8000-0000000002b1') = 'draft');
 set local role anon;
 select pg_temp.ok('The edited profile is hidden until approved again', not exists (select 1 from public_artists where id = '00000000-0000-4000-8000-0000000002b1'));
