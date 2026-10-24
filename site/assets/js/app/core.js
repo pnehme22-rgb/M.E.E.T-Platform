@@ -86,6 +86,8 @@
     if (!s) return null;
     var roleRes = await sb.rpc("my_role");
     var artistRes = await sb.from("artists").select("id, display_name, avatar_path").eq("id", s.user.id).maybeSingle();
+    // Personal, Professional or Business & Organization member account, if any.
+    var accountRes = await sb.from("member_accounts").select("*").eq("id", s.user.id).maybeSingle();
     var member = null, confirmed = false;
     if (roleRes.data) {
       var c = await sb.rpc("session_confirmed");
@@ -99,6 +101,7 @@
       role: roleRes.data || null,
       member: member,
       artist: artistRes.data || null,
+      account: accountRes.data || null,
       confirmed: confirmed
     };
   }
@@ -132,7 +135,16 @@
       return safe ? next : "/team";
     }
     if (me.artist) return "/studio";
+    if (me.account) return "/account";
     return null;
+  }
+
+  async function requireAccount() {
+    if (!sb) { location.replace("/signin?setup=1"); return null; }
+    var me = await whoAmI();
+    if (!me) { location.replace("/signin?next=/account"); return null; }
+    if (!me.account) { location.replace(me.role ? "/team" : me.artist ? "/studio" : "/signin?noaccess=1"); return null; }
+    return me;
   }
 
   async function signOut() {
@@ -241,7 +253,7 @@
   window.MEET = {
     sb: sb, configured: !!configured, LOGO: LOGO,
     esc: esc, fmtDate: fmtDate, fmtWhen: fmtWhen, initials: initials, toast: toast, friendlyError: friendlyError,
-    session: session, whoAmI: whoAmI, requireTeam: requireTeam, requireArtist: requireArtist,
+    session: session, whoAmI: whoAmI, requireTeam: requireTeam, requireArtist: requireArtist, requireAccount: requireAccount,
     routeAfterSignIn: routeAfterSignIn, signOut: signOut, api: api,
     setGateCookie: setGateCookie, mediaUrl: mediaUrl, hydrateMedia: hydrateMedia, uploadImage: uploadImage,
     modal: modal, setBusy: setBusy

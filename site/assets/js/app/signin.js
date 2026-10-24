@@ -62,6 +62,18 @@
     }
   }
 
+  // Sends the email-confirmation link again (for new member accounts).
+  function showResend(email) {
+    var box = $("resend-box");
+    box.hidden = false;
+    $("b-resend-confirm").onclick = async function () {
+      M.setBusy(this, true, "Sending");
+      var r = await M.sb.auth.resend({ type: "signup", email: email });
+      M.setBusy(this, false);
+      message(r.error ? M.friendlyError(r.error) : "We sent a new confirmation email to " + email + ". Check your spam folder too.", r.error ? "err" : "ok");
+    };
+  }
+
   $("f-code").addEventListener("submit", async function (e) {
     e.preventDefault();
     var code = $("code").value.replace(/\D/g, "");
@@ -93,6 +105,11 @@
     M.setBusy($("b-password"), true, "Signing in");
     var r = await M.sb.auth.signInWithPassword({ email: email, password: pw });
     M.setBusy($("b-password"), false);
+    if (r.error && /not confirmed/i.test(r.error.message)) {
+      fieldError("err-password", "Please confirm your email first: open the email we sent when you signed up and press the button in it.");
+      showResend(email);
+      return;
+    }
     if (r.error) {
       fieldError("err-password", /fetch|network/i.test(r.error.message)
         ? "We could not reach the server. Please check your connection and try again."

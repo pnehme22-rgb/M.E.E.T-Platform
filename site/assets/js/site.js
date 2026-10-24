@@ -43,6 +43,22 @@
     onScroll();
 
 
+    // Phone menu: Artists, Sign in and Create an account fold into one panel.
+    var toggle = document.querySelector(".nav-toggle");
+    var menu = document.getElementById("nav-menu");
+    if (toggle && menu) {
+      var setOpen = function (open) {
+        menu.classList.toggle("open", open);
+        toggle.setAttribute("aria-expanded", open ? "true" : "false");
+        toggle.textContent = open ? "Close" : "Menu";
+      };
+      toggle.addEventListener("click", function () { setOpen(!menu.classList.contains("open")); });
+      menu.addEventListener("click", function (e) { if (e.target.closest("a")) setOpen(false); });
+      document.addEventListener("keydown", function (e) {
+        if (e.key === "Escape" && menu.classList.contains("open")) { setOpen(false); toggle.focus(); }
+      });
+    }
+
     // Pause every loop on hidden tabs.
     document.addEventListener("visibilitychange", function () {
       document.body.classList.toggle("paused", document.hidden);

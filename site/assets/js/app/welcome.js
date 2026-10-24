@@ -6,12 +6,18 @@
   var params = new URLSearchParams(location.search);
   var tokenHash = params.get("th") || params.get("token_hash") || "";
   var type = params.get("type") || "invite";
-  if (["invite", "recovery", "magiclink"].indexOf(type) === -1) type = "invite";
+  if (["invite", "recovery", "magiclink", "signup"].indexOf(type) === -1) type = "invite";
 
   $("logo").insertAdjacentHTML("afterbegin", M.LOGO);
 
   function show(step) {
     ["step-open", "step-password", "step-expired"].forEach(function (id) { $(id).hidden = id !== step; });
+    // An unconfirmed member account gets a fresh confirmation email from the sign-in page.
+    if (step === "step-expired" && type === "signup") {
+      var again = document.querySelector("#step-expired .btn");
+      again.href = "/signin";
+      again.textContent = "Sign in to get a new confirmation email";
+    }
   }
   function message(text, kind) {
     var el = $("msg");
@@ -27,6 +33,10 @@
     $("open-eyebrow").textContent = "Password reset";
     $("open-title").innerHTML = "Choose a new <em>password</em>";
     $("open-text").textContent = "Press continue to set a new password for your M.E.E.T. account.";
+  } else if (type === "signup") {
+    $("open-eyebrow").textContent = "Confirm your email";
+    $("open-title").innerHTML = "One last <em>step</em>";
+    $("open-text").textContent = "Press continue to confirm your email address and open your M.E.E.T. account.";
   } else if (type === "magiclink") {
     $("open-title").innerHTML = "Welcome <em>back</em>";
     $("open-text").textContent = "Press continue to sign in to your M.E.E.T. studio.";
@@ -44,7 +54,7 @@
     // The link has done its job: take it out of the address bar and history.
     history.replaceState(null, "", "/welcome");
     if (r.error) { show("step-expired"); return; }
-    if (type === "magiclink") { finish(); return; }
+    if (type === "magiclink" || type === "signup") { finish(); return; }
     $("pw-for").textContent = "For " + (r.data.user && r.data.user.email || "your account") + ".";
     await prepareMfa();
     show("step-password");
@@ -92,6 +102,15 @@
 
   (async function () {
     if (tokenHash) { show("step-open"); $("b-open").focus(); return; }
+    // Supabase's standard confirmation email (if the custom template is not
+    // set) returns here with the sign-in in the address fragment instead.
+    var frag = new URLSearchParams(location.hash.replace(/^#/, ""));
+    if (frag.get("access_token") && frag.get("refresh_token")) {
+      var set = await M.sb.auth.setSession({ access_token: frag.get("access_token"), refresh_token: frag.get("refresh_token") });
+      history.replaceState(null, "", "/welcome");
+      if (!set.error && type === "signup") { finish(); return; }
+      if (set.error) { show("step-expired"); return; }
+    }
     // No link in the address: someone already confirmed it and may still need a password.
     var s = await M.session();
     if (s) { $("pw-for").textContent = "For " + s.user.email + "."; await prepareMfa(); show("step-password"); return; }

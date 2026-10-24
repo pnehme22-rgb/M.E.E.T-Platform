@@ -1,4 +1,4 @@
-/* M.E.E.T. team console: applications, artists, team, activity.
+/* M.E.E.T. team console: applications, artists, members, homepage, team, activity.
    Every read and write goes through the signed-in team member's session, so
    the database's row level security decides what is allowed. Approvals and
    emails go through Netlify functions (/api/...). */
@@ -37,7 +37,8 @@
     var a = await sb.from("applications").select("status");
     var p = await sb.from("artists").select("profile_status");
     var w = await sb.from("artworks").select("status");
-    var c = { apps: {}, profiles: 0, works: 0 };
+    var del = await sb.from("member_accounts").select("id", { count: "exact", head: true }).not("deletion_requested_at", "is", null);
+    var c = { apps: {}, profiles: 0, works: 0, deletions: del.count || 0 };
     (a.data || []).forEach(function (r) { c.apps[r.status] = (c.apps[r.status] || 0) + 1; });
     c.profiles = (p.data || []).filter(function (r) { return r.profile_status === "submitted"; }).length;
     c.works = (w.data || []).filter(function (r) { return r.status === "submitted"; }).length;
@@ -51,9 +52,11 @@
       ["overview", "Overview", 0],
       ["applications", "Applications", (c.apps.new || 0)],
       ["artists", "Artists", c.profiles + c.works],
+      ["members", "Members", c.deletions],
+      ["homepage", "Homepage", 0],
       ["activity", "Activity log", 0]
     ];
-    if (me.role === "founder") items.splice(3, 0, ["team", "Team", 0]);
+    if (me.role === "founder") items.splice(5, 0, ["team", "Team", 0]);
     nav.innerHTML = '<p class="nav-l">Workspaces</p>' + items.map(function (i) {
       return '<a class="ni" href="#/' + i[0] + '"' + (current === i[0] ? ' aria-current="page"' : "") + ">" + esc(i[1]) +
         (i[2] ? '<span class="badge">' + i[2] + "</span>" : "") + "</a>";
@@ -75,7 +78,7 @@
 
   async function route() {
     var r = parseHash();
-    var section = { application: "applications", artist: "artists" }[r.view] || r.view;
+    var section = { application: "applications", artist: "artists", member: "members" }[r.view] || r.view;
     main.onclick = null;
     try {
       var c = await renderNav(section);
@@ -84,6 +87,9 @@
       else if (r.view === "application") await viewApplication(r.id);
       else if (r.view === "artists") await viewArtists(r.q);
       else if (r.view === "artist") await viewArtist(r.id);
+      else if (r.view === "members") await viewMembers(r.q);
+      else if (r.view === "member") await viewMember(r.id);
+      else if (r.view === "homepage") await viewHomepage();
       else if (r.view === "team" && me.role === "founder") await viewTeam();
       else if (r.view === "activity") await viewActivity();
       else location.hash = "#/overview";
@@ -378,7 +384,9 @@
       "profile.declined": "Profile declined", "artwork.submit": "Artwork submitted", "artwork.approved": "Artwork approved",
       "artwork.changes_requested": "Changes requested on artwork", "artwork.declined": "Artwork declined",
       "team.invite": "Team member invited", "team.update": "Team member updated",
-      "artist.terms_accepted": "Artist terms agreed", "artist.deleted": "Artist and their data deleted", "application.deleted": "Application deleted"
+      "artist.terms_accepted": "Artist terms agreed", "artist.deleted": "Artist and their data deleted", "application.deleted": "Application deleted",
+      "featured.add": "Featured on the homepage", "featured.remove": "Removed from the homepage",
+      "member.deletion_requested": "Member asked to delete their account", "member.deleted": "Member account deleted"
     })[a] || a;
   }
 
@@ -476,6 +484,7 @@
   function openDelete(type, id, name, done) {
     var what = type === "artist"
       ? "the artist <b>" + esc(name) + "</b> and everything they gave M.E.E.T.: their studio, artworks, photographs, login and application"
+      : type === "member" ? "the member account of <b>" + esc(name) + "</b> and its login"
       : "the application from <b>" + esc(name) + "</b>";
     M.modal(
       "<h2>Delete <em>permanently</em></h2>" +
@@ -493,7 +502,7 @@
           try {
             await M.api("delete-record", { type: type, id: id });
             close();
-            M.toast(type === "artist" ? "Artist and all their data deleted." : "Application deleted.");
+            M.toast(type === "artist" ? "Artist and all their data deleted." : type === "member" ? "Member account deleted." : "Application deleted.");
             done();
           } catch (err) { M.setBusy(btn, false); m.textContent = M.friendlyError(err); m.hidden = false; }
         });
@@ -540,6 +549,15 @@
     // Public visibility is decided by the database (see the public_artists view).
     var pr = await sb.rpc("artist_is_public", { p_artist: id });
     var isPublic = pr.data === true;
+    var fr = await sb.from("featured_items").select("kind, item_id");
+    var featured = {};
+    (fr.data || []).forEach(function (f) { featured[f.kind + ":" + f.item_id] = true; });
+    function featureBtn(kind, itemId) {
+      if (!canEdit || !isPublic) return "";
+      var on = featured[kind + ":" + itemId];
+      return '<button class="btn line sm" type="button" data-feature="' + kind + '" data-id="' + itemId + '" data-on="' + (on ? 1 : 0) + '">' +
+        (on ? "Remove from homepage" : "Feature on homepage") + "</button>";
+    }
     var whyNot = a.profile_status !== "approved" ? "the profile is not approved yet"
       : !a.terms_accepted_at ? "the artist has not agreed to the Artist terms yet"
       : "the artist must agree to the latest Artist terms (they are asked when they next open their studio)";
@@ -564,7 +582,8 @@
       '<div class="head"><div><span class="eyebrow">Studio</span><h1>' + esc(a.display_name || a.legal_name) + "</h1><p>" + esc(a.craft) + " · " + esc(place(a)) +
       ' · <a class="link" href="mailto:' + esc(a.email) + '">' + esc(a.email) + "</a></p></div>" +
       '<div class="row">' + (a.application_id ? '<a class="btn line sm" href="#/application/' + a.application_id + '">Original application</a>' : "") + "</div></div>" +
-      '<div class="row" style="gap:8px">' + publicLine + "</div>" +
+      '<div class="row" style="gap:8px">' + publicLine + (isPublic ? ' <a class="link small" href="/artists/' + a.id + '" target="_blank" rel="noopener">View public profile</a>' : "") +
+      (featured["artist:" + a.id] ? ' <span class="tag blue">On the homepage</span>' : "") + featureBtn("artist", a.id) + "</div>" +
       '<div class="rblock"><div class="between"><h3>Profile</h3>' + tag(REVIEW_STATUS, a.profile_status) + "</div>" +
       (a.cover_path ? '<img class="cover-lg" alt="Cover photo" data-media="' + esc(a.cover_path) + '">' : "") +
       '<div class="row" style="gap:18px;align-items:flex-start">' +
@@ -573,6 +592,7 @@
       "<span>Main discipline</span><b>" + esc(a.craft) + "</b>" +
       (a.other_disciplines ? "<span>Other disciplines</span><b>" + esc(a.other_disciplines) + "</b>" : "") +
       (a.techniques ? "<span>Techniques and materials</span><b>" + esc(a.techniques) + "</b>" : "") +
+      (a.traditions ? "<span>Cultural traditions</span><b>" + esc(a.traditions) + "</b>" : "") +
       (a.instagram ? "<span>Instagram</span><b>" + esc(a.instagram) + "</b>" : "") +
       (a.website ? '<span>Website</span><b><a class="link" href="' + esc(a.website) + '" target="_blank" rel="noopener noreferrer nofollow">' + esc(a.website) + "</a></b>" : "") +
       (a.other_link ? '<span>Other link</span><b>' + esc(a.other_link) + "</b>" : "") +
@@ -585,7 +605,8 @@
       (works.length ? works.map(function (w) {
         var size = [w.height, w.width, w.depth].filter(function (x) { return x; }).join(" × ");
         return '<div class="rblock"><div class="between"><h3>' + esc(w.title || "Untitled") + "</h3>" +
-          '<div class="row" style="gap:6px">' + (w.status === "approved" && isPublic ? '<span class="tag ok">Public</span>' : "") + tag(REVIEW_STATUS, w.status) + "</div></div>" +
+          '<div class="row" style="gap:6px">' + (w.status === "approved" && isPublic ? '<a class="tag ok" href="/artworks/' + w.id + '" target="_blank" rel="noopener">Public</a>' : "") +
+          (featured["artwork:" + w.id] ? '<span class="tag blue">On the homepage</span>' : "") + tag(REVIEW_STATUS, w.status) + "</div></div>" +
           '<div class="gallery">' + (w.images || []).map(function (p) { return '<img alt="" data-media="' + esc(p) + '">'; }).join("") + "</div>" +
           '<div class="kv">' + (w.year ? "<span>Year</span><b>" + w.year + "</b>" : "") + (w.materials ? "<span>Materials</span><b>" + esc(w.materials) + "</b>" : "") +
           (size ? "<span>Size</span><b>" + esc(size + " " + w.unit) + "</b>" : "") +
@@ -593,7 +614,8 @@
           "<span>Price</span><b>" + (w.price_on_request ? "On request" : esc(w.currency + " " + Number(w.price || 0).toLocaleString("en-US"))) + "</b></div>" +
           (w.description ? '<p class="prose">' + esc(w.description) + "</p>" : "") +
           (w.feedback && w.status !== "approved" ? '<div class="note"><span class="muted">Feedback sent</span>' + esc(w.feedback) + "</div>" : "") +
-          actions("artwork", w.id, w.status, w.title || "Untitled") + "</div>";
+          actions("artwork", w.id, w.status, w.title || "Untitled") +
+          (w.status === "approved" ? '<div class="row">' + featureBtn("artwork", w.id) + "</div>" : "") + "</div>";
       }).join("") : '<div class="empty">No works added yet.</div>') +
       (me.role === "founder" ? '<div class="panel stack" style="gap:8px;margin-top:12px"><h3 style="font-size:22px">Remove this artist</h3>' +
         '<p class="small muted">For deletion requests: removes their studio, artworks, photographs, login and application.</p>' +
@@ -601,6 +623,17 @@
     M.hydrateMedia(main);
     var del = main.querySelector("#del-artist");
     if (del) del.addEventListener("click", function () { openDelete("artist", a.id, a.display_name || a.legal_name || a.email, function () { location.hash = "#/artists"; }); });
+
+    main.querySelectorAll("[data-feature]").forEach(function (b) {
+      b.addEventListener("click", async function () {
+        var on = b.getAttribute("data-on") === "1";
+        M.setBusy(b, true, "Saving");
+        var r = await sb.rpc(on ? "unfeature_item" : "feature_item", { p_kind: b.getAttribute("data-feature"), p_id: b.getAttribute("data-id") });
+        if (r.error) { M.setBusy(b, false); return fail(r.error); }
+        M.toast(on ? "Removed from the homepage." : "Featured on the homepage.");
+        viewArtist(id);
+      });
+    });
 
     main.querySelectorAll("[data-review]").forEach(function (b) {
       b.addEventListener("click", function () {
@@ -637,6 +670,148 @@
           } catch (err) { M.setBusy(btn, false); m.textContent = M.friendlyError(err); m.hidden = false; }
         });
       });
+  }
+
+  /* ------------------------------------------------------------------ */
+  /* Members (Personal, Professional, Business & Organization)          */
+  /* ------------------------------------------------------------------ */
+
+  var ACCOUNT_TYPE = { personal: ["Personal", ""], professional: ["Professional", "blue"], business: ["Business & Organization", "ok"] };
+  function memberName(m) { return m.account_type === "business" && m.business_name ? m.business_name : m.full_name; }
+
+  async function viewMembers(q) {
+    var type = q.get("type") || "";
+    var term = (q.get("q") || "").trim().toLowerCase();
+    var res = await sb.from("member_accounts").select("*").order("created_at", { ascending: false }).limit(5000);
+    if (res.error) throw res.error;
+    var all = res.data || [];
+    var rows = all.filter(function (m) {
+      if (type === "deletion" ? !m.deletion_requested_at : type && m.account_type !== type) return false;
+      if (!term) return true;
+      return [m.full_name, m.email, m.country, m.business_name, m.company_name, m.business_type, m.professional_role].join(" ").toLowerCase().indexOf(term) !== -1;
+    });
+    var chips = [["", "All"], ["personal", "Personal"], ["professional", "Professional"], ["business", "Business & Organization"], ["deletion", "Deletion requested"]];
+    main.innerHTML =
+      '<div class="head"><div><span class="eyebrow">Accounts</span><h1>Members</h1>' +
+      "<p>People who created a Personal, Professional or Business &amp; Organization account. Artists are listed under Artists.</p></div>" +
+      '<div class="row"><button class="btn line sm" type="button" id="export-members">Export members CSV</button></div></div>' +
+      '<div class="filters"><div class="chips" role="group" aria-label="Filter by account type">' + chips.map(function (c) {
+        var n = !c[0] ? all.length : c[0] === "deletion" ? all.filter(function (m) { return m.deletion_requested_at; }).length : all.filter(function (m) { return m.account_type === c[0]; }).length;
+        return '<button class="chip" type="button" data-type="' + c[0] + '" aria-pressed="' + (type === c[0]) + '">' + esc(c[1]) + " · " + n + "</button>";
+      }).join("") + "</div>" +
+      '<label class="visually-hidden" for="search">Search members</label><input class="inp search" id="search" type="search" placeholder="Search name, email, company, country" value="' + esc(q.get("q") || "") + '"></div>' +
+      (rows.length ? '<div class="list">' + rows.map(function (m) {
+        var sub = [m.account_type === "business" ? m.full_name : "", m.account_type === "professional" ? [m.professional_role, m.company_name].filter(Boolean).join(", ") : "",
+          m.account_type === "business" ? m.business_type : "", m.country].filter(Boolean).join(" · ");
+        return '<a class="lrow" href="#/member/' + m.id + '"><div class="lm"><b>' + esc(memberName(m)) + '</b><span class="muted small">' + esc(sub) + "</span></div>" +
+          '<div class="ls">' + tag(ACCOUNT_TYPE, m.account_type) + (m.deletion_requested_at ? '<span class="tag red">Deletion requested</span>' : "") +
+          '<span class="muted small">' + esc(M.fmtWhen(m.created_at)) + "</span></div></a>";
+      }).join("") + "</div>" : '<div class="empty">' + (all.length ? "No members match." : "No member accounts yet. They appear here when someone signs up at /signup and confirms their email.") + "</div>");
+
+    function go(t, s) {
+      var p = new URLSearchParams();
+      if (t) p.set("type", t);
+      if (s) p.set("q", s);
+      location.hash = "#/members" + (p.toString() ? "?" + p.toString() : "");
+    }
+    main.querySelectorAll("[data-type]").forEach(function (b) { b.addEventListener("click", function () { go(b.getAttribute("data-type"), q.get("q") || ""); }); });
+    var timer, search = document.getElementById("search");
+    search.addEventListener("input", function () {
+      clearTimeout(timer);
+      timer = setTimeout(function () { go(type, search.value.trim()); setTimeout(function () { var s = document.getElementById("search"); if (s) { s.focus(); s.setSelectionRange(s.value.length, s.value.length); } }, 50); }, 400);
+    });
+    document.getElementById("export-members").addEventListener("click", function () {
+      var header = ["account_type", "full_name", "email", "country", "phone", "professional_role", "company_name", "professional_website",
+        "business_name", "contact_person", "business_type", "business_website", "deletion_requested_at", "created_at"];
+      downloadCsv("meet-members", header, all.map(function (m) { return header.map(function (h) { return h === "account_type" ? ACCOUNT_TYPE[m.account_type][0] : m[h]; }); }));
+      M.toast("CSV downloaded: " + all.length + " members.");
+    });
+  }
+
+  async function viewMember(id) {
+    var r = await sb.from("member_accounts").select("*").eq("id", id).maybeSingle();
+    if (r.error) throw r.error;
+    var m = r.data;
+    if (!m) { main.innerHTML = '<div class="empty">This member could not be found. <a class="link" href="#/members">Back to members</a></div>'; return; }
+    function kv(label, v, link) {
+      if (!v) return "";
+      return "<span>" + esc(label) + "</span><b>" + (link && /^https?:\/\//i.test(v) ? '<a class="link" href="' + esc(v) + '" target="_blank" rel="noopener noreferrer nofollow">' + esc(v.replace(/^https?:\/\//, "")) + "</a>" : esc(v)) + "</b>";
+    }
+    main.innerHTML =
+      '<a class="link small" href="#/members">Back to members</a>' +
+      '<div class="head"><div><span class="eyebrow">' + esc(ACCOUNT_TYPE[m.account_type][0]) + " account · joined " + esc(M.fmtDate(m.created_at)) + "</span>" +
+      "<h1>" + esc(memberName(m)) + "</h1></div><div class=\"row\">" + tag(ACCOUNT_TYPE, m.account_type) + "</div></div>" +
+      (m.deletion_requested_at ? '<div class="notice warn">Asked to delete this account on ' + esc(M.fmtDate(m.deletion_requested_at, true)) + ". Please complete it within 30 days and confirm to them by email.</div>" : "") +
+      '<div class="rblock"><h3>Details</h3><div class="kv">' +
+      kv("Business or organization", m.business_name) + kv("Business type", m.business_type) + kv("Contact person", m.contact_person) + kv("Business website", m.business_website, true) +
+      kv("Full name", m.full_name) + kv("Professional role", m.professional_role) + kv("Company or studio", m.company_name) + kv("Professional website", m.professional_website, true) +
+      '<span>Email</span><b><a class="link" href="mailto:' + esc(m.email) + '">' + esc(m.email) + "</a></b>" +
+      kv("Country", m.country) + kv("Phone", m.phone) + kv("Last updated", M.fmtDate(m.updated_at, true)) +
+      "</div><p class=\"small muted\">The account type is fixed. Members cannot change it themselves.</p></div>" +
+      (me.role === "founder" ? '<div class="panel stack" style="gap:8px;margin-top:12px"><h3 style="font-size:22px">Remove this member</h3>' +
+        '<p class="small muted">For deletion requests: removes their member account and their login.</p>' +
+        '<div><button class="btn danger sm" type="button" id="del-member">Delete member account</button></div></div>' : "");
+    var del = main.querySelector("#del-member");
+    if (del) del.addEventListener("click", function () { openDelete("member", m.id, memberName(m), function () { location.hash = "#/members"; renderNav("members"); }); });
+  }
+
+  /* ------------------------------------------------------------------ */
+  /* Homepage selection                                                  */
+  /* ------------------------------------------------------------------ */
+
+  async function viewHomepage() {
+    var f = await sb.from("featured_items").select("kind, item_id, position").order("position");
+    if (f.error) throw f.error;
+    var pa = await sb.from("public_artists").select("id, display_name, main_discipline, city, country").order("display_name");
+    var pw = await sb.from("public_artworks").select("id, artist_id, title, year").order("approved_at", { ascending: false });
+    var artists = pa.data || [], works = pw.data || [];
+    var byArtist = {}; artists.forEach(function (a) { byArtist[a.id] = a; });
+    var byWork = {}; works.forEach(function (w) { byWork[w.id] = w; });
+    var feat = f.data || [];
+    var fa = feat.filter(function (x) { return x.kind === "artist"; }), fw = feat.filter(function (x) { return x.kind === "artwork"; });
+    var taken = {}; feat.forEach(function (x) { taken[x.kind + ":" + x.item_id] = true; });
+
+    function list(kind, items) {
+      if (!items.length) return '<div class="empty">Nothing featured yet.</div>';
+      return '<div class="list">' + items.map(function (x, i) {
+        var label, sub, live = true;
+        if (kind === "artist") { var a = byArtist[x.item_id]; live = !!a; label = a ? a.display_name : "No longer public"; sub = a ? [a.main_discipline, place(a)].filter(Boolean).join(" · ") : "Hidden from the homepage until it is public again"; }
+        else { var w = byWork[x.item_id]; live = !!w; label = w ? (w.title || "Untitled") : "No longer public"; sub = w ? (byArtist[w.artist_id] || {}).display_name || "" : "Hidden from the homepage until it is public again"; }
+        return '<div class="lrow"><div class="lm"><b>' + (i + 1) + ". " + esc(label) + '</b><span class="muted small">' + esc(sub) + "</span></div>" +
+          '<div class="row" style="gap:6px">' + (live ? "" : '<span class="tag warn">Hidden</span>') +
+          (canEdit ? '<button class="btn line sm" type="button" data-move="-1" data-kind="' + kind + '" data-id="' + x.item_id + '"' + (i === 0 ? " disabled" : "") + ' aria-label="Move earlier">↑</button>' +
+          '<button class="btn line sm" type="button" data-move="1" data-kind="' + kind + '" data-id="' + x.item_id + '"' + (i === items.length - 1 ? " disabled" : "") + ' aria-label="Move later">↓</button>' +
+          '<button class="btn line sm" type="button" data-remove data-kind="' + kind + '" data-id="' + x.item_id + '">Remove</button>' : "") + "</div></div>";
+      }).join("") + "</div>";
+    }
+    function picker(kind, options) {
+      if (!canEdit) return "";
+      if (!options.length) return '<p class="small muted">' + (kind === "artist" ? "Every public artist is already featured, or no artist is public yet." : "Every public artwork is already featured, or no artwork is public yet.") + "</p>";
+      return '<div class="row"><label class="visually-hidden" for="add-' + kind + '">Choose ' + kind + '</label><select class="inp" id="add-' + kind + '" style="width:auto;min-width:260px;flex:1">' +
+        options.map(function (o) { return '<option value="' + o[0] + '">' + esc(o[1]) + "</option>"; }).join("") + "</select>" +
+        '<button class="btn sm" type="button" data-add="' + kind + '">Feature ' + kind + "</button></div>";
+    }
+    main.innerHTML =
+      '<div class="head"><div><span class="eyebrow">Public website</span><h1>Homepage <em>selection</em></h1>' +
+      "<p>Choose the artists and artworks shown on the homepage, in this order. Only public artists and artworks can be chosen. If one stops being public, it disappears from the homepage by itself. The section is hidden while nothing is chosen.</p></div>" +
+      '<div class="row"><a class="btn line sm" href="/" target="_blank" rel="noopener">Open the homepage</a></div></div>' +
+      '<section class="rblock"><h3>Featured artists · ' + fa.length + "</h3>" + list("artist", fa) +
+      picker("artist", artists.filter(function (a) { return !taken["artist:" + a.id]; }).map(function (a) { return [a.id, a.display_name + (a.main_discipline ? " · " + a.main_discipline : "")]; })) + "</section>" +
+      '<section class="rblock"><h3>Featured artworks · ' + fw.length + "</h3>" + list("artwork", fw) +
+      picker("artwork", works.filter(function (w) { return !taken["artwork:" + w.id]; }).map(function (w) { return [w.id, (w.title || "Untitled") + " · " + ((byArtist[w.artist_id] || {}).display_name || "")]; })) + "</section>";
+
+    main.onclick = async function (e) {
+      var b = e.target.closest("[data-move],[data-remove],[data-add]");
+      if (!b || !main.contains(b) || b.disabled) return;
+      var kind = b.getAttribute("data-kind") || b.getAttribute("data-add");
+      var r;
+      M.setBusy(b, true, "…");
+      if (b.hasAttribute("data-add")) r = await sb.rpc("feature_item", { p_kind: kind, p_id: main.querySelector("#add-" + kind).value });
+      else if (b.hasAttribute("data-remove")) r = await sb.rpc("unfeature_item", { p_kind: kind, p_id: b.getAttribute("data-id") });
+      else r = await sb.rpc("move_featured", { p_kind: kind, p_id: b.getAttribute("data-id"), p_dir: +b.getAttribute("data-move") });
+      if (r.error) { M.setBusy(b, false); return fail(r.error); }
+      viewHomepage();
+    };
   }
 
   /* ------------------------------------------------------------------ */
@@ -700,7 +875,8 @@
     main.innerHTML =
       '<div class="head"><div><span class="eyebrow">Accountability</span><h1>Activity log</h1><p>The latest 300 actions taken in the console and in artists\' studios.</p></div></div>' +
       ((r.data || []).length ? '<div class="list">' + r.data.map(function (h) {
-        var href = h.target_type === "application" ? "#/application/" + h.target_id : h.target_type === "artist" ? "#/artist/" + h.target_id : "";
+        var href = h.target_type === "application" ? "#/application/" + h.target_id : h.target_type === "artist" ? "#/artist/" + h.target_id
+          : h.target_type === "member" && h.action !== "member.deleted" ? "#/member/" + h.target_id : "";
         return (href ? '<a class="lrow" href="' + href + '">' : '<div class="lrow">') +
           '<div class="lm"><b>' + esc(actionLabel(h.action)) + '</b><span class="muted small">' + esc(h.actor_name || "System") + "</span></div>" +
           '<div class="ls"><span class="muted small">' + esc(M.fmtDate(h.at, true)) + "</span></div>" + (href ? "</a>" : "</div>");

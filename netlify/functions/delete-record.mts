@@ -1,4 +1,4 @@
-// Founders only: permanently removes an application, or an artist with
+// Founders only: permanently removes an application, a member account, or an artist with
 // everything they gave M.E.E.T. (profile, artworks, photographs, login and
 // application). Used for privacy and deletion requests. The activity log keeps
 // a note that a deletion happened, without the personal details.
@@ -65,6 +65,26 @@ export default handle(async (req) => {
       references: (apps || []).map((a) => a.reference), photos_removed: files.length, login_removed: !member,
     });
     return json(200, { ok: true, photos_removed: files.length });
+  }
+
+  if (type === "member") {
+    const { data: acct } = await c.svc.from("member_accounts").select("id, account_type, deletion_requested_at").eq("id", id).maybeSingle();
+    if (!acct) throw new HttpError(404, "This account has already been removed.");
+    // Never remove a login that also belongs to the team or to an artist studio.
+    const { data: member } = await c.svc.from("team_members").select("user_id").eq("user_id", id).maybeSingle();
+    const { data: artist } = await c.svc.from("artists").select("id").eq("id", id).maybeSingle();
+    if (member || artist) {
+      const { error } = await c.svc.from("member_accounts").delete().eq("id", id);
+      if (error) throw error;
+    } else {
+      // Deleting the login removes the member account with it.
+      const { error } = await c.svc.auth.admin.deleteUser(id);
+      if (error) throw error;
+    }
+    await audit(c, "member.deleted", "member", id, {
+      account_type: acct.account_type, requested: !!acct.deletion_requested_at, login_removed: !member && !artist,
+    });
+    return json(200, { ok: true });
   }
 
   throw new HttpError(400, "Unknown record.");

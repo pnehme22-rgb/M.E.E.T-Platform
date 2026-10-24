@@ -1,0 +1,170 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Create an account | M.E.E.T.</title>
+<meta name="description" content="Create a free M.E.E.T. account to discover artists from different cultures and disciplines.">
+<meta name="theme-color" content="#f5efe1">
+<link rel="icon" href="/assets/img/brand/mark.svg" type="image/svg+xml">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;1,400&family=Manrope:wght@400;500;600;700&display=swap">
+<link rel="stylesheet" href="/assets/css/app.css">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.50.0/dist/umd/supabase.js" defer></script>
+<script src="/assets/js/config.js" defer></script>
+<script src="/assets/js/places.js" defer></script>
+<script src="/assets/js/app/core.js" defer></script>
+<script src="/assets/js/app/signup.js" defer></script>
+</head>
+<body>
+<header class="hdr">
+  <div class="hdr-in">
+    <a class="logo" href="/" aria-label="M.E.E.T. home" id="logo"><span>M.E.E.T.</span></a>
+    <a class="link small" href="/signin">I already have an account</a>
+  </div>
+</header>
+
+<main class="auth signup" id="main" tabindex="-1">
+  <div class="auth-card wide">
+    <div id="msg" class="notice" role="status" hidden></div>
+
+    <!-- 1. Choose an account type -->
+    <section id="step-type" class="stack" aria-labelledby="t-type">
+      <span class="eyebrow">Create an account</span>
+      <h1 id="t-type">Who are you <em>joining</em> as?</h1>
+      <p class="muted">A free account lets you discover M.E.E.T. artists and their work. Are you an artist? <a class="link" href="/join">Apply to join as an artist</a> instead.</p>
+      <div class="type-grid" role="list">
+        <button class="type-card" type="button" data-type="personal" role="listitem">
+          <span class="type-name">Personal</span>
+          <span class="type-desc">For art lovers, collectors and anyone curious to discover artists and their work.</span>
+        </button>
+        <button class="type-card" type="button" data-type="professional" role="listitem">
+          <span class="type-name">Professional</span>
+          <span class="type-desc">For interior designers, architects, independent curators, art consultants and other art professionals.</span>
+        </button>
+        <button class="type-card" type="button" data-type="business" role="listitem">
+          <span class="type-name">Business &amp; Organization</span>
+          <span class="type-desc">For hotels, restaurants, galleries, hospitality groups, brands, companies and other organizations.</span>
+        </button>
+      </div>
+    </section>
+
+    <!-- 2. The form for that type -->
+    <section id="step-form" class="stack" aria-labelledby="t-form" hidden>
+      <button class="link small" type="button" id="b-back" style="align-self:flex-start">Choose a different account type</button>
+      <span class="eyebrow" id="form-eyebrow">Personal account</span>
+      <h1 id="t-form">Create your <em>account</em></h1>
+      <form id="f-signup" class="panel" novalidate>
+        <p class="small muted">All fields are required unless marked <span class="opt" style="margin:0">optional</span>.</p>
+
+        <fieldset class="fs" data-for="business" hidden>
+          <legend>Your organization</legend>
+          <label class="f">Business or organization name
+            <input class="inp" name="business_name" maxlength="160" autocomplete="organization">
+            <span class="err" data-err="business_name" hidden></span>
+          </label>
+          <label class="f">Business type
+            <input class="inp" name="business_type" maxlength="120" list="business-types" placeholder="For example: Hotel, Gallery, Restaurant">
+            <span class="err" data-err="business_type" hidden></span>
+          </label>
+          <label class="f">Contact person's name
+            <input class="inp" name="contact_person" maxlength="120" autocomplete="name">
+            <span class="hint">The person we should address when we write to you.</span>
+            <span class="err" data-err="contact_person" hidden></span>
+          </label>
+          <label class="f"><span>Business website <span class="opt">optional</span></span>
+            <input class="inp" name="business_website" maxlength="300" inputmode="url" autocapitalize="off" spellcheck="false" placeholder="https://">
+            <span class="err" data-err="business_website" hidden></span>
+          </label>
+        </fieldset>
+
+        <fieldset class="fs">
+          <legend id="you-legend">About you</legend>
+          <label class="f">Full name
+            <input class="inp" name="full_name" maxlength="120" autocomplete="name" required>
+            <span class="err" data-err="full_name" hidden></span>
+          </label>
+          <div class="grid2">
+            <label class="f">Country
+              <input class="inp" name="country" maxlength="80" list="country-list" autocomplete="country-name" required>
+              <span class="hint">Where you are based.</span>
+              <span class="err" data-err="country" hidden></span>
+            </label>
+            <label class="f"><span>Phone number <span class="opt">optional</span></span>
+              <input class="inp" name="phone" type="tel" maxlength="40" autocomplete="tel" placeholder="+971 50 123 4567">
+              <span class="err" data-err="phone" hidden></span>
+            </label>
+          </div>
+        </fieldset>
+
+        <fieldset class="fs" data-for="professional" hidden>
+          <legend>Your practice</legend>
+          <label class="f">Professional role
+            <input class="inp" name="professional_role" maxlength="120" list="pro-roles" placeholder="For example: Interior designer">
+            <span class="err" data-err="professional_role" hidden></span>
+          </label>
+          <label class="f">Company or studio name
+            <input class="inp" name="company_name" maxlength="160" autocomplete="organization">
+            <span class="err" data-err="company_name" hidden></span>
+          </label>
+          <label class="f"><span>Professional website <span class="opt">optional</span></span>
+            <input class="inp" name="professional_website" maxlength="300" inputmode="url" autocapitalize="off" spellcheck="false" placeholder="https://">
+            <span class="err" data-err="professional_website" hidden></span>
+          </label>
+        </fieldset>
+
+        <fieldset class="fs">
+          <legend>Sign-in details</legend>
+          <label class="f">Email address
+            <input class="inp" name="email" type="email" maxlength="254" autocomplete="email" autocapitalize="off" spellcheck="false" required>
+            <span class="err" data-err="email" hidden></span>
+          </label>
+          <div class="grid2">
+            <label class="f">Password
+              <input class="inp" name="password" type="password" minlength="8" autocomplete="new-password" required>
+              <span class="hint">At least 8 characters.</span>
+              <span class="err" data-err="password" hidden></span>
+            </label>
+            <label class="f">Type it again
+              <input class="inp" name="password2" type="password" minlength="8" autocomplete="new-password" required>
+              <span class="err" data-err="password2" hidden></span>
+            </label>
+          </div>
+        </fieldset>
+
+        <label class="row small" style="font-weight:500">
+          <input type="checkbox" name="consent">
+          <span>I have read the <a class="link" href="/privacy" target="_blank" rel="noopener">privacy notice</a> (opens in a new tab) and agree that M.E.E.T. stores my account details.</span>
+        </label>
+        <span class="err" data-err="consent" hidden></span>
+
+        <p class="err" id="err-form" role="alert" hidden></p>
+        <button class="btn block" type="submit" id="b-submit">Create my account</button>
+      </form>
+    </section>
+
+    <!-- 3. Check your inbox -->
+    <section id="step-done" class="stack" hidden aria-labelledby="t-done">
+      <span class="eyebrow">Almost there</span>
+      <h1 id="t-done" tabindex="-1">Check your <em>email</em></h1>
+      <p class="muted">We sent a confirmation link to <b id="done-email"></b>. Open it and press the button to activate your account. It can take a few minutes, and it may land in your spam folder.</p>
+      <div class="panel stack">
+        <button class="btn line" type="button" id="b-resend">Send the email again</button>
+        <a class="link small" href="/signin">Go to sign in</a>
+      </div>
+    </section>
+  </div>
+</main>
+
+<datalist id="country-list"></datalist>
+<datalist id="pro-roles">
+  <option value="Interior designer"><option value="Architect"><option value="Independent curator">
+  <option value="Art consultant"><option value="Art advisor"><option value="Gallerist"><option value="Collector (professional)">
+</datalist>
+<datalist id="business-types">
+  <option value="Hotel"><option value="Restaurant or café"><option value="Gallery"><option value="Hospitality group">
+  <option value="Brand"><option value="Company"><option value="Cultural institution"><option value="Real estate developer">
+</datalist>
+</body>
+</html>

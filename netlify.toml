@@ -134,6 +134,65 @@
     Cache-Control = "no-store"
     X-Robots-Tag = "noindex, nofollow"
 
+# Phase 2: public discovery pages, member sign-up and member account.
+[[headers]]
+  for = "/artists"
+  [headers.values]
+    Content-Security-Policy = "default-src 'self'; img-src 'self' data: blob: https://*.supabase.co; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; script-src 'self' https://cdn.jsdelivr.net; connect-src 'self' https://*.supabase.co wss://*.supabase.co; form-action 'self'; frame-ancestors 'none'; base-uri 'self'; object-src 'none'"
+
+[[headers]]
+  for = "/artists.html"
+  [headers.values]
+    Content-Security-Policy = "default-src 'self'; img-src 'self' data: blob: https://*.supabase.co; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; script-src 'self' https://cdn.jsdelivr.net; connect-src 'self' https://*.supabase.co wss://*.supabase.co; form-action 'self'; frame-ancestors 'none'; base-uri 'self'; object-src 'none'"
+
+[[headers]]
+  for = "/artists/*"
+  [headers.values]
+    Content-Security-Policy = "default-src 'self'; img-src 'self' data: blob: https://*.supabase.co; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; script-src 'self' https://cdn.jsdelivr.net; connect-src 'self' https://*.supabase.co wss://*.supabase.co; form-action 'self'; frame-ancestors 'none'; base-uri 'self'; object-src 'none'"
+
+[[headers]]
+  for = "/artist.html"
+  [headers.values]
+    Content-Security-Policy = "default-src 'self'; img-src 'self' data: blob: https://*.supabase.co; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; script-src 'self' https://cdn.jsdelivr.net; connect-src 'self' https://*.supabase.co wss://*.supabase.co; form-action 'self'; frame-ancestors 'none'; base-uri 'self'; object-src 'none'"
+
+[[headers]]
+  for = "/artworks/*"
+  [headers.values]
+    Content-Security-Policy = "default-src 'self'; img-src 'self' data: blob: https://*.supabase.co; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; script-src 'self' https://cdn.jsdelivr.net; connect-src 'self' https://*.supabase.co wss://*.supabase.co; form-action 'self'; frame-ancestors 'none'; base-uri 'self'; object-src 'none'"
+
+[[headers]]
+  for = "/artwork.html"
+  [headers.values]
+    Content-Security-Policy = "default-src 'self'; img-src 'self' data: blob: https://*.supabase.co; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; script-src 'self' https://cdn.jsdelivr.net; connect-src 'self' https://*.supabase.co wss://*.supabase.co; form-action 'self'; frame-ancestors 'none'; base-uri 'self'; object-src 'none'"
+
+[[headers]]
+  for = "/signup"
+  [headers.values]
+    Content-Security-Policy = "default-src 'self'; img-src 'self' data: blob: https://*.supabase.co; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; script-src 'self' https://cdn.jsdelivr.net; connect-src 'self' https://*.supabase.co wss://*.supabase.co; form-action 'self'; frame-ancestors 'none'; base-uri 'self'; object-src 'none'"
+    Cache-Control = "no-store"
+    X-Robots-Tag = "noindex, nofollow"
+
+[[headers]]
+  for = "/signup.html"
+  [headers.values]
+    Content-Security-Policy = "default-src 'self'; img-src 'self' data: blob: https://*.supabase.co; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; script-src 'self' https://cdn.jsdelivr.net; connect-src 'self' https://*.supabase.co wss://*.supabase.co; form-action 'self'; frame-ancestors 'none'; base-uri 'self'; object-src 'none'"
+    Cache-Control = "no-store"
+    X-Robots-Tag = "noindex, nofollow"
+
+[[headers]]
+  for = "/account"
+  [headers.values]
+    Content-Security-Policy = "default-src 'self'; img-src 'self' data: blob: https://*.supabase.co; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; script-src 'self' https://cdn.jsdelivr.net; connect-src 'self' https://*.supabase.co wss://*.supabase.co; form-action 'self'; frame-ancestors 'none'; base-uri 'self'; object-src 'none'"
+    Cache-Control = "no-store"
+    X-Robots-Tag = "noindex, nofollow"
+
+[[headers]]
+  for = "/account.html"
+  [headers.values]
+    Content-Security-Policy = "default-src 'self'; img-src 'self' data: blob: https://*.supabase.co; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; script-src 'self' https://cdn.jsdelivr.net; connect-src 'self' https://*.supabase.co wss://*.supabase.co; form-action 'self'; frame-ancestors 'none'; base-uri 'self'; object-src 'none'"
+    Cache-Control = "no-store"
+    X-Robots-Tag = "noindex, nofollow"
+
 [[headers]]
   for = "/prototype/*"
   [headers.values]
@@ -150,3 +209,14 @@
   to = "https://meetstudio.art/:splat"
   status = 301
   force = true
+
+# Public artist profiles and artwork pages (one page each, chosen by the address).
+[[redirects]]
+  from = "/artists/:id"
+  to = "/artist.html"
+  status = 200
+
+[[redirects]]
+  from = "/artworks/:id"
+  to = "/artwork.html"
+  status = 200

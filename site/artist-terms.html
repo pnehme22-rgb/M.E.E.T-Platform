@@ -35,10 +35,19 @@
       <svg class="brand-mark" aria-hidden="true"><use href="#mark"/></svg>
       <span class="brand-word">M.E.E.T.</span>
     </a>
-    <div class="nav">
-      <a class="nav-signin" href="/signin">Sign in</a>
-      <a class="btn btn-small" href="/join">Join<span class="btn-more"> the community</span></a>
-    </div>
+    <nav class="nav" aria-label="Main">
+      <ul class="nav-links" id="nav-menu">
+        <li><a href="/artists">Artists</a></li>
+        <li><a href="/#idea">The idea</a></li>
+        <li class="nav-m"><a href="/signin">Sign in</a></li>
+        <li class="nav-m"><a href="/signup">Create an account</a></li>
+        <li class="nav-m"><a href="/join">Join as an artist</a></li>
+      </ul>
+      <a class="nav-signin nav-d" href="/signin">Sign in</a>
+      <a class="nav-signin nav-d" href="/signup">Sign up</a>
+      <button class="nav-toggle" type="button" aria-expanded="false" aria-controls="nav-menu">Menu</button>
+      <a class="btn btn-small" href="/join"><span>Join<span class="btn-more"> as an artist</span></span></a>
+    </nav>
   </div>
 </header>
 

@@ -95,6 +95,8 @@
     var w = await sb.from("artworks").select("id, status").eq("artist_id", artist.id);
     var works = w.data || [];
     var approved = works.filter(function (x) { return x.status === "approved"; }).length;
+    var pub = await sb.rpc("artist_is_public", { p_artist: artist.id });
+    var isPublic = pub.data === true;
     var steps = [
       [artist.profile_status === "approved" || artist.profile_status === "submitted", "Complete your profile", "Your name, main discipline, biography and a profile picture.", "#/profile"],
       [works.length > 0, "Add your first artwork", "At least one piece you made yourself, photographed in daylight.", "#/work/new"],
@@ -112,6 +114,11 @@
         return '<a class="lrow" href="' + s[3] + '"><div class="lm"><b>' + (s[0] ? "✓ " : "") + esc(s[1]) + '</b><span class="muted small">' + esc(s[2]) + "</span></div>" +
           '<div class="ls">' + (s[0] ? '<span class="tag ok">Done</span>' : '<span class="tag">To do</span>') + "</div></a>";
       }).join("") + "</div></section>" +
+      '<section class="panel stack" style="gap:10px"><h2 style="font-size:26px">Publication</h2><div class="kv">' +
+      "<span>Artist terms</span><b>Agreed on " + esc(M.fmtDate(artist.terms_accepted_at, true)) + " (version " + esc(artist.terms_version) + ') · <a class="link" href="/artist-terms" target="_blank" rel="noopener">Read them</a></b>' +
+      "<span>Your profile</span><b>" + (isPublic
+        ? 'Public on M.E.E.T. · <a class="link" href="/artists/' + artist.id + '" target="_blank" rel="noopener">View your public profile</a>'
+        : "Not public yet. It becomes public once the team approves your profile.") + "</b></div></section>" +
       '<p class="small muted">Questions? Write to <a class="link" href="mailto:minds.exploring.traditions@gmail.com">minds.exploring.traditions@gmail.com</a>.</p>';
   }
 
@@ -140,7 +147,8 @@
       '<label class="f">Main discipline<span class="hint">Your main art form, for example porcelain painting.</span><input class="inp" name="craft" maxlength="120" value="' + esc(a.craft) + '"></label>' +
       '<div class="grid2"><label class="f">Other disciplines <span class="opt">optional</span><span class="hint">Other kinds of art you also practise.</span><input class="inp" name="other_disciplines" maxlength="400" value="' + esc(a.other_disciplines || "") + '"></label>' +
       '<label class="f">Techniques and materials <span class="opt">optional</span><span class="hint">How you work: techniques, tools, materials.</span><input class="inp" name="techniques" maxlength="400" value="' + esc(a.techniques) + '"></label></div>' +
-      '<label class="f">Biography<span class="hint">What you make, how you learned it, what you are exploring now. At least 40 characters.</span>' +
+      ("traditions" in a ? '<label class="f">Cultural traditions <span class="opt">optional</span><span class="hint">Traditions, heritage or schools your practice comes from, for example Damascene inlay or Japanese kintsugi.</span><input class="inp" name="traditions" maxlength="400" value="' + esc(a.traditions || "") + '"></label>' : "") +
+      '<label class="f">Biography and approach<span class="hint">What you make, how you learned it, how you approach your work, what you are exploring now. At least 40 characters.</span>' +
       '<textarea class="inp" name="bio" rows="7" maxlength="1500">' + esc(a.bio) + "</textarea></label></div>" +
       '<div class="panel stack"><h3 style="font-size:24px">Links</h3>' +
       '<div class="grid2"><label class="f">Instagram <span class="opt">optional</span><input class="inp" name="instagram" maxlength="300" autocapitalize="off" spellcheck="false" placeholder="@yourstudio" value="' + esc(a.instagram) + '"></label>' +
@@ -156,6 +164,7 @@
 
     var form = main.querySelector("#pf");
     var FIELDS = ["display_name", "legal_name", "country", "city", "craft", "other_disciplines", "techniques", "bio", "instagram", "website", "other_link"];
+    if ("traditions" in a) FIELDS.splice(7, 0, "traditions");
     function values() { var v = {}; FIELDS.forEach(function (f) { v[f] = form.elements[f].value.trim(); }); return v; }
     function changed() { var v = values(); return FIELDS.some(function (f) { return v[f] !== (artist[f] || ""); }); }
 

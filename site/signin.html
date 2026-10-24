@@ -32,7 +32,7 @@
     <section id="step-password" class="stack" aria-labelledby="t-signin">
       <span class="eyebrow">Members</span>
       <h1 id="t-signin">Sign <em>in</em></h1>
-      <p class="muted">For approved M.E.E.T. artists and the M.E.E.T. team. Once your application is approved, we email you a link to set your password.</p>
+      <p class="muted">For M.E.E.T. members, approved artists and the M.E.E.T. team.</p>
       <form id="f-password" class="panel" novalidate>
         <label class="f">Email
           <input class="inp" id="email" name="email" type="email" autocomplete="username" autocapitalize="off" spellcheck="false" required>
@@ -43,8 +43,9 @@
         <p class="err" id="err-password" role="alert" hidden></p>
         <button class="btn block" type="submit" id="b-password">Sign in</button>
         <a class="link small" href="/reset">Forgotten your password?</a>
+        <div id="resend-box" hidden><button class="btn line sm" type="button" id="b-resend-confirm">Send the confirmation email again</button></div>
       </form>
-      <p class="small muted">New to M.E.E.T.? Artists <a class="link" href="/join">register here</a>. Approved artists receive an email to set their password.</p>
+      <p class="small muted">New to M.E.E.T.? <a class="link" href="/signup">Create an account</a> to discover artists. Artists <a class="link" href="/join">apply here</a>; approved artists receive an email to set their password.</p>
     </section>
 
     <!-- 2. Team members: confirm with a code sent by email -->

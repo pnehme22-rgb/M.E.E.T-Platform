@@ -19,7 +19,12 @@
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@400;500;600&family=Instrument+Serif:ital@0;1&display=swap">
 <link rel="preload" as="image" href="/assets/img/clay-hands-1200.jpg" imagesrcset="/assets/img/clay-hands-720.jpg 720w, /assets/img/clay-hands-1200.jpg 1200w, /assets/img/clay-hands-1800.jpg 1800w" imagesizes="(max-width: 960px) 100vw, 50vw">
 <link rel="stylesheet" href="/assets/css/site.css">
+<link rel="stylesheet" href="/assets/css/discover.css">
 <script src="/assets/js/site.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.50.0/dist/umd/supabase.js" defer></script>
+<script src="/assets/js/config.js" defer></script>
+<script src="/assets/js/public.js" defer></script>
+<script src="/assets/js/featured.js" defer></script>
 </head>
 <body>
 <a class="skip-link" href="#main">Skip to content</a>
@@ -44,12 +49,17 @@
       <span class="brand-word">M.E.E.T.</span>
     </a>
     <nav class="nav" aria-label="Main">
-      <ul class="nav-links">
-        <li><a href="#idea">The idea</a></li>
-        <li><a href="#discover">For artists</a></li>
+      <ul class="nav-links" id="nav-menu">
+        <li><a href="/artists">Artists</a></li>
+        <li><a href="/#idea">The idea</a></li>
+        <li class="nav-m"><a href="/signin">Sign in</a></li>
+        <li class="nav-m"><a href="/signup">Create an account</a></li>
+        <li class="nav-m"><a href="/join">Join as an artist</a></li>
       </ul>
-      <a class="nav-signin" href="/signin">Sign in</a>
-      <a class="btn btn-small" href="/join">Join<span class="btn-more"> the community</span></a>
+      <a class="nav-signin nav-d" href="/signin">Sign in</a>
+      <a class="nav-signin nav-d" href="/signup">Sign up</a>
+      <button class="nav-toggle" type="button" aria-expanded="false" aria-controls="nav-menu">Menu</button>
+      <a class="btn btn-small" href="/join"><span>Join<span class="btn-more"> as an artist</span></span></a>
     </nav>
   </div>
 </header>
@@ -225,6 +235,17 @@
     </div>
   </section>
 
+  <!-- Selected by the M.E.E.T. team (shown only when something is featured) -->
+  <section class="featured" id="featured" aria-labelledby="featured-title" hidden>
+    <div class="wrap">
+      <div class="featured-head">
+        <h2 class="h2" id="featured-title"><span class="kicker">From the community</span>Artists and works to <em>discover</em>.</h2>
+        <a class="btn btn-small" href="/artists">See all artists</a>
+      </div>
+      <div id="featured-list"></div>
+    </div>
+  </section>
+
   <!-- D. Closing -->
   <section class="closing on-navy" aria-labelledby="closing-title">
     <div class="wrap grid closing-grid">
@@ -258,10 +279,12 @@
       <p>An international community connecting artists and makers across cultures and disciplines.</p>
     </div>
     <div class="footer-col">
-      <h2>Artists</h2>
+      <h2>M.E.E.T.</h2>
       <ul>
-        <li><a href="/join">Join the artist community</a></li>
-        <li><a href="/signin">Sign in (approved artists)</a></li>
+        <li><a href="/artists">Discover artists</a></li>
+        <li><a href="/join">Join as an artist</a></li>
+        <li><a href="/signup">Create an account</a></li>
+        <li><a href="/signin">Sign in</a></li>
         <li><a href="/privacy">Privacy notice</a></li>
       </ul>
     </div>
