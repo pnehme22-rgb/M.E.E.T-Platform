@@ -209,9 +209,10 @@ begin
   insert into t_ids values ('prj', (r->>'id')::uuid);
   perform pg_temp.ok('A Professional member sends a project request with a reference', r->>'reference' like 'PRJ-%');
 end $$;
+reset role;
+-- Checked as the database owner: the member is not allowed to read this table.
 select pg_temp.ok('The request keeps the client''s country and organization',
   exists (select 1 from project_requests where id = (select v from t_ids where k = 'prj') and client_country = 'France' and client_organization = 'Atelier P3'));
-reset role;
 set local role authenticated;
 select pg_temp.act('00000000-0000-4000-8000-0000000003a2');
 select pg_temp.ok('The member cannot read the sales table directly', (select count(*) from project_requests) = 0);
