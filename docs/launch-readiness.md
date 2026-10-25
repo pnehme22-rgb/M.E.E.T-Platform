@@ -17,17 +17,21 @@ Status words: **Verified** (tested and passed), **Built, not verified** (impleme
 | Role limits (viewer, sales, member) | Verified | Phase 3 test (53/53, rerun after update 011); Phase 4 test (22/22) |
 | Secrets not in the website code | Verified | Code scan: only the public key in the browser; server keys in Netlify settings |
 | Server functions refuse unsigned requests | Verified | Live: every private function answers 401 without a sign-in; health check founders only |
-| Member sign-up, confirmation, sign-in, password reset | Built, not verified | Needs a real email test (sign-ups were switched off at last check) |
-| Artist inquiry and reply, with emails | Built, not verified | Needs a real email test with test accounts |
-| Project request, sales pipeline, client emails | Built, not verified | Needs a real email test with test accounts |
-| Follow-up reminder emails (daily 06:00 UTC) | Built, not verified | Netlify scheduled function; check Netlify › Logs › Functions › followup-reminders |
-| Backups | Partly in place | Weekly CSV export of applications, artists and members (manual). Inquiries and sales records have no export yet |
+| Member sign-up, confirmation, sign-in, password reset | Verified | Real test 25 Oct 2026: Professional sign-up with Turnstile, confirmation email (inbox), sign-in, sign-out; password reset email in inbox |
+| Artist inquiry and reply, with emails | Verified | Real test 25 Oct 2026: artist, member and team emails; artist reply emailed and shown in the account |
+| Project request, sales pipeline, client emails | Verified | Real test 25 Oct 2026 (PRJ-0004): team and client emails, status email "in progress" |
+| Follow-up reminder emails (daily 06:00 UTC) | Partly verified | "Send due reminders now" delivered to the assigned team member; schedule registered in Netlify; first scheduled run's log still to be checked |
+| Backups | Partly verified | Weekly automatic CSV export of inquiry and sales records to founders (run-now verified; first Monday run to check). Applications, artists, members: manual console exports |
+
+| Bot protection (Cloudflare Turnstile) | Verified | Supabase refuses sign-in, reset and sign-up without a valid check; real sign-in and sign-up pass |
+| Google Sheet shared secret | Verified | Rotated 25 Oct 2026; old values refused; only stored in Supabase and the live script's settings |
+| Public sign-up | Open | Opened 25 Oct 2026 with email confirmation and bot protection |
 
 ## Operational actions
-1. Turn on Supabase sign-ups (Authentication › Sign In / Providers › User Signups) when members should be able to register.
-2. Run the real-email journeys in the Phase 4 report with test addresses you control.
-3. Change the Google Sheet shared secret: it was stored in the private repository until 24 October 2026. Set a new value in the Supabase webhook and in the Apps Script (`DEFAULT_SECRET` or the `SECRET` property), then redeploy the script.
-4. Keep the weekly CSV export; consider Supabase's paid plan for automatic daily backups before wider launch.
+1. Check the logs of the first scheduled runs (followup-reminders daily 06:00 UTC; sales-export Mondays 05:00 UTC).
+2. hello@meetstudio.art forwarding (ImprovMX): MX and SPF records published; confirm ImprovMX shows active and a test email arrives.
+3. Decide whether to keep or remove the test records (Test Professional, PRJ-0004, two test inquiries).
+4. Later: DMARC to p=quarantine with a report address; Google Postmaster Tools; Supabase paid plan for full backups.
 
 ## Legal and business decisions (not legally approved)
 - **Artist terms** (version 2026-10-24): qualified review of the worldwide, free, non-exclusive promotional permission; the statement about AI training; the 30-day removal period; the printed-materials exception; the no-guarantee-of-sales wording. The terms do not yet mention public prices.
