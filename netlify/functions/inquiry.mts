@@ -1,12 +1,12 @@
 // Artist inquiries.
 //  create: a member sends an inquiry to a public artist. The artist is
-//          emailed (without the member's email or phone) and the member gets
-//          a confirmation.
+//          emailed (without the member's email or phone), the member gets
+//          a confirmation, and founders and the sales team are told.
 //  reply:  the artist answers once through M.E.E.T.; the member is emailed.
 // Every rule (who may send, which artists, limits) is checked again in the
 // database functions create_inquiry and respond_inquiry.
 
-import { handle, personCaller, readJson, json, HttpError, dbError, siteUrl, renderMail, sendMail, esc, firstName } from "../lib/server.ts";
+import { handle, personCaller, readJson, json, HttpError, dbError, siteUrl, renderMail, sendMail, esc, firstName, salesTeamEmails } from "../lib/server.ts";
 
 const TYPE: Record<string, string> = { personal: "Personal", professional: "Professional", business: "Business & Organization" };
 const UUID = /^[0-9a-f-]{36}$/i;
@@ -65,7 +65,22 @@ export default handle(async (req) => {
     });
     const artistOk = await trySend(a.email, `New inquiry on M.E.E.T. from ${inq.member_name}`, toArtist);
     const memberOk = await trySend(m.email, `Your inquiry to ${artistName} has been sent`, toMember);
-    return json(200, { ok: true, id, emailed: { artist: artistOk, member: memberOk } });
+
+    // The team follows every inquiry (founders and sales only).
+    const toTeam = renderMail({
+      preheader: `${inq.member_name} wrote to ${artistName}.`,
+      paragraphs: [
+        `<b>${esc(inq.member_name)}</b> (${esc(TYPE[inq.member_type] || "")} member, ${esc(inq.member_country || "country not stated")}) sent an inquiry to <b>${esc(artistName)}</b> about ${esc(about.replace(/^your /, `${artistName}'s `))}:`,
+      ],
+      quote: inq.message,
+      cta: { label: "Open in the console", url: `${siteUrl()}/team#/inquiry/${inq.id}` },
+      after: [artistOk ? "The artist has been emailed and can reply from their studio." : "The email to the artist could not be sent. Please let them know about this inquiry."],
+    });
+    let teamSent = 0;
+    for (const to of await salesTeamEmails(p.svc)) {
+      if (await trySend(to, `New inquiry: ${inq.member_name} → ${artistName}`, toTeam)) teamSent++;
+    }
+    return json(200, { ok: true, id, emailed: { artist: artistOk, member: memberOk, team: teamSent } });
   }
 
   if (b.action === "reply") {
