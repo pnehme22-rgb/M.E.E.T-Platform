@@ -1260,7 +1260,7 @@
   }
 
   async function viewFollowups(q) {
-    var tab = q.get("tab") || "overdue", who = q.get("who") || "mine";
+    var tab = q.get("tab") || "", who = q.get("who") || "mine";
     var r = await sb.from("project_tasks").select("*, project_requests(id, reference, client_name, client_organization, assigned_to)").order("due_on", { ascending: true }).limit(5000);
     if (r.error) throw r.error;
     var t = today();
@@ -1270,6 +1270,8 @@
       upcoming: all.filter(function (k) { return !k.done && k.due_on >= t; }),
       done: all.filter(function (k) { return k.done; }).reverse()
     };
+    // Open on Overdue only when something is overdue; otherwise on Upcoming.
+    if (!tab) tab = groups.overdue.length ? "overdue" : "upcoming";
     var rows = groups[tab] || [];
     main.innerHTML =
       '<div class="head"><div><span class="eyebrow">Sales</span><h1>Follow-ups</h1><p>Tasks attached to projects. ' +
