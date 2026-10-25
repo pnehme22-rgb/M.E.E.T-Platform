@@ -1,0 +1,152 @@
+<title>M.E.E.T. Member Terms (Draft)</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Instrument+Sans:wght@400;500;600&display=swap">
+<style>
+/* Layout: a single reading column, like a contract on paper; lawyer notes sit beside the clause they concern. */
+:root {
+  --paper: #fbf8f2; --ink: #18213a; --muted: #545a69; --rule: #ddd2bf; --accent: #7a1420;
+  --note-bg: #f3e7cf; --note-ink: #5b3f0c; --draft: #7a1420;
+  --serif: "Instrument Serif", "Iowan Old Style", Georgia, serif;
+  --sans: "Instrument Sans", -apple-system, "Segoe UI", sans-serif;
+}
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
+  --paper: #15192a; --ink: #ece6da; --muted: #a9adba; --rule: #343a52; --accent: #e08a8f;
+  --note-bg: #2e2717; --note-ink: #e9cf98; --draft: #e08a8f; color-scheme: dark } }
+:root[data-theme="dark"] {
+  --paper: #15192a; --ink: #ece6da; --muted: #a9adba; --rule: #343a52; --accent: #e08a8f;
+  --note-bg: #2e2717; --note-ink: #e9cf98; --draft: #e08a8f; color-scheme: dark }
+body { background: var(--paper); color: var(--ink); font: 16px/1.65 var(--sans);
+  padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
+main { max-width: 720px; margin: 0 auto; padding-block: 40px 80px; }
+.status { display: flex; flex-wrap: wrap; gap: 8px 16px; align-items: baseline; border: 1.5px solid var(--draft); color: var(--draft);
+  border-radius: 10px; padding: 12px 16px; font-size: 14px; font-weight: 600; }
+.status span { font-weight: 400; color: var(--ink); }
+h1 { font: 400 clamp(2.4rem, 7vw, 3.4rem)/1.05 var(--serif); margin: 28px 0 10px; text-wrap: balance; }
+h1 em { color: var(--accent); }
+.meta { color: var(--muted); font-size: 14px; margin: 0 0 32px; }
+h2 { font: 400 1.6rem/1.2 var(--serif); margin: 40px 0 10px; display: flex; gap: 12px; align-items: baseline; text-wrap: balance; }
+h2 .n { font: 600 13px var(--sans); letter-spacing: .12em; color: var(--accent); min-width: 2.2em; }
+p, li { max-width: 65ch; }
+ul { padding-left: 22px; }
+li { margin-bottom: 6px; }
+.note { background: var(--note-bg); color: var(--note-ink); border-radius: 10px; padding: 12px 16px; font-size: 14.5px; margin: 12px 0; }
+.note b { font-weight: 600; }
+.fill { background: var(--note-bg); color: var(--note-ink); padding: 0 4px; border-radius: 4px; font-size: .95em; }
+hr { border: 0; border-top: 1px solid var(--rule); margin: 48px 0 0; }
+.questions { counter-reset: q; list-style: none; padding: 0; }
+.questions li { counter-increment: q; padding: 10px 0 10px 40px; border-top: 1px solid var(--rule); position: relative; max-width: none; }
+.questions li::before { content: counter(q); position: absolute; left: 0; top: 10px; font: 600 13px var(--sans); color: var(--accent); }
+@media print { .note { break-inside: avoid; } }
+</style>
+
+<main>
+  <p class="status">DRAFT FOR LEGAL REVIEW <span>Not in force, not published on the website, and not legally approved. Prepared from how meetstudio.art works on 25 October 2026.</span></p>
+
+  <h1>M.E.E.T. Member <em>Terms of Use</em></h1>
+  <p class="meta">Draft version 2026-10-25 · For Personal, Professional, and Business &amp; Organization accounts · Highlighted notes are questions for the lawyer and are removed before publication.</p>
+
+  <h2><span class="n">1</span>About these terms</h2>
+  <p>These terms apply when you create and use a M.E.E.T. member account at meetstudio.art. M.E.E.T. (Mind Exploring Every Tradition) is operated by <span class="fill">[legal entity name]</span>, <span class="fill">[registered address]</span>, registration number <span class="fill">[number]</span> ("M.E.E.T.", "we").</p>
+  <p>Artists who join through the artist application agree to the separate Artist terms. Our privacy notice explains how we handle personal information.</p>
+  <p class="note"><b>For review:</b> the company is not registered yet. Entity, address, registration number and governing law (section 15) must be filled in before these terms can be used.</p>
+
+  <h2><span class="n">2</span>Your account</h2>
+  <ul>
+    <li>You can create a Personal, Professional, or Business &amp; Organization account. Each account belongs to one person, who must confirm their email address before signing in.</li>
+    <li>Give accurate details, including your country. Keep your password private; you are responsible for activity on your account.</li>
+    <li>If you create a Business &amp; Organization account, you confirm that you may act for that organization.</li>
+    <li>The account type cannot be changed in the account itself. To change it, or your email address, write to us.</li>
+  </ul>
+  <p class="note"><b>For review:</b> the website does not currently ask for a minimum age. Decide whether accounts are for people aged 18 and over, and we will add the check.</p>
+
+  <h2><span class="n">3</span>What you can do on M.E.E.T.</h2>
+  <ul>
+    <li>Browse artists and artworks the M.E.E.T. team has reviewed and approved. Browsing does not need an account.</li>
+    <li>Send inquiries to artists (section 4).</li>
+    <li>With a Professional or Business &amp; Organization account, send project requests to the M.E.E.T. team (section 5).</li>
+  </ul>
+
+  <h2><span class="n">4</span>Inquiries to artists</h2>
+  <ul>
+    <li>When you send an inquiry, the artist sees your name, account type and country, together with your message. Your email address and phone number are not shared with the artist.</li>
+    <li>The artist can reply once through M.E.E.T. We email you the reply and show it in your account. An artist may choose to include their own contact details in a reply.</li>
+    <li>The M.E.E.T. team can see inquiries and their status, to follow and support them.</li>
+    <li>Artists reply when they can. A reply is not guaranteed.</li>
+    <li>To prevent misuse, the number of inquiries you can send in a day is limited.</li>
+  </ul>
+  <p class="note"><b>For review:</b> M.E.E.T. is not a party to any agreement you make directly with an artist. Confirm how to word this, and what M.E.E.T. is responsible for when an introduction leads to a sale or commission.</p>
+
+  <h2><span class="n">5</span>Project requests</h2>
+  <ul>
+    <li>A project request describes artwork you are looking for (for example for a hotel, an office or a home). The M.E.E.T. team reviews it and may contact you by email.</li>
+    <li>Sending a request does not create an order or an obligation for you, for M.E.E.T., or for any artist. A project only goes ahead under a separate written agreement.</li>
+    <li>In your account you see the status of your requests: Received, In discussion, Confirmed, or Closed.</li>
+    <li>The team's internal notes and any artists it considers for your project are not shared with you automatically.</li>
+  </ul>
+
+  <h2><span class="n">6</span>No sales or payments on the website</h2>
+  <p>The website does not sell artworks or take payments. Any sale, commission, or service by M.E.E.T. is agreed separately, in writing, before it starts, including any fee.</p>
+  <p class="note"><b>For review:</b> M.E.E.T. may charge a connection fee when a client finds an artist on their own, and a separately agreed service fee or commission when M.E.E.T. sources or coordinates a project. Amounts and terms are not decided. Decide whether these terms should mention fees at all before they are final.</p>
+
+  <h2><span class="n">7</span>Artworks and content</h2>
+  <ul>
+    <li>Artists keep the copyright in their artworks, photographs and texts. You may view them on M.E.E.T. for your own interest and for considering a purchase or project.</li>
+    <li>Do not copy, download in bulk, republish, or use them to train AI systems without the artist's permission.</li>
+    <li>A price appears only when the artist chose to show it. Prices and availability can change, and showing a price is not an offer to sell.</li>
+  </ul>
+
+  <h2><span class="n">8</span>Acceptable use</h2>
+  <p>Do not use M.E.E.T. to:</p>
+  <ul>
+    <li>send spam, advertising, or messages unrelated to an artist's work;</li>
+    <li>harass, threaten, or mislead artists, members, or the team;</li>
+    <li>give false information or pretend to be someone else;</li>
+    <li>collect artists' or members' information, or access the website with automated tools;</li>
+    <li>try to get around the website's security, including its bot protection.</li>
+  </ul>
+
+  <h2><span class="n">9</span>Privacy</h2>
+  <p>How we collect, use and protect your information is explained in the privacy notice at meetstudio.art/privacy.</p>
+  <p class="note"><b>For review:</b> the privacy notice names Supabase, Netlify, Google Sheets and Resend. Since 25 October 2026 the website also uses Cloudflare Turnstile (bot check on sign-up, sign-in and password reset) and ImprovMX (forwarding of hello@meetstudio.art). The privacy notice should be updated to mention them.</p>
+
+  <h2><span class="n">10</span>If terms are broken</h2>
+  <p>If you break these terms, we may stop you from sending inquiries or requests, or close your account. Where reasonable, we will tell you why first.</p>
+  <p class="note"><b>For review:</b> the website has no suspension feature today; closing an account means deleting it. Confirm the wording and whether a warning step is required.</p>
+
+  <h2><span class="n">11</span>Deleting your account</h2>
+  <ul>
+    <li>You can ask us to delete your account from your account page. The M.E.E.T. team completes the deletion within 30 days and confirms by email.</li>
+    <li>Your login, your account details and the inquiries you sent are deleted.</li>
+    <li>If you sent project requests, the project record and its figures are kept for our business records, with your name replaced by "Deleted member".</li>
+  </ul>
+  <p class="note"><b>For review:</b> confirm that keeping project records this way is lawful, how long they may be kept, and how this must be described here and in the privacy notice.</p>
+
+  <h2><span class="n">12</span>The service</h2>
+  <p>We work to keep M.E.E.T. available and accurate, but we cannot promise it will always be available, error-free, or that every artist will be available for work. We may change, add or remove features.</p>
+
+  <h2><span class="n">13</span>Liability</h2>
+  <p><span class="fill">[To be written by the lawyer for the chosen governing law, including consumer protections for Personal accounts.]</span></p>
+
+  <h2><span class="n">14</span>Changes to these terms</h2>
+  <p>When we change these terms, we will ask you to accept the new version before you continue using your account. We record which version you accepted and when.</p>
+  <p class="note"><b>For review:</b> the website does not yet record members' acceptance of terms (only the privacy notice consent at sign-up). Once the text is approved, an acceptance step with version and date will be added, as already exists for artists.</p>
+
+  <h2><span class="n">15</span>Governing law and contact</h2>
+  <p>These terms are governed by the laws of <span class="fill">[country]</span>. Questions: minds.exploring.traditions@gmail.com.</p>
+
+  <hr>
+  <h2>Questions for the lawyer, in one list</h2>
+  <ol class="questions">
+    <li>Legal entity, registered address, registration number, and governing law (sections 1 and 15).</li>
+    <li>Minimum age for member accounts (section 2).</li>
+    <li>M.E.E.T.'s role and responsibility when members and artists deal directly (section 4).</li>
+    <li>Whether and how to mention connection fees and service fees before they are decided (section 6).</li>
+    <li>Wording for limiting or closing accounts, given there is no suspension feature (section 10).</li>
+    <li>Retention of project records after deletion, and the matching privacy-notice text (section 11).</li>
+    <li>Liability clause, including consumer law for Personal accounts and members in other countries (section 13).</li>
+    <li>Privacy notice additions for Cloudflare Turnstile and ImprovMX (section 9).</li>
+    <li>Review of the Artist terms in the same pass: worldwide non-exclusive promotional permission, AI-training statement, 30-day removal, printed-materials exception, no-guarantee-of-sales wording, and public prices.</li>
+  </ol>
+</main>
