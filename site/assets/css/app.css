@@ -422,3 +422,4 @@ label.row > input[type="checkbox"] { flex: none; width: 20px; height: 20px; marg
 .prop-artist { padding: 12px; border: 1px solid var(--line); border-radius: var(--r-sm); background: var(--surface); display: grid; gap: 8px; }
 .modal .prop-artist textarea { min-height: 60px; }
 a.chip { text-decoration: none; display: inline-flex; align-items: center; }
+@media (max-width: 900px) { .hdr-links a:nth-child(2), .hdr-links a:nth-child(3) { display: none; } }
