@@ -1308,6 +1308,14 @@
   }
   function today() { var d = new Date(); return new Date(d.getTime() - d.getTimezoneOffset() * 60000).toISOString().slice(0, 10); }
   function salesPeople() { return cache.team.filter(function (m) { return m.active && (m.role === "founder" || m.role === "sales"); }); }
+  // Common next steps for a request, with who it then usually waits on.
+  var NEXT_ACTIONS = ["Review the request", "Ask the client for more details", "Contact the artists", "Check availability, pricing and timing",
+    "Wait for the artists' answers", "Suggest alternative artists", "Prepare the proposal", "Send the proposal",
+    "Follow up with the client", "Revise the proposal", "Confirm the details with the client and artists", "Arrange delivery or installation"];
+  var NEXT_WAITING = { "Ask the client for more details": "client", "Wait for the artists' answers": "artist", "Follow up with the client": "client",
+    "Review the request": "team", "Contact the artists": "team", "Check availability, pricing and timing": "team", "Suggest alternative artists": "team",
+    "Prepare the proposal": "team", "Send the proposal": "team", "Revise the proposal": "team",
+    "Confirm the details with the client and artists": "team", "Arrange delivery or installation": "team" };
   function requestTitle(p) { return p.kind === "collaboration" ? "Collaboration" : p.artwork_type; }
 
   async function viewProjects(q, kind) {
@@ -1570,7 +1578,10 @@
       (manage ? '<button class="btn sm" type="button" id="b-status">' + (p.status === "not_confirmed" ? "Reopen or change status" : "Change status") + "</button>" : "") + "</div>" +
       '<div class="panel stack" style="gap:10px"><h3 style="font-size:22px">Next action</h3>' +
       '<label class="f">Waiting on<select class="inp" id="nx-wait"' + dis + ">" + Object.keys(WAITING).map(function (k) { return '<option value="' + k + '"' + (p.waiting_on === k ? " selected" : "") + ">" + esc(WAITING[k][0]) + "</option>"; }).join("") + "</select></label>" +
-      '<label class="f">Next action<input class="inp" id="nx-action" maxlength="300" value="' + esc(p.next_action) + '"' + dis + ' placeholder="For example: confirm prices with both artists"></label>' +
+      '<label class="f">Next action<select class="inp" id="nx-pick"' + dis + ">" + '<option value="">Nothing planned</option>' +
+        NEXT_ACTIONS.map(function (a) { return '<option' + (p.next_action === a ? " selected" : "") + ">" + esc(a) + "</option>"; }).join("") +
+        '<option value="other"' + (p.next_action && NEXT_ACTIONS.indexOf(p.next_action) === -1 ? " selected" : "") + ">Other…</option></select></label>" +
+      '<label class="f" id="nx-other-row"' + (p.next_action && NEXT_ACTIONS.indexOf(p.next_action) === -1 ? "" : " hidden") + '>Describe the next action<input class="inp" id="nx-action" maxlength="300" value="' + esc(NEXT_ACTIONS.indexOf(p.next_action) === -1 ? p.next_action : "") + '"' + dis + ' placeholder="For example: send fabric samples to the client"></label>' +
       '<label class="f">Due<input class="inp" id="nx-due" type="date" value="' + esc(p.next_action_due || "") + '"' + dis + "></label>" +
       (p.next_action_due && p.next_action_due < t && !closed ? '<span class="tag overdue">Overdue</span>' : "") +
       (manage ? '<div><button class="btn line sm" type="button" id="b-next">Save next action</button></div>' : "") + "</div>" +
@@ -1601,9 +1612,20 @@
     if (bs) bs.addEventListener("click", function () { openProjectStatus(p, reload); });
     var bn = main.querySelector("#b-next");
     if (bn) bn.addEventListener("click", function () {
+      var pick = main.querySelector("#nx-pick").value, action = pick === "other" ? main.querySelector("#nx-action").value.trim() : pick;
+      if (pick === "other" && action.length < 3) { M.toast("Please describe the next action."); main.querySelector("#nx-action").focus(); return; }
       M.setBusy(bn, true, "Saving");
-      call("set_project_next", { p_id: id, p_waiting: main.querySelector("#nx-wait").value, p_action: main.querySelector("#nx-action").value, p_due: main.querySelector("#nx-due").value || null }, "Next action saved.")
+      call("set_project_next", { p_id: id, p_waiting: main.querySelector("#nx-wait").value, p_action: action, p_due: main.querySelector("#nx-due").value || null }, "Next action saved.")
         .then(function (ok) { if (!ok) M.setBusy(bn, false); });
+    });
+    var nxPick = main.querySelector("#nx-pick");
+    if (nxPick) nxPick.addEventListener("change", function () {
+      var other = nxPick.value === "other";
+      main.querySelector("#nx-other-row").hidden = !other;
+      if (other) main.querySelector("#nx-action").focus();
+      // Suggest who the request is waiting on, which the team can still change.
+      var w = NEXT_WAITING[nxPick.value];
+      if (w) main.querySelector("#nx-wait").value = w;
     });
     main.querySelector("#b-note").addEventListener("click", async function () {
       var body = main.querySelector("#note").value.trim();
