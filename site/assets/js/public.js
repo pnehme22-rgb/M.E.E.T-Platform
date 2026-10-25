@@ -51,6 +51,23 @@
     return parts.map(function (n) { return String(+n); }).join(" × ") + " " + (w.unit || "cm");
   }
 
+
+  // Regions for the directory filter, from the country names the website uses.
+  var REGIONS = {
+    "Middle East and North Africa": "Algeria;Bahrain;Egypt;Iran;Iraq;Israel;Jordan;Kuwait;Lebanon;Libya;Morocco;Oman;Palestine;Qatar;Saudi Arabia;Syria;Tunisia;Türkiye;United Arab Emirates;Yemen;Western Sahara;Mauritania;Cyprus",
+    "Sub-Saharan Africa": "Angola;Benin;Botswana;Burkina Faso;Burundi;Cabo Verde;Cameroon;Central African Republic;Chad;Comoros;Congo;Côte d'Ivoire;Democratic Republic of the Congo;Djibouti;Equatorial Guinea;Eritrea;Eswatini;Ethiopia;Gabon;Gambia;Ghana;Guinea;Guinea-Bissau;Kenya;Lesotho;Liberia;Madagascar;Malawi;Mali;Mauritius;Mozambique;Namibia;Niger;Nigeria;Rwanda;São Tomé and Príncipe;Senegal;Seychelles;Sierra Leone;Somalia;South Africa;South Sudan;Sudan;Tanzania;Togo;Uganda;Zambia;Zimbabwe;Réunion",
+    "Europe": "Albania;Andorra;Austria;Belarus;Belgium;Bosnia and Herzegovina;Bulgaria;Croatia;Czechia;Denmark;Estonia;Finland;France;Germany;Greece;Hungary;Iceland;Ireland;Italy;Kosovo;Latvia;Liechtenstein;Lithuania;Luxembourg;Malta;Moldova;Monaco;Montenegro;Netherlands;North Macedonia;Norway;Poland;Portugal;Romania;Russia;San Marino;Serbia;Slovakia;Slovenia;Spain;Sweden;Switzerland;Ukraine;United Kingdom;Vatican City;Faroe Islands;Gibraltar;Isle of Man;Jersey;Guernsey;Greenland;Armenia;Azerbaijan;Georgia",
+    "Central and South Asia": "Afghanistan;Bangladesh;Bhutan;India;Kazakhstan;Kyrgyzstan;Maldives;Nepal;Pakistan;Sri Lanka;Tajikistan;Turkmenistan;Uzbekistan",
+    "East Asia": "China;Hong Kong;Japan;Macau;Mongolia;North Korea;South Korea;Taiwan",
+    "Southeast Asia": "Brunei;Cambodia;Indonesia;Laos;Malaysia;Myanmar;Philippines;Singapore;Thailand;Timor-Leste;Vietnam",
+    "Oceania": "Australia;Fiji;Kiribati;Marshall Islands;Micronesia;Nauru;New Zealand;Palau;Papua New Guinea;Samoa;Solomon Islands;Tonga;Tuvalu;Vanuatu;New Caledonia;French Polynesia",
+    "North America": "Canada;United States;Mexico;Bermuda",
+    "Latin America and the Caribbean": "Antigua and Barbuda;Argentina;Bahamas;Barbados;Belize;Bolivia;Brazil;Chile;Colombia;Costa Rica;Cuba;Dominica;Dominican Republic;Ecuador;El Salvador;Grenada;Guatemala;Guyana;Haiti;Honduras;Jamaica;Nicaragua;Panama;Paraguay;Peru;Saint Kitts and Nevis;Saint Lucia;Saint Vincent and the Grenadines;Suriname;Trinidad and Tobago;Uruguay;Venezuela;Puerto Rico;Martinique;Guadeloupe;French Guiana;Curaçao;Aruba;Cayman Islands"
+  };
+  var REGION_OF = {};
+  Object.keys(REGIONS).forEach(function (r) { REGIONS[r].split(";").forEach(function (c) { REGION_OF[c.toLowerCase()] = r; }); });
+  function region(country) { return REGION_OF[String(country || "").trim().toLowerCase()] || ""; }
+
   function place(a) { return [a.city, a.country].filter(Boolean).join(", "); }
   function artistUrl(id) { return "/artists/" + encodeURIComponent(id); }
   function artworkUrl(id) { return "/artworks/" + encodeURIComponent(id); }
@@ -92,6 +109,6 @@
   window.MEET_PUBLIC = {
     member: member, api: api, money: money,
     sb: sb, esc: esc, terms: terms, signUrls: signUrls, dims: dims, place: place,
-    artistUrl: artistUrl, artworkUrl: artworkUrl, idFromPath: idFromPath
+    artistUrl: artistUrl, artworkUrl: artworkUrl, idFromPath: idFromPath, region: region
   };
 })();

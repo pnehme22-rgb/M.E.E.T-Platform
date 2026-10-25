@@ -1,0 +1,218 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Start a Project | M.E.E.T.</title>
+<meta name="description" content="Interior designers, curators, businesses and organizations: send a project brief and the M.E.E.T. team coordinates artists, feasibility and a tailored proposal.">
+<meta name="theme-color" content="#f6f0e5">
+<link rel="canonical" href="https://meetstudio.art/start-a-project">
+<link rel="icon" href="/assets/img/brand/mark.svg" type="image/svg+xml">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@400;500;600&family=Instrument+Serif:ital@0;1&display=swap">
+<link rel="stylesheet" href="/assets/css/site.css">
+<link rel="stylesheet" href="/assets/css/pages.css">
+<link rel="stylesheet" href="/assets/css/join.css">
+<script src="/assets/js/site.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.50.0/dist/umd/supabase.js" defer></script>
+<script src="/assets/js/config.js" defer></script>
+<script src="/assets/js/public.js" defer></script>
+<script src="/assets/js/request.js" defer></script>
+</head>
+<body>
+<a class="skip-link" href="#main">Skip to content</a>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true" focusable="false">
+  <defs>
+    <symbol id="mark" viewBox="0 0 119 80">
+      <path d="M59.5 8.56 A37 37 0 0 1 59.5 71.44 A37 37 0 0 1 59.5 8.56 Z" fill="#74191d"/>
+      <circle cx="40" cy="40" r="37" fill="none" stroke="#11306a" stroke-width="4.5"/>
+      <circle cx="79" cy="40" r="37" fill="none" stroke="#11306a" stroke-width="4.5"/>
+    </symbol>
+    <symbol id="arrow" viewBox="0 0 22 10">
+      <path d="M0 5h20M16 1l4 4-4 4" fill="none" stroke="currentColor" stroke-width="1.4"/>
+    </symbol>
+  </defs>
+</svg>
+<header class="site-header" id="top">
+  <div class="wrap header-inner">
+    <a class="brand" href="/" aria-label="M.E.E.T. home">
+      <svg class="brand-mark" aria-hidden="true"><use href="#mark"/></svg>
+      <span class="brand-word">M.E.E.T.</span>
+    </a>
+    <nav class="nav" aria-label="Main">
+      <ul class="nav-links" id="nav-menu">
+        <li><a href="/artists">Artists</a></li>
+        <li><a href="/discover">Discover &amp; Commission</a></li>
+        <li><a href="/start-a-project" aria-current="page">Start a Project</a></li>
+        <li><a href="/about">About</a></li>
+        <li class="nav-m"><a href="/signin">Sign in</a></li>
+        <li class="nav-m"><a href="/signup">Create an account</a></li>
+        <li class="nav-m"><a href="/for-artists">Join as an Artist</a></li>
+      </ul>
+      <a class="nav-signin nav-d" href="/signin">Sign in</a>
+      <button class="nav-toggle" type="button" aria-expanded="false" aria-controls="nav-menu">Menu</button>
+      <a class="btn btn-small btn-quiet" href="/for-artists"><span>Join<span class="btn-more"> as an Artist</span></span></a>
+    </nav>
+  </div>
+</header>
+<main id="main" tabindex="-1">
+  <section class="intro-page">
+    <div class="wrap grid split-grid" style="align-items:end">
+      <div class="intro-head" style="grid-column:1 / span 6;margin-bottom:0">
+        <p class="kicker">Start a Project</p>
+        <h1 class="intro-title">Larger work, <em>carefully coordinated.</em></h1>
+        <p class="lede">For interior designers, curators, businesses and organizations. Send a brief, and the M.E.E.T. team will find the artists, check what is possible and come back to you with a tailored proposal.</p>
+        <div class="actions"><a class="btn" href="#brief">Write your brief<svg class="arrow" aria-hidden="true"><use href="#arrow"/></svg></a></div>
+      </div>
+      <figure class="split-figure reveal-img" style="grid-column:8 / span 5"><div class="frame" style="aspect-ratio:5 / 4"><img src="/assets/img/gallery-1200.jpg" srcset="/assets/img/gallery-720.jpg 720w, /assets/img/gallery-1200.jpg 1200w, /assets/img/gallery-1800.jpg 1800w" sizes="(max-width: 960px) 100vw, 50vw" alt="Visitors move past a gilt-framed painting of orange flowers on a blue gallery wall." loading="lazy" decoding="async"></div></figure>
+    </div>
+  </section>
+  <section class="story" style="margin-top:clamp(72px,9vw,140px)" aria-labelledby="proj-how">
+    <div class="wrap grid story-grid">
+      <div class="story-label reveal"><p class="kicker">How we help</p></div>
+      <div class="story-body reveal">
+        <h2 class="h3" id="proj-how">From brief to confirmed project.</h2>
+        <ol class="steps" style="--n:2">
+          <li><h3>Your brief</h3><p>The space, the purpose, the disciplines or materials, your inspiration, budget and timeline. You can name artists you would like involved.</p></li>
+          <li><h3>Artists and feasibility</h3><p>The team contacts the artists you named and others who could suit the project, and checks availability, pricing and timelines.</p></li>
+          <li><h3>A tailored proposal</h3><p>The creative approach, the artists and their contributions, estimated costs and the timeline.</p></li>
+          <li><h3>Refine, then confirm</h3><p>Discuss it, ask for changes or alternatives. Nothing proceeds until you accept the proposal.</p></li>
+        </ol>
+      </div>
+    </div>
+  </section>
+  <section class="rq" id="brief" aria-labelledby="rq-title">
+    <div class="wrap grid rq-grid">
+      <div class="rq-aside reveal">
+        <p class="kicker">Project brief</p>
+        <h2 class="h3" id="rq-title">Tell us about the project.</h2>
+        <p>Project briefs are sent from a free Professional or Business &amp; Organization account. A personal commission can be sent from <a class="text-link" href="/discover#commission">Discover &amp; Commission</a>.</p>
+      </div>
+      <div class="rq-main">
+        <div class="rq-gate" id="rq-gate" hidden></div>
+        <div class="error-summary" id="rq-errors" tabindex="-1" hidden><h2>Please check the form</h2><ul></ul></div>
+        <form id="rq-form" data-kind="project" novalidate>
+        <fieldset>
+          <legend>The project</legend>
+          <div class="field" data-field="artwork_type">
+            <label for="f-type">Project type or space</label>
+            <p class="hint" id="h-type">For example: a hotel lobby, a private residence, an office reception, an exhibition.</p>
+            <input type="text" id="f-type" name="artwork_type" maxlength="200" aria-describedby="h-type e-artwork_type">
+            <p class="error" id="e-artwork_type"></p>
+          </div>
+          <div class="field">
+            <label for="f-purpose">Purpose <span class="opt">optional</span></label>
+            <p class="hint">What should the work do for the space or the people in it?</p>
+            <textarea id="f-purpose" name="purpose" maxlength="1000" style="min-height:100px"></textarea>
+          </div>
+          <div class="field" data-field="description">
+            <label for="f-description">Describe the project</label>
+            <p class="hint" id="h-description">The works you are looking for and anything we should know. At least 20 characters.</p>
+            <textarea id="f-description" name="description" maxlength="4000" aria-describedby="h-description e-description"></textarea>
+            <p class="error" id="e-description"></p>
+          </div>
+          <div class="field">
+            <label for="f-disc">Disciplines or materials <span class="opt">optional</span></label>
+            <input type="text" id="f-disc" name="disciplines_wanted" maxlength="500" placeholder="For example: textile, ceramics, wood">
+          </div>
+          <div class="field">
+            <label for="f-style">Inspiration <span class="opt">optional</span></label>
+            <textarea id="f-style" name="style_refs" maxlength="2000" style="min-height:100px"></textarea>
+          </div>
+          <div class="field-row">
+            <div class="field"><label for="f-location">Location <span class="opt">optional</span></label><input type="text" id="f-location" name="location" maxlength="200"></div>
+            <div class="field"><label for="f-qty">Quantity and dimensions <span class="opt">optional</span></label><input type="text" id="f-qty" name="quantity_dims" maxlength="1000"></div>
+          </div>
+        </fieldset>
+        <fieldset>
+          <legend>Budget and timeline</legend>
+          <div class="field" data-field="budget">
+            <label for="f-budget">Budget</label>
+            <p class="hint" id="h-budget">An estimate for the whole project.</p>
+            <input type="text" id="f-budget" name="budget" maxlength="200" aria-describedby="h-budget e-budget" placeholder="For example: around USD 3,000">
+            <label class="undecided"><input type="checkbox" name="budget_undecided"> Not decided yet</label>
+            <p class="error" id="e-budget"></p>
+          </div>
+          <div class="field" data-field="timeline">
+            <label for="f-timeline">Timing</label>
+            <p class="hint" id="h-timeline">Key dates or deadlines, if you know them.</p>
+            <input type="text" id="f-timeline" name="timeline" maxlength="200" aria-describedby="h-timeline e-timeline" placeholder="For example: by March, or no fixed date">
+            <label class="undecided"><input type="checkbox" name="timeline_undecided"> Not decided yet</label>
+            <p class="error" id="e-timeline"></p>
+          </div>
+        </fieldset>
+        <fieldset data-field="artists">
+          <legend>Artists you would like involved <span class="opt">optional</span></legend>
+          <p class="fieldset-note">Choose up to six. The team may also suggest additional artists or combinations.</p>
+          <div class="pick-search"><label class="visually-hidden" for="pick-q">Search artists</label><input type="text" id="pick-q" placeholder="Search by name, discipline or country" autocomplete="off"></div>
+          <div class="pick-list" id="pick-list" role="group" aria-label="Artists"><p class="hint">Loading the artists…</p></div>
+          <p class="error" id="e-artists"></p>
+        </fieldset>
+        <fieldset data-field="files">
+          <legend>Supporting files <span class="opt">optional</span></legend>
+          <p class="fieldset-note">Plans, photographs of the space or mood boards. Up to five files: PDF, JPG, PNG or WebP, 10 MB each. Only the M.E.E.T. team can open them.</p>
+          <label class="visually-hidden" for="f-files">Add files</label>
+          <input type="file" id="f-files" multiple accept="application/pdf,image/jpeg,image/png,image/webp">
+          <ul class="files-list" id="files-list"></ul>
+          <p class="error" id="e-files"></p>
+        </fieldset>
+        <div class="submit-row">
+          <button class="btn" type="submit" id="rq-submit">Send my project brief<svg class="arrow" aria-hidden="true"><use href="#arrow"/></svg></button>
+          <p class="submit-status" id="rq-status" role="status" aria-live="polite"></p>
+        </div>
+        </form>
+      <div class="rq-done" id="rq-done" hidden>
+        <p class="kicker">Received</p>
+        <h2 tabindex="-1">Thank you. Your request is with the M.E.E.T. team.</h2>
+        <p class="ref">Your reference is <b id="rq-ref"></b>. A confirmation is on its way to your email.</p>
+        <p>The team will review your brief and contact you by email. You can follow each step, read updates and review the proposal in your account.</p>
+        <p><a class="btn btn-small" id="rq-follow" href="/account#/requests">Follow it in your account</a></p>
+      </div>
+      </div>
+    </div>
+  </section>
+</main>
+<footer class="site-footer">
+  <div class="wrap grid footer-grid">
+    <div class="footer-id">
+      <a class="brand" href="/" aria-label="M.E.E.T. home">
+        <svg class="brand-mark" aria-hidden="true"><use href="#mark"/></svg>
+        <span class="brand-word">M.E.E.T.</span>
+      </a>
+      <p class="expansion">Mind Exploring Every Tradition</p>
+      <p>An international platform where artistic practices, materials and traditions meet.</p>
+    </div>
+    <div class="footer-col">
+      <h2>Explore</h2>
+      <ul>
+        <li><a href="/artists">Artists</a></li>
+        <li><a href="/discover">Discover &amp; Commission</a></li>
+        <li><a href="/collaborate">Propose a collaboration</a></li>
+        <li><a href="/start-a-project">Start a Project</a></li>
+        <li><a href="/about">About</a></li>
+      </ul>
+    </div>
+    <div class="footer-col">
+      <h2>Join and sign in</h2>
+      <ul>
+        <li><a href="/for-artists">Join as an Artist</a></li>
+        <li><a href="/signup">Create an account</a></li>
+        <li><a href="/signin">Sign in</a></li>
+      </ul>
+    </div>
+    <div class="footer-col">
+      <h2>Information</h2>
+      <ul>
+        <li><a href="/privacy">Privacy notice</a></li>
+        <li><a href="/artist-terms">Artist terms</a></li>
+        <li><a href="mailto:minds.exploring.traditions@gmail.com">minds.exploring.traditions@gmail.com</a></li>
+      </ul>
+    </div>
+    <div class="footer-base">
+      <p>&copy; 2026 M.E.E.T.</p>
+    </div>
+  </div>
+</footer>
+</body>
+</html>

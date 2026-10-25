@@ -5,6 +5,13 @@
   // Mark that scripts run, so entrance states only apply when they can finish.
   document.documentElement.classList.add("js");
 
+  // The homepage is drawn from the published content (home.js). Hold it for a
+  // moment so visitors do not see the built-in version swap; never longer.
+  if (location.pathname === "/" || location.pathname === "/index.html") {
+    document.documentElement.classList.add("home-wait");
+    setTimeout(function () { document.documentElement.classList.remove("home-wait"); }, 1800);
+  }
+
   // Remember where a visitor came from (?from=qr-dubai etc.) until they register.
   try {
     var from = (new URLSearchParams(location.search).get("from") || "").toLowerCase().replace(/[^a-z0-9-]/g, "").slice(0, 40);
@@ -16,23 +23,26 @@
     else document.addEventListener("DOMContentLoaded", fn);
   }
 
+  // Entrances: reveal once, then retire stagger delays so hovers never lag.
+  // Pages that draw content later (the homepage) call it again for new parts.
+  var io = "IntersectionObserver" in window ? new IntersectionObserver(function (entries) {
+    entries.forEach(function (entry) {
+      if (!entry.isIntersecting) return;
+      var el = entry.target;
+      el.classList.add("in");
+      setTimeout(function () { el.classList.add("settled"); }, 1700);
+      io.unobserve(el);
+    });
+  }, { rootMargin: "0px 0px -12% 0px", threshold: 0.08 }) : null;
+  function reveal(root) {
+    (root || document).querySelectorAll(".reveal:not(.in), .reveal-img:not(.in)").forEach(function (el) {
+      if (io) io.observe(el); else el.classList.add("in", "settled");
+    });
+  }
+  window.MEET_REVEAL = reveal;
+
   ready(function () {
-    // Entrances: reveal once, then retire stagger delays so hovers never lag.
-    var targets = document.querySelectorAll(".reveal, .reveal-img");
-    if ("IntersectionObserver" in window) {
-      var io = new IntersectionObserver(function (entries) {
-        entries.forEach(function (entry) {
-          if (!entry.isIntersecting) return;
-          var el = entry.target;
-          el.classList.add("in");
-          setTimeout(function () { el.classList.add("settled"); }, 1700);
-          io.unobserve(el);
-        });
-      }, { rootMargin: "0px 0px -12% 0px", threshold: 0.08 });
-      targets.forEach(function (el) { io.observe(el); });
-    } else {
-      targets.forEach(function (el) { el.classList.add("in", "settled"); });
-    }
+    reveal(document);
 
     // Header hairline once the page moves.
     var header = document.querySelector(".site-header");
@@ -61,7 +71,7 @@
         var li = a.closest("li"); (li || a).hidden = true;
       });
       // Artists and the team already have their place; members may still apply as artists.
-      if (home.kind !== "member") document.querySelectorAll('.site-header a.btn[href="/join"], .site-header .nav-m a[href="/join"]').forEach(function (a) {
+      if (home.kind !== "member") document.querySelectorAll('.site-header a.btn[href="/for-artists"], .site-header .nav-m a[href="/for-artists"]').forEach(function (a) {
         var li = a.closest("li"); (li || a).hidden = true;
       });
     }

@@ -1,5 +1,7 @@
-/* M.E.E.T. team console: applications, artists, members, inquiries, homepage,
-   sales (projects, follow-ups, reports), team, activity.
+/* M.E.E.T. team console: applications, artists, artist requests, members,
+   inquiries, the public website (homepage drafts, featured items, directory
+   order), requests (commissions, collaborations, projects, follow-ups,
+   reports), team, activity.
    Every read and write goes through the signed-in team member's session, so
    the database's row level security decides what is allowed. Approvals and
    emails go through Netlify functions (/api/...). */
@@ -39,11 +41,14 @@
     var p = await sb.from("artists").select("profile_status");
     var w = await sb.from("artworks").select("status");
     var del = await sb.from("member_accounts").select("id", { count: "exact", head: true }).not("deletion_requested_at", "is", null);
-    var c = { apps: {}, profiles: 0, works: 0, deletions: del.count || 0, projects: 0, overdue: 0 };
+    var help = await sb.from("artist_requests").select("id", { count: "exact", head: true }).eq("status", "open");
+    var c = { apps: {}, profiles: 0, works: 0, deletions: del.count || 0, kinds: {}, overdue: 0, help: help.count || 0, answers: 0 };
     if (isSales) {
-      var np = await sb.from("project_requests").select("id", { count: "exact", head: true }).eq("status", "new");
+      var np = await sb.from("project_requests").select("kind, status");
+      (np.data || []).forEach(function (r) { if (r.status === "new") c.kinds[r.kind] = (c.kinds[r.kind] || 0) + 1; });
       var od = await sb.from("project_tasks").select("id", { count: "exact", head: true }).eq("done", false).eq("assigned_to", me.user.id).lt("due_on", new Date().toISOString().slice(0, 10));
-      c.projects = np.count || 0; c.overdue = od.count || 0;
+      var ans = await sb.from("project_proposals").select("id", { count: "exact", head: true }).eq("status", "changes_requested");
+      c.overdue = od.count || 0; c.answers = ans.count || 0;
     }
     (a.data || []).forEach(function (r) { c.apps[r.status] = (c.apps[r.status] || 0) + 1; });
     c.profiles = (p.data || []).filter(function (r) { return r.profile_status === "submitted"; }).length;
@@ -58,24 +63,32 @@
       ["overview", "Overview", 0],
       ["applications", "Applications", (c.apps.new || 0)],
       ["artists", "Artists", c.profiles + c.works],
+      ["artist-requests", "Artist requests", c.help],
       ["members", "Members", c.deletions],
       ["inquiries", "Artist inquiries", 0],
-      ["homepage", "Homepage", 0],
+      ["homepage", "Public website", 0],
       ["activity", "Activity log", 0]
     ];
-    if (me.role === "founder") items.splice(6, 0, ["team", "Team", 0]);
+    if (me.role === "founder") items.splice(7, 0, ["team", "Team", 0]);
     function link(i) {
       return '<a class="ni" href="#/' + i[0] + '"' + (current === i[0] ? ' aria-current="page"' : "") + ">" + esc(i[1]) +
         (i[2] ? '<span class="badge">' + i[2] + "</span>" : "") + "</a>";
     }
-    var sales = isSales ? [["projects", "Projects", c.projects], ["followups", "Follow-ups", c.overdue]] : [];
+    var sales = isSales ? [["commissions", "Commissions", c.kinds.commission || 0], ["collaborations", "Collaborations", c.kinds.collaboration || 0],
+      ["projects", "Projects", c.kinds.project || 0], ["followups", "Follow-ups", c.overdue]] : [];
     if (me.role === "founder") sales.push(["reports", "Reports", 0]);
     nav.innerHTML = '<p class="nav-l">Workspaces</p>' + items.map(link).join("") +
-      (sales.length ? '<p class="nav-l">Sales</p>' + sales.map(link).join("") : "") +
+      (sales.length ? '<p class="nav-l">Requests</p>' + sales.map(link).join("") : "") +
       '<p class="nav-l">Private</p>' +
       '<a class="ni" href="/prototype/" target="_blank" rel="noopener">Platform prototype</a>' +
       '<a class="ni" href="/" target="_blank" rel="noopener">Public website</a>';
     return c;
+  }
+  // A request opens from its own dashboard; highlight that one in the menu.
+  function markNav(view) {
+    nav.querySelectorAll(".ni").forEach(function (a) {
+      if (a.getAttribute("href") === "#/" + view) a.setAttribute("aria-current", "page"); else a.removeAttribute("aria-current");
+    });
   }
 
   function parseHash() {
@@ -100,10 +113,11 @@
       else if (r.view === "artist") await viewArtist(r.id);
       else if (r.view === "members") await viewMembers(r.q);
       else if (r.view === "member") await viewMember(r.id);
-      else if (r.view === "homepage") await viewHomepage();
+      else if (r.view === "homepage") await viewWebsite(r.q);
+      else if (r.view === "artist-requests") await viewArtistRequests(r.q);
       else if (r.view === "inquiries") await viewInquiries(r.q);
       else if (r.view === "inquiry") await viewInquiry(r.id);
-      else if (r.view === "projects" && isSales) await viewProjects(r.q);
+      else if (KIND_OF_VIEW[r.view] && isSales) await viewProjects(r.q, KIND_OF_VIEW[r.view]);
       else if (r.view === "project" && isSales) await viewProject(r.id);
       else if (r.view === "followups" && isSales) await viewFollowups(r.q);
       else if (r.view === "reports" && me.role === "founder") await viewReports(r.q);
@@ -134,6 +148,9 @@
       kpi(c.apps.more_info || 0, "Waiting on the artist", "#/applications?status=more_info") +
       kpi(c.apps.approved || 0, "Approved artists", "#/applications?status=approved") +
       kpi(c.profiles + c.works, "Studio items to review", "#/artists?filter=review") +
+      (c.help ? kpi(c.help, "Artist requests to answer", "#/artist-requests") : "") +
+      (isSales ? kpi((c.kinds.commission || 0) + (c.kinds.collaboration || 0) + (c.kinds.project || 0), "New client requests", "#/" + (c.kinds.collaboration ? "collaborations" : c.kinds.commission ? "commissions" : "projects")) : "") +
+      (isSales && c.answers ? kpi(c.answers, "Proposals with client changes", "#/projects") : "") +
       "</div>" +
       '<section class="stack" style="gap:10px"><div class="between"><h2 style="font-size:30px">Latest applications</h2><a class="link small" href="#/applications">See all</a></div>' +
       appList(recent.data || []) + "</section>";
@@ -778,8 +795,213 @@
   /* Homepage selection                                                  */
   /* ------------------------------------------------------------------ */
 
-  async function viewHomepage() {
-    var f = await sb.from("featured_items").select("kind, item_id, position").order("position");
+  /* ------------------------------------------------------------------ */
+  /* Public website: homepage (draft, preview, publish), featured        */
+  /* artists and artworks (eligible, pinned, rotation), directory order. */
+  /* ------------------------------------------------------------------ */
+
+  var SECTION_INFO = {
+    hero: ["Opening", "The first thing visitors see."],
+    artists: ["Artist invitation", "Invites artists to join. Leads to For Artists."],
+    images: ["Image band", "Up to three images, side by side."],
+    ways: ["Three ways in", "Join as an Artist, Discover & Commission, Start a Project."],
+    collaboration: ["Collaboration", "What becomes possible when artistic worlds meet. Leads to the collaboration request."],
+    featured_artists: ["Featured artists", "Shows eligible artists only. Hidden while none are eligible."],
+    featured_artworks: ["Featured artworks", "Shows eligible artworks only. Hidden while none are eligible."],
+    closing: ["Closing invitation", "The last section, on navy."]
+  };
+  var HOME_IMAGES = { hero: true, artists: true, collaboration: true };
+
+  function websiteTabs(tab) {
+    return '<nav class="chips" aria-label="Public website" style="margin-bottom:18px">' +
+      [["content", "Homepage"], ["featured", "Featured artists and artworks"], ["directory", "Directory order"]].map(function (t) {
+        return '<a class="chip" href="#/homepage?tab=' + t[0] + '" aria-pressed="' + (tab === t[0]) + '">' + esc(t[1]) + "</a>";
+      }).join("") + "</nav>";
+  }
+
+  async function viewWebsite(q) {
+    var tab = q.get("tab") || "content";
+    if (tab === "featured") return viewFeatured();
+    if (tab === "directory") return viewDirectoryOrder();
+    return viewHomeEditor();
+  }
+
+  function clone(x) { return JSON.parse(JSON.stringify(x)); }
+  function storageBase() { return ((window.MEET_CONFIG || {}).supabaseUrl || "").replace(/\/$/, "") + "/storage/v1/object/public/site-media/"; }
+
+  async function viewHomeEditor() {
+    var r = await sb.from("site_pages").select("*").eq("key", "home").maybeSingle();
+    if (r.error) throw r.error;
+    var row = r.data || {};
+    var DEF = window.MEET_HOME_DEFAULT;
+    function normalise(c) {
+      var known = {}; DEF.sections.forEach(function (d) { known[d.id] = d; });
+      if (!c || !Array.isArray(c.sections)) return clone(DEF);
+      var seen = {}, list = c.sections.filter(function (s) { return s && known[s.id] && !seen[s.id] && (seen[s.id] = true); })
+        .map(function (s) { return Object.assign(clone(known[s.id]), s); });
+      DEF.sections.forEach(function (d) { if (!seen[d.id]) list.push(Object.assign(clone(d), { enabled: false })); });
+      return { sections: list };
+    }
+    var hasDraft = row.draft && Array.isArray(row.draft.sections);
+    var work = normalise(hasDraft ? row.draft : row.published);
+    var published = row.published ? JSON.stringify(normalise(row.published)) : JSON.stringify(normalise(DEF));
+    var openId = null;
+
+    function input(label, sec, key, opts) {
+      opts = opts || {};
+      var v = sec[key] == null ? "" : sec[key];
+      var tagName = opts.area ? "textarea" : "input";
+      return '<label class="f">' + esc(label) + (opts.hint ? '<span class="hint">' + esc(opts.hint) + "</span>" : "") +
+        "<" + tagName + ' class="inp" data-sec="' + sec.id + '" data-key="' + key + '"' + (opts.area ? ' rows="' + (opts.rows || 3) + '"' : ' value="' + esc(v) + '"') +
+        ' maxlength="' + (opts.max || 300) + '"' + (canEdit ? "" : " disabled") + ">" + (opts.area ? esc(v) + "</textarea>" : "") + "</label>";
+    }
+    function imageField(sec, im, path) {
+      var src = im && im.src ? im.src : "";
+      return '<div class="img-field"><div class="img-prev">' + (src ? '<img src="' + esc(src) + '" alt="">' : '<span class="muted small">No image</span>') + "</div>" +
+        '<div class="stack" style="gap:8px;flex:1">' +
+        '<label class="f">Description for people who cannot see the image<input class="inp" data-sec="' + sec.id + '" data-img="' + path + '" data-ikey="alt" maxlength="300" value="' + esc(im ? im.alt || "" : "") + '"' + (canEdit ? "" : " disabled") + "></label>" +
+        (path.indexOf("images.") === 0 ? '<label class="f">Caption <span class="opt">optional</span><input class="inp" data-sec="' + sec.id + '" data-img="' + path + '" data-ikey="caption" maxlength="120" value="' + esc(im ? im.caption || "" : "") + '"' + (canEdit ? "" : " disabled") + "></label>" : "") +
+        (canEdit ? '<div class="row"><label class="btn line sm">Upload a new image<input type="file" accept="image/jpeg,image/png,image/webp" data-upload="' + sec.id + '" data-path="' + path + '" hidden></label>' +
+          (path.indexOf("images.") === 0 ? '<button class="btn quiet sm" type="button" data-rmimg="' + path + '">Remove</button>' : "") + "</div>" : "") +
+        "</div></div>";
+    }
+    function fields(sec) {
+      var f = "";
+      if (sec.id !== "images") f += input("Small heading", sec, "kicker", { max: 80 });
+      if (sec.id !== "images") f += input("Title", sec, "title", { max: 160, hint: "Put *asterisks* around the words to set in italics." });
+      if (sec.id === "featured_artists" || sec.id === "featured_artworks") {
+        f += input("Title when only one item is shown", sec, "title_one", { max: 160, hint: "Used automatically, so a single artist or work is never described as several." });
+        f += '<div class="grid2"><label class="f">How many to show<input class="inp" type="number" min="1" max="12" data-sec="' + sec.id + '" data-key="count" value="' + esc(sec.count || 3) + '"' + (canEdit ? "" : " disabled") + "></label>" +
+          '<label class="row small" style="font-weight:500;align-self:end"><input type="checkbox" data-sec="' + sec.id + '" data-key="rotate"' + (sec.rotate ? " checked" : "") + (canEdit ? "" : " disabled") + "> Rotate daily through eligible items (pinned items always show first)</label></div>" +
+          '<p class="small muted">Choose which items are eligible, and pin or order them, under <a class="link" href="#/homepage?tab=featured">Featured artists and artworks</a>.</p>';
+      }
+      if (sec.text != null && ["hero", "artists", "collaboration", "closing"].indexOf(sec.id) !== -1) f += input("Text", sec, "text", { area: true, rows: 4, max: 900 });
+      if (sec.button != null) f += input("Button label", sec, "button", { max: 60 });
+      if (sec.second != null) f += input("Second link label", sec, "second", { max: 60, hint: "Leave empty to hide the second link." });
+      if (sec.id === "ways") (sec.items || []).forEach(function (it, i) {
+        f += '<fieldset class="fs"><legend style="font-family:var(--sans);font-size:13px;font-weight:600">Pathway ' + (i + 1) + "</legend>" +
+          '<label class="f">Title<input class="inp" data-sec="ways" data-item="' + i + '" data-ikey="title" maxlength="80" value="' + esc(it.title) + '"' + (canEdit ? "" : " disabled") + "></label>" +
+          '<label class="f">Text<textarea class="inp" rows="2" data-sec="ways" data-item="' + i + '" data-ikey="text" maxlength="300"' + (canEdit ? "" : " disabled") + ">" + esc(it.text) + "</textarea></label>" +
+          '<label class="f">Link label<input class="inp" data-sec="ways" data-item="' + i + '" data-ikey="button" maxlength="60" value="' + esc(it.button) + '"' + (canEdit ? "" : " disabled") + "></label></fieldset>";
+      });
+      if (HOME_IMAGES[sec.id]) f += imageField(sec, sec.image, "image");
+      if (sec.id === "images") {
+        (sec.images || []).forEach(function (im, i) { f += imageField(sec, im, "images." + i); });
+        if (canEdit && (sec.images || []).length < 3) f += '<div><label class="btn line sm">Add an image<input type="file" accept="image/jpeg,image/png,image/webp" data-upload="images" data-path="images.new" hidden></label></div>';
+      }
+      return f;
+    }
+    function changed() { return JSON.stringify(work) !== published; }
+    function draw() {
+      main.innerHTML =
+        '<div class="head"><div><span class="eyebrow">Public website</span><h1>Homepage</h1>' +
+        "<p>Edit the words and images, show or hide each section, and drag sections into a new order. Save a draft and preview it; visitors keep seeing the published homepage until you publish.</p></div></div>" +
+        websiteTabs("content") +
+        '<div class="panel stack" style="gap:8px"><div class="kv">' +
+        "<span>Published</span><b>" + (row.published_at ? "Version " + esc(row.version) + " · " + esc(M.fmtDate(row.published_at, true)) + (row.published_by ? " by " + esc(teamName(row.published_by)) : "") : "Not yet. Visitors see the built-in homepage.") + "</b>" +
+        "<span>Draft</span><b>" + (row.draft_updated_at ? "Saved " + esc(M.fmtDate(row.draft_updated_at, true)) + (row.draft_updated_by ? " by " + esc(teamName(row.draft_updated_by)) : "") : "No draft saved yet") + "</b>" +
+        "<span>Changes</span><b>" + (changed() ? '<span class="tag warn">Not published yet</span>' : '<span class="tag ok">Same as the live homepage</span>') + "</b></div>" +
+        (canEdit ? '<div class="row"><button class="btn line sm" type="button" id="h-save">Save draft</button><button class="btn line sm" type="button" id="h-preview">Save and preview</button>' +
+          '<button class="btn sm" type="button" id="h-publish">Publish</button><button class="btn quiet sm" type="button" id="h-discard">Discard draft</button></div>' : '<p class="small muted">Your role can view the homepage settings but not change them.</p>') + "</div>" +
+        '<ol class="sections" id="sections">' + work.sections.map(function (s, i) {
+          var info = SECTION_INFO[s.id] || [s.id, ""];
+          return '<li class="sec' + (s.enabled === false ? " off" : "") + '" draggable="' + canEdit + '" data-i="' + i + '">' +
+            '<div class="sec-head"><span class="grip" aria-hidden="true">⋮⋮</span><div class="lm"><b>' + esc(info[0]) + '</b><span class="muted small">' + esc(info[1]) + "</span></div>" +
+            '<div class="row" style="gap:6px">' +
+            '<label class="row small" style="font-weight:500"><input type="checkbox" data-toggle="' + i + '"' + (s.enabled !== false ? " checked" : "") + (canEdit ? "" : " disabled") + "> Shown</label>" +
+            (canEdit ? '<button class="btn line sm" type="button" data-move="-1" data-i="' + i + '"' + (i === 0 ? " disabled" : "") + ' aria-label="Move up">↑</button>' +
+              '<button class="btn line sm" type="button" data-move="1" data-i="' + i + '"' + (i === work.sections.length - 1 ? " disabled" : "") + ' aria-label="Move down">↓</button>' : "") +
+            '<button class="btn line sm" type="button" data-open="' + s.id + '" aria-expanded="' + (openId === s.id) + '">' + (openId === s.id ? "Close" : "Edit") + "</button></div></div>" +
+            (openId === s.id ? '<div class="sec-body stack" style="gap:12px">' + fields(s) + "</div>" : "") + "</li>";
+        }).join("") + "</ol>";
+      bind();
+    }
+    function sec(id) { return work.sections.filter(function (s) { return s.id === id; })[0]; }
+    function setImg(s, path, key, value) {
+      if (path === "image") { s.image = s.image || {}; s.image[key] = value; return; }
+      var i = +path.split(".")[1]; s.images[i] = s.images[i] || {}; s.images[i][key] = value;
+    }
+    function bind() {
+      main.querySelectorAll("[data-key]").forEach(function (el) {
+        el.addEventListener(el.type === "checkbox" ? "change" : "input", function () {
+          var s = sec(el.getAttribute("data-sec")), k = el.getAttribute("data-key");
+          s[k] = el.type === "checkbox" ? el.checked : el.type === "number" ? Math.max(1, Math.min(12, parseInt(el.value || "1", 10))) : el.value;
+        });
+      });
+      main.querySelectorAll("[data-ikey]").forEach(function (el) {
+        el.addEventListener("input", function () {
+          var s = sec(el.getAttribute("data-sec")), k = el.getAttribute("data-ikey");
+          if (el.hasAttribute("data-item")) s.items[+el.getAttribute("data-item")][k] = el.value;
+          else setImg(s, el.getAttribute("data-img"), k, el.value);
+        });
+      });
+      main.querySelectorAll("[data-upload]").forEach(function (el) {
+        el.addEventListener("change", async function () {
+          var file = el.files[0]; if (!file) return;
+          var s = sec(el.getAttribute("data-upload")), path = el.getAttribute("data-path");
+          try {
+            M.toast("Uploading…");
+            var blob = await M.prepareImage(file);
+            var name = "home/" + Date.now().toString(36) + "-" + Math.random().toString(36).slice(2, 8) + ".jpg";
+            var up = await sb.storage.from("site-media").upload(name, blob, { contentType: "image/jpeg", upsert: false });
+            if (up.error) throw up.error;
+            var url = storageBase() + name;
+            if (path === "images.new") { s.images = s.images || []; s.images.push({ src: url, alt: "", caption: "" }); }
+            else setImg(s, path, "src", url);
+            M.toast("Image added to the draft. Describe it for people who cannot see it, then save.");
+            draw();
+          } catch (err) { fail(err); }
+        });
+      });
+      var list = main.querySelector("#sections"), dragFrom = null;
+      list.addEventListener("dragstart", function (e) { var li = e.target.closest(".sec"); if (!li) return; dragFrom = +li.getAttribute("data-i"); li.classList.add("dragging"); e.dataTransfer.effectAllowed = "move"; });
+      list.addEventListener("dragend", function (e) { var li = e.target.closest(".sec"); if (li) li.classList.remove("dragging"); });
+      list.addEventListener("dragover", function (e) { if (dragFrom !== null) e.preventDefault(); });
+      list.addEventListener("drop", function (e) {
+        e.preventDefault();
+        var li = e.target.closest(".sec"); if (!li || dragFrom === null) return;
+        var to = +li.getAttribute("data-i"), moved = work.sections.splice(dragFrom, 1)[0];
+        work.sections.splice(to, 0, moved); dragFrom = null; draw();
+      });
+      main.onclick = async function (e) {
+        var t = e.target.closest("[data-toggle],[data-move],[data-open],[data-rmimg],#h-save,#h-preview,#h-publish,#h-discard");
+        if (!t) return;
+        if (t.hasAttribute("data-toggle")) { work.sections[+t.getAttribute("data-toggle")].enabled = t.checked; draw(); return; }
+        if (t.hasAttribute("data-move")) {
+          var i = +t.getAttribute("data-i"), j = i + +t.getAttribute("data-move"), m = work.sections.splice(i, 1)[0];
+          work.sections.splice(j, 0, m); draw(); return;
+        }
+        if (t.hasAttribute("data-open")) { openId = openId === t.getAttribute("data-open") ? null : t.getAttribute("data-open"); draw(); return; }
+        if (t.hasAttribute("data-rmimg")) { sec("images").images.splice(+t.getAttribute("data-rmimg").split(".")[1], 1); draw(); return; }
+        var missingAlt = work.sections.some(function (s) {
+          return s.enabled !== false && ((HOME_IMAGES[s.id] && s.image && s.image.src && !String(s.image.alt || "").trim()) ||
+            (s.id === "images" && (s.images || []).some(function (im) { return im.src && !String(im.alt || "").trim(); })));
+        });
+        if (t.id === "h-discard") {
+          if (!confirm("Discard the draft and go back to the published homepage?")) return;
+          var d = await sb.rpc("discard_site_draft", { p_key: "home" });
+          if (d.error) return fail(d.error);
+          M.toast("Draft discarded."); viewHomeEditor(); return;
+        }
+        if (missingAlt) { M.toast("Please describe every image for people who cannot see it before saving."); return; }
+        M.setBusy(t, true, "Saving");
+        var s1 = await sb.rpc("save_site_draft", { p_key: "home", p_content: work });
+        if (s1.error) { M.setBusy(t, false); return fail(s1.error); }
+        if (t.id === "h-preview") { window.open("/?preview=draft", "_blank", "noopener"); M.toast("Draft saved. The preview opened in a new tab."); }
+        if (t.id === "h-publish") {
+          if (!confirm("Publish this homepage? Visitors will see it straight away.")) { M.setBusy(t, false); viewHomeEditor(); return; }
+          var pb = await sb.rpc("publish_site_page", { p_key: "home" });
+          if (pb.error) { M.setBusy(t, false); return fail(pb.error); }
+          M.toast("Published. The homepage now shows version " + pb.data + ".");
+        } else if (t.id === "h-save") M.toast("Draft saved. Visitors still see the published homepage.");
+        viewHomeEditor();
+      };
+    }
+    draw();
+  }
+
+  async function viewFeatured() {
+    var f = await sb.from("featured_items").select("kind, item_id, position, pinned").order("position");
     if (f.error) throw f.error;
     var pa = await sb.from("public_artists").select("id, display_name, main_discipline, city, country").order("display_name");
     var pw = await sb.from("public_artworks").select("id, artist_id, title, year").order("approved_at", { ascending: false });
@@ -787,49 +1009,161 @@
     var byArtist = {}; artists.forEach(function (a) { byArtist[a.id] = a; });
     var byWork = {}; works.forEach(function (w) { byWork[w.id] = w; });
     var feat = f.data || [];
-    var fa = feat.filter(function (x) { return x.kind === "artist"; }), fw = feat.filter(function (x) { return x.kind === "artwork"; });
     var taken = {}; feat.forEach(function (x) { taken[x.kind + ":" + x.item_id] = true; });
 
-    function list(kind, items) {
-      if (!items.length) return '<div class="empty">Nothing featured yet.</div>';
-      return '<div class="list">' + items.map(function (x, i) {
+    function list(kind) {
+      var items = feat.filter(function (x) { return x.kind === kind; });
+      if (!items.length) return '<div class="empty">Nothing eligible yet. The homepage section stays hidden until something is.</div>';
+      return '<ol class="list sortable" data-kind="' + kind + '">' + items.map(function (x, i) {
         var label, sub, live = true;
         if (kind === "artist") { var a = byArtist[x.item_id]; live = !!a; label = a ? a.display_name : "No longer public"; sub = a ? [a.main_discipline, place(a)].filter(Boolean).join(" · ") : "Hidden from the homepage until it is public again"; }
         else { var w = byWork[x.item_id]; live = !!w; label = w ? (w.title || "Untitled") : "No longer public"; sub = w ? (byArtist[w.artist_id] || {}).display_name || "" : "Hidden from the homepage until it is public again"; }
-        return '<div class="lrow"><div class="lm"><b>' + (i + 1) + ". " + esc(label) + '</b><span class="muted small">' + esc(sub) + "</span></div>" +
-          '<div class="row" style="gap:6px">' + (live ? "" : '<span class="tag warn">Hidden</span>') +
-          (canEdit ? '<button class="btn line sm" type="button" data-move="-1" data-kind="' + kind + '" data-id="' + x.item_id + '"' + (i === 0 ? " disabled" : "") + ' aria-label="Move earlier">↑</button>' +
-          '<button class="btn line sm" type="button" data-move="1" data-kind="' + kind + '" data-id="' + x.item_id + '"' + (i === items.length - 1 ? " disabled" : "") + ' aria-label="Move later">↓</button>' +
-          '<button class="btn line sm" type="button" data-remove data-kind="' + kind + '" data-id="' + x.item_id + '">Remove</button>' : "") + "</div></div>";
-      }).join("") + "</div>";
+        return '<li class="lrow" draggable="' + canEdit + '" data-id="' + x.item_id + '"><div class="lm"><b>' + (canEdit ? '<span class="grip" aria-hidden="true">⋮⋮</span> ' : "") + esc(label) + '</b><span class="muted small">' + esc(sub) + "</span></div>" +
+          '<div class="row" style="gap:6px">' + (live ? "" : '<span class="tag warn">Hidden</span>') + (x.pinned ? '<span class="tag ok">Pinned</span>' : "") +
+          (canEdit ? '<button class="btn line sm" type="button" data-pin="' + (!x.pinned) + '" data-kind="' + kind + '" data-id="' + x.item_id + '">' + (x.pinned ? "Unpin" : "Pin") + "</button>" +
+            '<button class="btn line sm" type="button" data-move="-1" data-kind="' + kind + '" data-i="' + i + '"' + (i === 0 ? " disabled" : "") + ' aria-label="Move earlier">↑</button>' +
+            '<button class="btn line sm" type="button" data-move="1" data-kind="' + kind + '" data-i="' + i + '"' + (i === items.length - 1 ? " disabled" : "") + ' aria-label="Move later">↓</button>' +
+            '<button class="btn quiet sm" type="button" data-remove data-kind="' + kind + '" data-id="' + x.item_id + '">Remove</button>' : "") + "</div></li>";
+      }).join("") + "</ol>";
     }
     function picker(kind, options) {
       if (!canEdit) return "";
-      if (!options.length) return '<p class="small muted">' + (kind === "artist" ? "Every public artist is already featured, or no artist is public yet." : "Every public artwork is already featured, or no artwork is public yet.") + "</p>";
+      if (!options.length) return '<p class="small muted">' + (kind === "artist" ? "Every public artist is already eligible, or no artist is public yet." : "Every public artwork is already eligible, or no artwork is public yet.") + "</p>";
       return '<div class="row"><label class="visually-hidden" for="add-' + kind + '">Choose ' + kind + '</label><select class="inp" id="add-' + kind + '" style="width:auto;min-width:260px;flex:1">' +
         options.map(function (o) { return '<option value="' + o[0] + '">' + esc(o[1]) + "</option>"; }).join("") + "</select>" +
-        '<button class="btn sm" type="button" data-add="' + kind + '">Feature ' + kind + "</button></div>";
+        '<button class="btn sm" type="button" data-add="' + kind + '">Make eligible</button></div>';
     }
     main.innerHTML =
-      '<div class="head"><div><span class="eyebrow">Public website</span><h1>Homepage <em>selection</em></h1>' +
-      "<p>Choose the artists and artworks shown on the homepage, in this order. Only public artists and artworks can be chosen. If one stops being public, it disappears from the homepage by itself. The section is hidden while nothing is chosen.</p></div>" +
+      '<div class="head"><div><span class="eyebrow">Public website</span><h1>Featured <em>artists and artworks</em></h1>' +
+      "<p>Only approved, public artists and artworks can be made eligible. Pinned items always show first, in this order; the others fill the remaining places and rotate each day when rotation is on (set under Homepage). If an item stops being public, it disappears by itself.</p></div>" +
       '<div class="row"><a class="btn line sm" href="/" target="_blank" rel="noopener">Open the homepage</a></div></div>' +
-      '<section class="rblock"><h3>Featured artists · ' + fa.length + "</h3>" + list("artist", fa) +
+      websiteTabs("featured") +
+      '<section class="rblock"><h3>Eligible artists · ' + feat.filter(function (x) { return x.kind === "artist"; }).length + "</h3>" + list("artist") +
       picker("artist", artists.filter(function (a) { return !taken["artist:" + a.id]; }).map(function (a) { return [a.id, a.display_name + (a.main_discipline ? " · " + a.main_discipline : "")]; })) + "</section>" +
-      '<section class="rblock"><h3>Featured artworks · ' + fw.length + "</h3>" + list("artwork", fw) +
+      '<section class="rblock"><h3>Eligible artworks · ' + feat.filter(function (x) { return x.kind === "artwork"; }).length + "</h3>" + list("artwork") +
       picker("artwork", works.filter(function (w) { return !taken["artwork:" + w.id]; }).map(function (w) { return [w.id, (w.title || "Untitled") + " · " + ((byArtist[w.artist_id] || {}).display_name || "")]; })) + "</section>";
 
+    async function saveOrder(kind, ids) {
+      var r = await sb.rpc("set_featured_order", { p_kind: kind, p_ids: ids });
+      if (r.error) return fail(r.error);
+      viewFeatured();
+    }
+    function idsOf(kind) { return Array.prototype.map.call(main.querySelectorAll('.sortable[data-kind="' + kind + '"] > li'), function (li) { return li.getAttribute("data-id"); }); }
+    sortable(main.querySelectorAll(".sortable"), function (ol) { saveOrder(ol.getAttribute("data-kind"), idsOf(ol.getAttribute("data-kind"))); });
     main.onclick = async function (e) {
-      var b = e.target.closest("[data-move],[data-remove],[data-add]");
+      var b = e.target.closest("[data-move],[data-remove],[data-add],[data-pin]");
       if (!b || !main.contains(b) || b.disabled) return;
-      var kind = b.getAttribute("data-kind") || b.getAttribute("data-add");
-      var r;
+      var kind = b.getAttribute("data-kind") || b.getAttribute("data-add"), r;
+      if (b.hasAttribute("data-move")) {
+        var ids = idsOf(kind), i = +b.getAttribute("data-i"), j = i + +b.getAttribute("data-move"), m = ids.splice(i, 1)[0];
+        ids.splice(j, 0, m); return saveOrder(kind, ids);
+      }
       M.setBusy(b, true, "…");
       if (b.hasAttribute("data-add")) r = await sb.rpc("feature_item", { p_kind: kind, p_id: main.querySelector("#add-" + kind).value });
       else if (b.hasAttribute("data-remove")) r = await sb.rpc("unfeature_item", { p_kind: kind, p_id: b.getAttribute("data-id") });
-      else r = await sb.rpc("move_featured", { p_kind: kind, p_id: b.getAttribute("data-id"), p_dir: +b.getAttribute("data-move") });
+      else r = await sb.rpc("pin_featured", { p_kind: kind, p_id: b.getAttribute("data-id"), p_pinned: b.getAttribute("data-pin") === "true" });
       if (r.error) { M.setBusy(b, false); return fail(r.error); }
-      viewHomepage();
+      viewFeatured();
+    };
+  }
+
+  async function viewDirectoryOrder() {
+    var r = await sb.from("public_artists").select("id, display_name, main_discipline, city, country, directory_rank").order("display_name");
+    if (r.error) throw r.error;
+    var list = (r.data || []).sort(function (a, b) {
+      var x = a.directory_rank == null ? Infinity : a.directory_rank, y = b.directory_rank == null ? Infinity : b.directory_rank;
+      return x !== y ? (x < y ? -1 : 1) : String(a.display_name).localeCompare(b.display_name);
+    });
+    main.innerHTML =
+      '<div class="head"><div><span class="eyebrow">Public website</span><h1>Directory <em>order</em></h1>' +
+      "<p>The order in which artists first appear on the Artists page. Visitors can still search and filter. Drag artists into order, or use the arrows, then save. New artists appear after the ordered ones, by name, until you place them.</p></div>" +
+      '<div class="row"><a class="btn line sm" href="/artists" target="_blank" rel="noopener">Open the Artists page</a></div></div>' +
+      websiteTabs("directory") +
+      (list.length ? '<ol class="list sortable" id="dir-order">' + list.map(function (a, i) {
+        return '<li class="lrow" draggable="' + canEdit + '" data-id="' + a.id + '"><div class="lm"><b>' + (canEdit ? '<span class="grip" aria-hidden="true">⋮⋮</span> ' : "") + esc(a.display_name) + '</b><span class="muted small">' + esc([a.main_discipline, place(a)].filter(Boolean).join(" · ")) +
+          (a.directory_rank == null ? " · not placed yet" : "") + "</span></div>" +
+          (canEdit ? '<div class="row" style="gap:6px"><button class="btn line sm" type="button" data-move="-1" data-i="' + i + '"' + (i === 0 ? " disabled" : "") + ' aria-label="Move earlier">↑</button>' +
+            '<button class="btn line sm" type="button" data-move="1" data-i="' + i + '"' + (i === list.length - 1 ? " disabled" : "") + ' aria-label="Move later">↓</button></div>' : "") + "</li>";
+      }).join("") + "</ol>" + (canEdit ? '<div class="row" style="margin-top:12px"><button class="btn sm" type="button" id="dir-save">Save this order</button></div>' : "")
+        : '<div class="empty">No artist is public yet.</div>');
+    var ol = main.querySelector("#dir-order");
+    if (!ol) return;
+    sortable([ol], function () {});
+    main.onclick = async function (e) {
+      var b = e.target.closest("[data-move],#dir-save");
+      if (!b || b.disabled) return;
+      if (b.hasAttribute("data-move")) {
+        var li = b.closest("li"), sib = +b.getAttribute("data-move") < 0 ? li.previousElementSibling : li.nextElementSibling;
+        if (sib) { if (+b.getAttribute("data-move") < 0) ol.insertBefore(li, sib); else ol.insertBefore(sib, li); renumber(); }
+        return;
+      }
+      M.setBusy(b, true, "Saving");
+      var ids = Array.prototype.map.call(ol.children, function (x) { return x.getAttribute("data-id"); });
+      var x = await sb.rpc("set_directory_order", { p_ids: ids });
+      if (x.error) { M.setBusy(b, false); return fail(x.error); }
+      M.toast("Directory order saved."); viewDirectoryOrder();
+    };
+    function renumber() {
+      Array.prototype.forEach.call(ol.children, function (li, i, all) {
+        li.querySelectorAll("[data-move]").forEach(function (btn) { btn.setAttribute("data-i", i); btn.disabled = (+btn.getAttribute("data-move") < 0 && i === 0) || (+btn.getAttribute("data-move") > 0 && i === all.length - 1); });
+      });
+    }
+  }
+
+  // Drag and drop for ordered lists; the arrow buttons do the same for keyboards.
+  function sortable(lists, onDrop) {
+    Array.prototype.forEach.call(lists, function (ol) {
+      var dragging = null;
+      ol.addEventListener("dragstart", function (e) { var li = e.target.closest("li"); if (!li || li.getAttribute("draggable") !== "true") return; dragging = li; li.classList.add("dragging"); e.dataTransfer.effectAllowed = "move"; });
+      ol.addEventListener("dragover", function (e) {
+        if (!dragging) return;
+        e.preventDefault();
+        var li = e.target.closest("li");
+        if (!li || li === dragging || li.parentNode !== ol) return;
+        var r = li.getBoundingClientRect();
+        ol.insertBefore(dragging, e.clientY < r.top + r.height / 2 ? li : li.nextSibling);
+      });
+      ol.addEventListener("dragend", function () { if (!dragging) return; dragging.classList.remove("dragging"); dragging = null; onDrop(ol); });
+    });
+  }
+
+  /* ------------------------------------------------------------------ */
+  /* Requests from artists (Ask the team, in the studio)                 */
+  /* ------------------------------------------------------------------ */
+
+  var HELP_TOPIC = { profile: "Their profile", artworks: "Their artworks", inquiry: "An inquiry", collaboration: "A collaboration with another artist", other: "Something else" };
+
+  async function viewArtistRequests(q) {
+    var tab = q.get("tab") || "open";
+    var r = await sb.from("artist_requests").select("*").order("created_at", { ascending: false }).limit(2000);
+    if (r.error) throw r.error;
+    var all = r.data || [];
+    var names = await artistNames(uniq(all.map(function (x) { return x.artist_id; })));
+    var rows = all.filter(function (x) { return x.status === tab; });
+    main.innerHTML =
+      '<div class="head"><div><span class="eyebrow">Artists</span><h1>Artist <em>requests</em></h1>' +
+      "<p>Messages artists send from their studio with Ask the team: questions about their profile, artworks or an inquiry, and interest in collaborating with another artist. Reply by email, then mark the request as answered.</p></div></div>" +
+      '<div class="chips" role="group" aria-label="Which requests">' + [["open", "Open"], ["closed", "Answered"]].map(function (c) {
+        return '<button class="chip" type="button" data-f="tab" data-v="' + c[0] + '" aria-pressed="' + (tab === c[0]) + '">' + esc(c[1]) + " · " + all.filter(function (x) { return x.status === c[0]; }).length + "</button>";
+      }).join("") + "</div>" +
+      (rows.length ? '<div class="stack" style="gap:12px;margin-top:14px">' + rows.map(function (x) {
+        return '<article class="rblock"><div class="between"><h3 style="font-size:22px"><a class="link" href="#/artist/' + x.artist_id + '">' + esc(names[x.artist_id] || "Artist") + "</a></h3>" +
+          '<span class="muted small">' + esc(HELP_TOPIC[x.topic] || x.topic) + " · " + esc(M.fmtDate(x.created_at, true)) + "</span></div>" +
+          '<p class="prose">' + esc(x.message).replace(/\n/g, "<br>") + "</p>" +
+          (x.team_note ? '<div class="note"><span class="muted">Team note' + (x.handled_by ? " · " + esc(teamName(x.handled_by)) : "") + "</span>" + esc(x.team_note) + "</div>" : "") +
+          (canEdit ? '<div class="row">' + (x.status === "open"
+            ? '<input class="inp" style="flex:1;min-width:200px" placeholder="Internal note, optional" data-note="' + x.id + '" maxlength="2000"><button class="btn line sm" type="button" data-close-req="' + x.id + '">Mark as answered</button>'
+            : '<button class="btn line sm" type="button" data-open-req="' + x.id + '">Reopen</button>') + "</div>" : "") + "</article>";
+      }).join("") + "</div>" : '<div class="empty" style="margin-top:14px">' + (tab === "open" ? "No open requests." : "Nothing answered yet.") + "</div>");
+    hashFilters("artist-requests", q);
+    main.onclick = async function (e) {
+      var c = e.target.closest("[data-close-req]"), o = e.target.closest("[data-open-req]");
+      if (!c && !o) return;
+      var id = (c || o).getAttribute(c ? "data-close-req" : "data-open-req");
+      var note = c ? (main.querySelector('[data-note="' + id + '"]') || {}).value || "" : "";
+      var x = await sb.rpc("set_artist_request", { p_id: id, p_status: c ? "closed" : "open", p_note: note });
+      if (x.error) return fail(x.error);
+      M.toast(c ? "Marked as answered." : "Reopened."); route();
     };
   }
 
@@ -936,17 +1270,36 @@
   /* Sales: project requests, pipeline, matching, follow-ups, revenue    */
   /* ------------------------------------------------------------------ */
 
-  var PIPE = [["new", "New", "red"], ["contacted", "Contacted", "blue"], ["proposal_sent", "Proposal Sent", "blue"],
-    ["negotiation", "Negotiation", "warn"], ["confirmed", "Project Confirmed", "ok"], ["not_confirmed", "Not Confirmed", ""]];
+  var PIPE = [["new", "Received", "red"], ["in_review", "Under review", "blue"], ["contacted", "Coordinating artists", "blue"],
+    ["preparing_proposal", "Preparing proposal", "blue"], ["proposal_sent", "Proposal sent", "warn"], ["negotiation", "In discussion", "warn"],
+    ["confirmed", "Confirmed", "ok"], ["not_confirmed", "Not confirmed", ""]];
   var PROJECT_STATUS = {}; PIPE.forEach(function (p) { PROJECT_STATUS[p[0]] = [p[1], p[2]]; });
   var REASONS = [["budget", "Budget didn't fit"], ["timeline", "Timeline didn't fit"], ["changed_mind", "Client changed their mind"],
     ["no_response", "No response"], ["match", "Artist/artwork match unsuitable"], ["requirements", "Requirements changed"], ["other", "Other"]];
   var REASON_LABEL = {}; REASONS.forEach(function (r) { REASON_LABEL[r[0]] = r[1]; });
   var PAYMENT = [["not_recorded", "Not recorded"], ["not_due", "Not due yet"], ["awaiting", "Awaiting payment"], ["partly_paid", "Partly paid"], ["paid", "Paid in full"], ["not_applicable", "Not applicable"]];
   var PAYMENT_LABEL = {}; PAYMENT.forEach(function (p) { PAYMENT_LABEL[p[0]] = p[1]; });
-  var CLIENT_VIEW = { new: "received", confirmed: "confirmed", not_confirmed: "closed" };
+  var CLIENT_VIEW = { new: "received", in_review: "under_review", contacted: "finding_artists", preparing_proposal: "preparing_proposal",
+    proposal_sent: "proposal_ready", negotiation: "in_discussion", confirmed: "confirmed", not_confirmed: "closed" };
   function clientStatus(s) { return CLIENT_VIEW[s] || "in_discussion"; }
-  var CLIENT_LABEL = { received: "Received", in_discussion: "In discussion", confirmed: "Confirmed", closed: "Closed" };
+  var CLIENT_LABEL = { received: "Received", under_review: "Under review", finding_artists: "Contacting artists", preparing_proposal: "Preparing your proposal",
+    proposal_ready: "Proposal ready", in_discussion: "In discussion", confirmed: "Confirmed", closed: "Closed" };
+  var KINDS = {
+    commission: { view: "commissions", label: "Commission", plural: "Commissions",
+      intro: "Commission ideas sent from Discover & Commission by any member. Inquiries written directly to an artist are under Artist inquiries." },
+    collaboration: { view: "collaborations", label: "Collaboration", plural: "Collaborations",
+      intro: "Requests to bring chosen artists together. They come to the team, never directly to the artists: contact the artists, record their answers, then prepare a proposal." },
+    project: { view: "projects", label: "Project", plural: "Projects",
+      intro: "Project briefs from Professional and Business & Organization members, with nominated artists and supporting files." }
+  };
+  var KIND_OF_VIEW = { commissions: "commission", collaborations: "collaboration", projects: "project" };
+  var WAITING = { team: ["The team", "blue"], artist: ["An artist", "warn"], client: ["The client", "warn"], nobody: ["Nobody", ""] };
+  var ARTIST_STATE = {
+    nominated: ["Chosen by the client", "blue"], considered: ["Considered", ""], contacted: ["Contacted", "blue"],
+    available: ["Available", "ok"], unavailable: ["Unavailable", "warn"], declined: ["Declined", ""], recommended: ["Recommended", "ok"]
+  };
+  var PROPOSAL_STATUS = { draft: ["Draft, not sent", ""], sent: ["Sent, waiting for the client", "warn"], accepted: ["Accepted by the client", "ok"],
+    changes_requested: ["Client asked for changes", "red"], declined: ["Declined by the client", ""], withdrawn: ["Withdrawn or replaced", ""] };
   function clientName(p) { return p.client_organization ? p.client_organization + " (" + p.client_name + ")" : p.client_name; }
   function money(n, cur) {
     if (n === null || n === undefined || n === "") return "";
@@ -955,52 +1308,62 @@
   }
   function today() { var d = new Date(); return new Date(d.getTime() - d.getTimezoneOffset() * 60000).toISOString().slice(0, 10); }
   function salesPeople() { return cache.team.filter(function (m) { return m.active && (m.role === "founder" || m.role === "sales"); }); }
+  function requestTitle(p) { return p.kind === "collaboration" ? "Collaboration" : p.artwork_type; }
 
-  async function viewProjects(q) {
-    var status = q.get("status") || "", who = q.get("who") || "", country = q.get("country") || "";
+  async function viewProjects(q, kind) {
+    var K = KINDS[kind];
+    var status = q.get("status") || "", who = q.get("who") || "", country = q.get("country") || "", waiting = q.get("waiting") || "";
     var term = (q.get("q") || "").trim().toLowerCase(), sort = q.get("sort") || "new", page = Math.max(1, parseInt(q.get("page") || "1", 10));
-    var r = await sb.from("project_requests").select("*").order("created_at", { ascending: false }).limit(5000);
+    var r = await sb.from("project_requests").select("*").eq("kind", kind).order("created_at", { ascending: false }).limit(5000);
     if (r.error) throw r.error;
-    var all = r.data || [];
+    var all = r.data || [], t = today();
     var base = all.filter(function (p) {
       if (who === "mine" && p.assigned_to !== me.user.id) return false;
       if (who === "none" && p.assigned_to) return false;
+      if (waiting && p.waiting_on !== waiting) return false;
       if (country && (p.client_country || "Not recorded") !== country) return false;
-      return !term || [p.reference, p.client_name, p.client_organization, p.client_country, p.artwork_type, p.description, p.location].join(" ").toLowerCase().indexOf(term) !== -1;
+      return !term || [p.reference, p.client_name, p.client_organization, p.client_country, p.artwork_type, p.description, p.location, p.next_action].join(" ").toLowerCase().indexOf(term) !== -1;
     });
     var rows = base.filter(function (p) { return !status || p.status === status; });
     rows.sort(function (a, b) {
       if (sort === "old") return a.created_at < b.created_at ? -1 : 1;
       if (sort === "updated") return a.updated_at < b.updated_at ? 1 : -1;
+      if (sort === "due") return (a.next_action_due || "9999") < (b.next_action_due || "9999") ? -1 : 1;
       return a.created_at < b.created_at ? 1 : -1;
     });
     var per = 20, pages = Math.max(1, Math.ceil(rows.length / per));
     if (page > pages) page = pages;
     var shown = rows.slice((page - 1) * per, page * per);
     main.innerHTML =
-      '<div class="head"><div><span class="eyebrow">Sales</span><h1>Project requests</h1>' +
-      "<p>Requests from Professional and Business &amp; Organization members. Founders manage every project; sales team members manage the projects assigned to them.</p></div></div>" +
-      '<nav class="pipe" aria-label="Pipeline">' + PIPE.map(function (s) {
+      '<div class="head"><div><span class="eyebrow">Requests</span><h1>' + esc(K.plural) + "</h1><p>" + esc(K.intro) +
+      " Founders manage every request; sales team members manage the ones assigned to them.</p></div></div>" +
+      '<nav class="pipe" aria-label="Status">' + PIPE.map(function (s) {
         var n = base.filter(function (p) { return p.status === s[0]; }).length;
         return '<a href="#" data-f="status" data-v="' + (status === s[0] ? "" : s[0]) + '" aria-pressed="' + (status === s[0]) + '"><b>' + n + "</b>" + esc(s[1]) + "</a>";
       }).join("") + "</nav>" +
       '<div class="toolbar">' +
       '<label class="visually-hidden" for="f-who">Assignment</label><select class="inp" id="f-who" data-sel="who">' +
-      [["", "Everyone's projects"], ["mine", "Assigned to me"], ["none", "Unassigned"]].map(function (o) { return '<option value="' + o[0] + '"' + (who === o[0] ? " selected" : "") + ">" + esc(o[1]) + "</option>"; }).join("") + "</select>" +
+      [["", "Everyone's requests"], ["mine", "Assigned to me"], ["none", "Unassigned"]].map(function (o) { return '<option value="' + o[0] + '"' + (who === o[0] ? " selected" : "") + ">" + esc(o[1]) + "</option>"; }).join("") + "</select>" +
+      '<label class="visually-hidden" for="f-wait">Waiting on</label><select class="inp" id="f-wait" data-sel="waiting">' +
+      [["", "Waiting on anyone"], ["team", "Waiting on the team"], ["artist", "Waiting on an artist"], ["client", "Waiting on the client"]].map(function (o) { return '<option value="' + o[0] + '"' + (waiting === o[0] ? " selected" : "") + ">" + esc(o[1]) + "</option>"; }).join("") + "</select>" +
       '<label class="visually-hidden" for="f-country">Client country</label><select class="inp" id="f-country">' + countryOptions(all.map(function (p) { return p.client_country; }), country, "All countries") + "</select>" +
       '<label class="visually-hidden" for="f-sort">Sort</label><select class="inp" id="f-sort" data-sel="sort">' +
-      [["new", "Newest first"], ["old", "Oldest first"], ["updated", "Recently updated"]].map(function (o) { return '<option value="' + o[0] + '"' + (sort === o[0] ? " selected" : "") + ">" + esc(o[1]) + "</option>"; }).join("") + "</select>" +
-      '<label class="visually-hidden" for="search">Search projects</label><input class="inp search" id="search" type="search" placeholder="Search reference, client, artwork" value="' + esc(q.get("q") || "") + '"></div>' +
+      [["new", "Newest first"], ["old", "Oldest first"], ["updated", "Recently updated"], ["due", "Next action due"]].map(function (o) { return '<option value="' + o[0] + '"' + (sort === o[0] ? " selected" : "") + ">" + esc(o[1]) + "</option>"; }).join("") + "</select>" +
+      '<label class="visually-hidden" for="search">Search</label><input class="inp search" id="search" type="search" placeholder="Search reference, client, next action" value="' + esc(q.get("q") || "") + '"></div>' +
       (shown.length ? '<div class="list">' + shown.map(function (p) {
+        var late = p.next_action_due && p.next_action_due < t && ["confirmed", "not_confirmed"].indexOf(p.status) === -1;
         return '<a class="lrow" href="#/project/' + p.id + '"><div class="lm"><b>' + esc(p.reference) + " · " + esc(clientName(p)) + '</b><span class="muted small">' +
-          esc(p.artwork_type) + " · " + esc(ACCOUNT_LABEL[p.client_type]) + " · " + esc(p.client_country || "Country not recorded") + "</span></div>" +
-          '<div class="ls">' + tag(PROJECT_STATUS, p.status) + '<span class="muted small">' + (p.assigned_to ? esc(teamName(p.assigned_to)) : "Unassigned") + " · " + esc(M.fmtWhen(p.created_at)) + "</span></div></a>";
-      }).join("") + "</div>" : '<div class="empty">' + (all.length ? "No projects match these filters." : "No project requests yet. They arrive here when a Professional or Business member sends one from their account.") + "</div>") +
-      (pages > 1 ? '<div class="pager"><span class="muted">Page ' + page + " of " + pages + " · " + rows.length + " projects</span><span class=\"row\">" +
+          esc(requestTitle(p)) + " · " + esc(ACCOUNT_LABEL[p.client_type]) + " · " + esc(p.client_country || "Country not recorded") + "</span>" +
+          (p.next_action ? '<span class="small">Next: ' + esc(p.next_action) + (p.next_action_due ? " · due " + esc(M.fmtDate(p.next_action_due)) : "") + "</span>" : "") + "</div>" +
+          '<div class="ls">' + tag(PROJECT_STATUS, p.status) + (late ? '<span class="tag overdue">Overdue</span>' : "") +
+          (p.waiting_on && p.waiting_on !== "nobody" && ["confirmed", "not_confirmed"].indexOf(p.status) === -1 ? '<span class="muted small">Waiting on ' + esc(WAITING[p.waiting_on][0].toLowerCase()) + "</span>" : "") +
+          '<span class="muted small">' + (p.assigned_to ? esc(teamName(p.assigned_to)) : "Unassigned") + " · " + esc(M.fmtWhen(p.created_at)) + "</span></div></a>";
+      }).join("") + "</div>" : '<div class="empty">' + (all.length ? "No requests match these filters." : "No " + esc(K.plural.toLowerCase()) + " yet. They arrive here when a member sends one from the website.") + "</div>") +
+      (pages > 1 ? '<div class="pager"><span class="muted">Page ' + page + " of " + pages + " · " + rows.length + " requests</span><span class=\"row\">" +
         (page > 1 ? '<button class="btn line sm" type="button" data-f="page" data-v="' + (page - 1) + '">Previous</button>' : "") +
         (page < pages ? '<button class="btn line sm" type="button" data-f="page" data-v="' + (page + 1) + '">Next</button>' : "") + "</span></div>" : "");
     main.querySelectorAll(".pipe a").forEach(function (a) { a.addEventListener("click", function (e) { e.preventDefault(); }); });
-    hashFilters("projects", q);
+    hashFilters(K.view, q);
   }
 
   // Suggests public artists for a project from what is recorded: disciplines,
@@ -1029,8 +1392,13 @@
 
   var EVENT_LABEL = {
     created: "Request received", status: "Status changed", reopened: "Reopened", assigned: "Assignment changed",
-    artist_considered: "Artist considered", artist_recommended: "Artist recommended", artist_removed: "Artist removed from the list",
-    task_added: "Follow-up added", task_done: "Follow-up completed", task_reopened: "Follow-up reopened", task_deleted: "Follow-up deleted", money: "Value and revenue updated"
+    artist_nominated: "Artist chosen by the client", artist_considered: "Artist considered", artist_contacted: "Artist contacted",
+    artist_available: "Artist available", artist_unavailable: "Artist unavailable", artist_declined: "Artist declined",
+    artist_recommended: "Artist recommended", artist_removed: "Artist removed from the list",
+    task_added: "Follow-up added", task_done: "Follow-up completed", task_reopened: "Follow-up reopened", task_deleted: "Follow-up deleted", money: "Value and revenue updated",
+    next: "Next action updated", proposal_draft: "Proposal drafted", proposal_sent: "Proposal sent to the client", proposal_withdrawn: "Proposal withdrawn",
+    client_accepted: "Client accepted the proposal", client_changes_requested: "Client asked for changes", client_declined: "Client declined the proposal",
+    client_update: "Update shared with the client"
   };
   function eventText(e) {
     var d = e.detail || {};
@@ -1039,6 +1407,10 @@
     if (/^artist_/.test(e.kind)) return d.name || "";
     if (/^task_/.test(e.kind)) return d.title || "";
     if (e.kind === "money") return [d.payment_status ? "Payment: " + (PAYMENT_LABEL[d.payment_status] || d.payment_status) : ""].join("");
+    if (e.kind === "next") return [d.waiting_on ? "Waiting on " + (WAITING[d.waiting_on] || [d.waiting_on])[0].toLowerCase() : "", d.action, d.due ? "due " + d.due : ""].filter(Boolean).join(" · ");
+    if (/^proposal_|^client_(accepted|changes|declined)/.test(e.kind)) return (d.version ? "Proposal " + d.version : "") + (d.message ? ": " + d.message : "");
+    if (e.kind === "client_update") return d.text || "";
+    if (e.kind === "created") return d.artists ? d.artists + " artist" + (d.artists === 1 ? "" : "s") + " chosen" + (d.files ? ", " + d.files + " file" + (d.files === 1 ? "" : "s") : "") : "";
     return "";
   }
 
@@ -1046,65 +1418,116 @@
     var pr = await sb.from("project_requests").select("*").eq("id", id).maybeSingle();
     if (pr.error) throw pr.error;
     var p = pr.data;
-    if (!p) { main.innerHTML = '<div class="empty">This project could not be found. <a class="link" href="#/projects">Back to projects</a></div>'; return; }
+    if (!p) { main.innerHTML = '<div class="empty">This request could not be found. <a class="link" href="#/projects">Back to projects</a></div>'; return; }
+    var K = KINDS[p.kind] || KINDS.project;
+    markNav(K.view);
     var res = await Promise.all([
       sb.rpc("can_manage_project", { p_id: id }),
       sb.from("project_notes").select("*").eq("project_id", id).order("created_at", { ascending: true }),
       sb.from("project_artists").select("*").eq("project_id", id).order("updated_at", { ascending: false }),
       sb.from("project_tasks").select("*").eq("project_id", id).order("due_on", { ascending: true }),
-      sb.from("project_events").select("*").eq("project_id", id).order("at", { ascending: false }).limit(100),
+      sb.from("project_events").select("*").eq("project_id", id).order("at", { ascending: false }).limit(150),
       p.member_id ? sb.from("member_accounts").select("email, phone, professional_website, business_website").eq("id", p.member_id).maybeSingle() : Promise.resolve({ data: null }),
-      sb.from("public_artists").select("id, display_name, main_discipline, other_disciplines, techniques, country, city").order("display_name"),
-      sb.from("public_artworks").select("artist_id, materials")
+      sb.from("public_artists").select("id, display_name, main_discipline, other_disciplines, techniques, materials, country, city").order("display_name"),
+      sb.from("public_artworks").select("artist_id, materials"),
+      sb.from("project_proposals").select("*").eq("project_id", id).order("version", { ascending: false }),
+      sb.from("project_updates").select("*").eq("project_id", id).order("created_at", { ascending: false })
     ]);
     var manage = res[0].data === true, notes = res[1].data || [], chosen = res[2].data || [], tasks = res[3].data || [], events = res[4].data || [];
-    var contact = res[5].data, publicArtists = res[6].data || [], publicWorks = res[7].data || [];
+    var contact = res[5].data, publicArtists = res[6].data || [], publicWorks = res[7].data || [], proposals = res[8].data || [], updates = res[9].data || [];
     var chosenIds = chosen.map(function (c) { return c.artist_id; });
     var names = {}; publicArtists.forEach(function (a) { names[a.id] = a.display_name; });
     Object.assign(names, await artistNames(chosenIds.filter(function (i) { return !names[i]; })));
+    var isPublicArtist = {}; publicArtists.forEach(function (a) { isPublicArtist[a.id] = true; });
     var suggestions = matchArtists(p, publicArtists, publicWorks).filter(function (m) { return chosenIds.indexOf(m.artist.id) === -1; }).slice(0, 8);
     var others = publicArtists.filter(function (a) { return chosenIds.indexOf(a.id) === -1; });
+    var fileLinks = [];
+    if ((p.files || []).length) {
+      var fl = await sb.storage.from("request-files").createSignedUrls(p.files, 3600);
+      fileLinks = (fl.data || []).map(function (f, i) { return { url: f.signedUrl, name: String(p.files[i]).split("/").pop().replace(/^[a-z0-9]+-[a-z0-9]+-/, "") }; });
+    }
     var t = today();
     var assignee = p.assigned_to ? teamName(p.assigned_to) : "";
     var canClaim = !p.assigned_to && me.role === "sales";
+    var closed = ["confirmed", "not_confirmed"].indexOf(p.status) !== -1;
+    var draft = proposals.filter(function (x) { return x.status === "draft"; })[0];
+    var waitingAnswer = proposals.filter(function (x) { return x.status === "sent"; })[0];
 
     function field(label, v) { return v ? "<span>" + esc(label) + "</span><b>" + v + "</b>" : ""; }
     var dis = manage ? "" : " disabled";
 
+    function artistRow(c) {
+      var st = ARTIST_STATE[c.state] || [c.state, ""];
+      var facts = [c.price_note ? "Price: " + c.price_note : "", c.timeline_note ? "Timing: " + c.timeline_note : ""].filter(Boolean).join(" · ");
+      return '<div class="match"><div><b>' + esc(names[c.artist_id] || "Artist") + "</b> " + '<span class="tag ' + st[1] + '">' + esc(st[0]) + "</span>" +
+        (c.nominated_by_client && c.state !== "nominated" ? ' <span class="tag blue">Chosen by the client</span>' : "") +
+        (c.is_alternative ? ' <span class="tag">Alternative</span>' : "") +
+        (facts ? '<p class="small" style="margin-top:4px">' + esc(facts) + "</p>" : "") +
+        (c.response_note ? '<p class="small" style="margin-top:4px"><span class="muted">Artist\'s answer:</span> ' + esc(c.response_note) + "</p>" : "") +
+        (c.reason ? '<p class="small muted" style="margin-top:4px">Internal: ' + esc(c.reason) + "</p>" : "") + "</div>" +
+        '<div class="row" style="align-self:start">' + (isPublicArtist[c.artist_id] ? '<a class="link small" href="/artists/' + c.artist_id + '" target="_blank" rel="noopener">Profile</a>' : '<span class="small muted">No longer public</span>') +
+        (manage ? '<button class="btn line sm" type="button" data-edit-artist="' + c.artist_id + '">Update</button>' +
+          (c.nominated_by_client ? "" : '<button class="btn quiet sm" type="button" data-unartist="' + c.artist_id + '">Remove</button>') : "") + "</div></div>";
+    }
+
+    function proposalBlock(x) {
+      var st = PROPOSAL_STATUS[x.status] || [x.status, ""];
+      return '<div class="note"><div class="between"><b>Proposal ' + x.version + "</b>" + '<span class="tag ' + st[1] + '">' + esc(st[0]) + "</span></div>" +
+        '<p class="small muted">' + (x.sent_at ? "Sent " + esc(M.fmtDate(x.sent_at, true)) + (x.sent_by ? " by " + esc(teamName(x.sent_by)) : "") : "Prepared " + esc(M.fmtDate(x.created_at, true))) +
+        (x.decided_at ? " · answered " + esc(M.fmtDate(x.decided_at, true)) : "") + "</p>" +
+        '<p class="small">' + esc(x.creative_direction).slice(0, 400) + (x.creative_direction.length > 400 ? "…" : "") + "</p>" +
+        '<p class="small"><b>Artists:</b> ' + esc((x.artists || []).map(function (a) { return a.name; }).join(", ") || "none yet") +
+        " · <b>Budget:</b> " + esc(x.budget || "not set") + " · <b>Timeline:</b> " + esc(x.timeline || "not set") + "</p>" +
+        (x.client_response ? '<p class="small"><b>Client:</b> ' + esc(x.client_response) + "</p>" : "") +
+        (manage ? '<div class="row">' +
+          (x.status === "draft" ? '<button class="btn line sm" type="button" data-proposal="' + x.id + '">Edit draft</button><button class="btn sm" type="button" data-send="' + x.id + '">Send to the client</button><button class="btn quiet sm" type="button" data-delprop="' + x.id + '">Delete draft</button>' : "") +
+          (x.status === "sent" ? '<button class="btn line sm" type="button" data-withdraw="' + x.id + '">Withdraw</button>' : "") + "</div>" : "") +
+        "</div>";
+    }
+
     main.innerHTML =
-      '<a class="link small" href="#/projects">Back to projects</a>' +
-      '<div class="head"><div><span class="eyebrow">' + esc(p.reference) + " · received " + esc(M.fmtDate(p.created_at, true)) + "</span>" +
-      "<h1>" + esc(p.client_organization || p.client_name) + "</h1><p>" + esc(p.artwork_type) + "</p></div>" +
+      '<a class="link small" href="#/' + K.view + '">Back to ' + esc(K.plural.toLowerCase()) + "</a>" +
+      '<div class="head"><div><span class="eyebrow">' + esc(K.label) + " · " + esc(p.reference) + " · received " + esc(M.fmtDate(p.created_at, true)) + "</span>" +
+      "<h1>" + esc(p.client_organization || p.client_name) + "</h1><p>" + esc(requestTitle(p)) + "</p></div>" +
       '<div class="row">' + tag(PROJECT_STATUS, p.status) + "</div></div>" +
-      (!manage ? '<div class="notice">' + (canClaim ? "Nobody is working on this project yet. Take it to manage it." : "You can read this project and add notes. Founders and the assigned team member can change it.") + "</div>" : "") +
+      (!manage ? '<div class="notice">' + (canClaim ? "Nobody is working on this request yet. Take it to manage it." : "You can read this request and add notes. Founders and the assigned team member can change it.") + "</div>" : "") +
+      (proposals.some(function (x) { return x.status === "changes_requested" || x.status === "declined"; }) && !waitingAnswer && !draft && !closed ? '<div class="notice warn">The client answered the last proposal. Read their message below and prepare a revised proposal, suggest alternatives, or close the request.</div>' : "") +
       '<div class="rgrid"><div class="stack">' +
 
       '<section class="rblock"><h3>The request</h3><p class="prose">' + esc(p.description) + '</p><div class="kv">' +
-      field("Type of artwork", esc(p.artwork_type)) +
-      field("Estimated budget", p.budget_undecided ? "Not decided yet" : esc(p.budget)) +
-      field("Timeline", p.timeline_undecided ? "Not decided yet" : esc(p.timeline)) +
-      field("Location", esc(p.location)) + field("Quantity and dimensions", esc(p.quantity_dims)) + field("Style and references", esc(p.style_refs)) +
+      (p.kind !== "collaboration" ? field(p.kind === "project" ? "Project type or space" : "Type of artwork", esc(p.artwork_type)) : "") +
+      field("Purpose", esc(p.purpose)) + field("Disciplines or materials", esc(p.disciplines_wanted)) +
+      field("Budget", p.budget_undecided ? "Not decided yet" : esc(p.budget)) +
+      field("Timing", p.timeline_undecided ? "Not decided yet" : esc(p.timeline)) +
+      field("Location", esc(p.location)) + field("Quantity and dimensions", esc(p.quantity_dims)) + field("Inspiration", esc(p.style_refs)) +
+      (fileLinks.length ? field("Files", fileLinks.map(function (f) { return f.url ? '<a class="link" href="' + esc(f.url) + '" target="_blank" rel="noopener">' + esc(f.name) + "</a>" : esc(f.name); }).join("<br>")) : "") +
       "</div></section>" +
 
-      '<section class="rblock"><div class="between"><h3>Artists</h3><span class="small muted">Internal. Nothing here is sent to the client.</span></div>' +
-      (chosen.length ? chosen.map(function (c) {
-        return '<div class="match"><div><b>' + esc(names[c.artist_id] || "Artist") + "</b> " + (c.state === "recommended" ? '<span class="tag ok">Recommended</span>' : '<span class="tag">Considered</span>') +
-          (c.reason ? '<p class="small" style="margin-top:4px">' + esc(c.reason) + "</p>" : "") + "</div>" +
-          '<div class="row" style="align-self:start">' + (names[c.artist_id] && publicArtists.some(function (a) { return a.id === c.artist_id; }) ? '<a class="link small" href="/artists/' + c.artist_id + '" target="_blank" rel="noopener">Profile</a>' : '<span class="small muted">No longer public</span>') +
-          (manage ? '<button class="btn line sm" type="button" data-artist="' + c.artist_id + '" data-state="' + (c.state === "recommended" ? "considered" : "recommended") + '" data-reason="' + esc(c.reason) + '">' + (c.state === "recommended" ? "Mark as considered" : "Recommend") + "</button>" +
-            '<button class="btn quiet sm" type="button" data-unartist="' + c.artist_id + '">Remove</button>' : "") + "</div></div>";
-      }).join("") : '<p class="small muted">No artists recorded yet.</p>') +
-      '<h4 style="margin:10px 0 0;font-size:14px">Possible matches</h4><p class="small muted">From approved, public profiles only, based on recorded disciplines, techniques, artwork materials and country.</p>' +
+      '<section class="rblock"><div class="between"><h3>Artists</h3><span class="small muted">Availability, pricing and answers are internal until you put them in a proposal.</span></div>' +
+      (chosen.length ? chosen.map(artistRow).join("") : '<p class="small muted">No artists recorded yet.</p>') +
+      '<h4 style="margin:10px 0 0;font-size:14px">Possible matches</h4><p class="small muted">From approved, public profiles only, based on recorded disciplines, techniques, materials and country.</p>' +
       (suggestions.length ? suggestions.map(function (m) {
         var a = m.artist;
         return '<div class="match"><div><b>' + esc(a.display_name) + '</b> <span class="small muted">' + esc([a.main_discipline, place(a)].filter(Boolean).join(" · ")) + "</span>" +
           '<div class="why">' + m.why.map(function (w) { return "<span>" + esc(w) + "</span>"; }).join("") + "</div></div>" +
           '<div class="row" style="align-self:start"><a class="link small" href="/artists/' + a.id + '" target="_blank" rel="noopener">Profile</a>' +
-          (manage ? '<button class="btn line sm" type="button" data-artist="' + a.id + '" data-state="considered" data-reason="' + esc(m.why.join("; ")) + '">Consider</button>' : "") + "</div></div>";
+          (manage ? '<button class="btn line sm" type="button" data-add-artist="' + a.id + '" data-reason="' + esc(m.why.join("; ")) + '">Add</button>' : "") + "</div></div>";
       }).join("") : '<p class="small muted">No public artist matches the words in this request. You can still choose one below.</p>') +
       (manage && others.length ? '<div class="row"><label class="visually-hidden" for="pick-artist">Choose a public artist</label><select class="inp" id="pick-artist" style="width:auto;flex:1;min-width:220px">' +
         others.map(function (a) { return '<option value="' + a.id + '">' + esc(a.display_name + (a.main_discipline ? " · " + a.main_discipline : "")) + "</option>"; }).join("") +
-        '</select><button class="btn line sm" type="button" id="b-pick">Consider this artist</button></div>' : "") +
+        '</select><button class="btn line sm" type="button" id="b-pick">Add this artist</button></div>' : "") +
+      "</section>" +
+
+      '<section class="rblock"><div class="between"><h3>Proposals</h3><span class="small muted">Drafts stay internal. The client sees a proposal once it is sent.</span></div>' +
+      (proposals.length ? proposals.map(proposalBlock).join("") : '<p class="small muted">No proposal yet.</p>') +
+      (manage && !draft && !closed ? '<div class="row"><button class="btn line sm" type="button" data-proposal="new">' + (proposals.length ? "Prepare a revised proposal" : "Prepare a proposal") + "</button></div>" : "") +
+      "</section>" +
+
+      '<section class="rblock"><h3>Updates shared with the client</h3><p class="small muted">The client reads these in their account. Use them at meaningful steps, or when you need their input. Never paste internal notes here.</p>' +
+      (updates.map(function (u) { return '<div class="note"><span class="muted">' + esc(teamName(u.created_by) || "Team") + " · " + esc(M.fmtDate(u.created_at, true)) + "</span>" + esc(u.body).replace(/\n/g, "<br>") + "</div>"; }).join("") || '<p class="small muted">Nothing shared yet.</p>') +
+      (manage && p.member_id ? '<label class="f">New update<textarea class="inp" id="upd" rows="3" maxlength="2000" placeholder="For example: Two of the artists you chose are available in March. We are preparing your proposal."></textarea></label>' +
+        '<label class="row small" style="font-weight:500"><input type="checkbox" id="upd-mail" checked> Also email it to the client</label>' +
+        '<div><button class="btn line sm" type="button" id="b-upd">Share with the client</button></div>' : "") +
       "</section>" +
 
       '<section class="rblock"><h3>Follow-ups</h3>' +
@@ -1116,7 +1539,7 @@
           (can ? '<button class="btn line sm" type="button" data-task="' + k.id + '" data-done="' + (!k.done) + '">' + (k.done ? "Reopen" : "Mark done") + "</button>" : "") +
           (manage ? '<button class="btn quiet sm" type="button" data-deltask="' + k.id + '" aria-label="Delete follow-up">Delete</button>' : "") + "</div></div>";
       }).join("") + "</div>" : '<p class="small muted">No follow-ups yet.</p>') +
-      (manage ? '<form class="stack" id="task-form" novalidate style="gap:10px"><div class="grid2"><label class="f">Follow-up<input class="inp" name="title" maxlength="200" placeholder="For example: send the proposal"></label>' +
+      (manage ? '<form class="stack" id="task-form" novalidate style="gap:10px"><div class="grid2"><label class="f">Follow-up<input class="inp" name="title" maxlength="200" placeholder="For example: call the artist about timing"></label>' +
         '<label class="f">Due date<input class="inp" name="due" type="date" value="' + t + '"></label></div>' +
         '<div class="grid2"><label class="f">Assigned to<select class="inp" name="assignee">' + salesPeople().map(function (m) { return '<option value="' + m.user_id + '"' + (m.user_id === (p.assigned_to || me.user.id) ? " selected" : "") + ">" + esc(m.name) + "</option>"; }).join("") + "</select></label>" +
         '<label class="f"><span>Notes <span class="opt">optional</span></span><input class="inp" name="notes" maxlength="2000"></label></div>' +
@@ -1127,7 +1550,7 @@
       '<form class="money" id="money" novalidate>' +
       '<label class="f">Currency<input class="inp" name="currency" maxlength="3" list="currencies" autocapitalize="characters" value="' + esc(p.currency) + '"' + dis + '></label>' +
       '<label class="f">Estimated project value <span class="hint">The client\'s budget for the whole project.</span><input class="inp" name="estimated_value" inputmode="decimal" value="' + esc(p.estimated_value == null ? "" : p.estimated_value) + '"' + dis + "></label>" +
-      '<label class="f full">Agreed M.E.E.T. fee or commission <span class="hint">As agreed with the client or artist, for example "10% of the artwork price" or "USD 3,000".</span><input class="inp" name="fee_terms" maxlength="300" value="' + esc(p.fee_terms) + '"' + dis + "></label>" +
+      '<label class="f full">Agreed M.E.E.T. fee or commission <span class="hint">As agreed in writing with the client or artist.</span><input class="inp" name="fee_terms" maxlength="300" value="' + esc(p.fee_terms) + '"' + dis + "></label>" +
       '<label class="f">Final project value <span class="hint">Once confirmed.</span><input class="inp" name="final_value" inputmode="decimal" value="' + esc(p.final_value == null ? "" : p.final_value) + '"' + (manage && p.status === "confirmed" ? "" : " disabled") + "></label>" +
       '<label class="f">Final M.E.E.T. revenue <span class="hint">What M.E.E.T. earns. Once confirmed.</span><input class="inp" name="final_revenue" inputmode="decimal" value="' + esc(p.final_revenue == null ? "" : p.final_revenue) + '"' + (manage && p.status === "confirmed" ? "" : " disabled") + "></label>" +
       '<label class="f">Payment status <span class="hint">Recorded by hand.</span><select class="inp" name="payment_status"' + dis + ">" + PAYMENT.map(function (o) { return '<option value="' + o[0] + '"' + (p.payment_status === o[0] ? " selected" : "") + ">" + esc(o[1]) + "</option>"; }).join("") + "</select></label>" +
@@ -1141,15 +1564,22 @@
       "</div>" +
 
       '<aside class="raside">' +
-      '<div class="panel stack" style="gap:10px"><h3 style="font-size:22px">Pipeline</h3>' + tag(PROJECT_STATUS, p.status) +
+      '<div class="panel stack" style="gap:10px"><h3 style="font-size:22px">Status</h3>' + tag(PROJECT_STATUS, p.status) +
       (p.status === "not_confirmed" && p.not_confirmed_reason ? '<p class="small">Reason: ' + esc(REASON_LABEL[p.not_confirmed_reason]) + (p.not_confirmed_note ? ". " + esc(p.not_confirmed_note) : "") + "</p>" : "") +
       '<p class="small muted">The client sees: ' + esc(CLIENT_LABEL[clientStatus(p.status)]) + ".</p>" +
       (manage ? '<button class="btn sm" type="button" id="b-status">' + (p.status === "not_confirmed" ? "Reopen or change status" : "Change status") + "</button>" : "") + "</div>" +
+      '<div class="panel stack" style="gap:10px"><h3 style="font-size:22px">Next action</h3>' +
+      '<label class="f">Waiting on<select class="inp" id="nx-wait"' + dis + ">" + Object.keys(WAITING).map(function (k) { return '<option value="' + k + '"' + (p.waiting_on === k ? " selected" : "") + ">" + esc(WAITING[k][0]) + "</option>"; }).join("") + "</select></label>" +
+      '<label class="f">Next action<input class="inp" id="nx-action" maxlength="300" value="' + esc(p.next_action) + '"' + dis + ' placeholder="For example: confirm prices with both artists"></label>' +
+      '<label class="f">Due<input class="inp" id="nx-due" type="date" value="' + esc(p.next_action_due || "") + '"' + dis + "></label>" +
+      (p.next_action_due && p.next_action_due < t && !closed ? '<span class="tag overdue">Overdue</span>' : "") +
+      (manage ? '<div><button class="btn line sm" type="button" id="b-next">Save next action</button></div>' : "") + "</div>" +
       '<div class="panel stack" style="gap:10px"><h3 style="font-size:22px">Responsible</h3>' +
       "<p>" + (assignee ? "<b>" + esc(assignee) + "</b>" + (p.assigned_to === me.user.id ? " (you)" : "") : '<span class="muted">Nobody yet</span>') + "</p>" +
+      '<p class="small muted">The client sees the first name of the person responsible as their point of contact.</p>' +
       (me.role === "founder" ? '<label class="visually-hidden" for="assign">Assign to</label><select class="inp" id="assign"><option value="">Unassigned</option>' +
         salesPeople().map(function (m) { return '<option value="' + m.user_id + '"' + (p.assigned_to === m.user_id ? " selected" : "") + ">" + esc(m.name) + "</option>"; }).join("") + "</select>"
-        : canClaim ? '<button class="btn line sm" type="button" id="b-claim">Take this project</button>' : "") + "</div>" +
+        : canClaim ? '<button class="btn line sm" type="button" id="b-claim">Take this request</button>' : "") + "</div>" +
       '<div class="panel stack" style="gap:10px"><h3 style="font-size:22px">Client</h3><div class="kv">' +
       field("Name", esc(p.client_name)) + field(p.client_type === "business" ? "Organization" : "Company or studio", esc(p.client_organization)) +
       field("Account type", esc(ACCOUNT_LABEL[p.client_type])) + field("Country", esc(p.client_country || "Not recorded")) +
@@ -1159,23 +1589,43 @@
       (events.map(function (e) { return "<div><b>" + esc(EVENT_LABEL[e.kind] || e.kind) + "</b>" + (eventText(e) ? "<br>" + esc(eventText(e)) : "") + '<br><span class="muted small">' + esc(e.actor_name || "Client") + " · " + esc(M.fmtDate(e.at, true)) + "</span></div>"; }).join("") || '<p class="small muted">No history yet.</p>') +
       "</div></div></aside></div>";
 
-    function reload() { viewProject(id); renderNav("projects"); }
+    function reload() { viewProject(id); renderNav(K.view).then(function () { markNav(K.view); }); }
     async function call(fn, args, done) { var r = await sb.rpc(fn, args); if (r.error) { fail(r.error); return false; } if (done) M.toast(done); reload(); return true; }
+    var candidates = chosen.filter(function (c) { return isPublicArtist[c.artist_id]; }).map(function (c) { return { id: c.artist_id, name: names[c.artist_id], state: c.state, price: c.price_note }; });
 
     var assign = main.querySelector("#assign");
     if (assign) assign.addEventListener("change", function () { call("assign_project", { p_id: id, p_user: assign.value || null }, "Assignment updated."); });
     var claim = main.querySelector("#b-claim");
-    if (claim) claim.addEventListener("click", function () { call("assign_project", { p_id: id, p_user: me.user.id }, "This project is now yours."); });
+    if (claim) claim.addEventListener("click", function () { call("assign_project", { p_id: id, p_user: me.user.id }, "This request is now yours."); });
     var bs = main.querySelector("#b-status");
     if (bs) bs.addEventListener("click", function () { openProjectStatus(p, reload); });
+    var bn = main.querySelector("#b-next");
+    if (bn) bn.addEventListener("click", function () {
+      M.setBusy(bn, true, "Saving");
+      call("set_project_next", { p_id: id, p_waiting: main.querySelector("#nx-wait").value, p_action: main.querySelector("#nx-action").value, p_due: main.querySelector("#nx-due").value || null }, "Next action saved.")
+        .then(function (ok) { if (!ok) M.setBusy(bn, false); });
+    });
     main.querySelector("#b-note").addEventListener("click", async function () {
       var body = main.querySelector("#note").value.trim();
       if (!body) { M.toast("Write a note first."); return; }
       M.setBusy(this, true, "Saving");
       if (!(await call("add_project_note", { p_id: id, p_body: body }, "Note saved."))) M.setBusy(this, false);
     });
+    var bu = main.querySelector("#b-upd");
+    if (bu) bu.addEventListener("click", async function () {
+      var body = main.querySelector("#upd").value.trim();
+      if (body.length < 5) { M.toast("Write the update first."); return; }
+      M.setBusy(bu, true, "Sharing");
+      try {
+        var r = await M.api("request-team", { action: "post_update", id: id, body: body, notify: main.querySelector("#upd-mail").checked });
+        M.toast(r.emailed ? "Update shared and emailed to the client." : "Update shared in the client's account."); reload();
+      } catch (ex) { M.setBusy(bu, false); fail(ex); }
+    });
     var pick = main.querySelector("#b-pick");
-    if (pick) pick.addEventListener("click", function () { openArtistReason(id, main.querySelector("#pick-artist").value, names[main.querySelector("#pick-artist").value] || publicArtists.filter(function (a) { return a.id === main.querySelector("#pick-artist").value; })[0].display_name, "considered", "", reload); });
+    if (pick) pick.addEventListener("click", function () {
+      var aid = main.querySelector("#pick-artist").value;
+      openArtistUpdate(id, aid, names[aid] || "this artist", null, "", reload);
+    });
     var tf = main.querySelector("#task-form");
     if (tf) tf.addEventListener("submit", async function (e) {
       e.preventDefault();
@@ -1194,29 +1644,110 @@
       if (r.error) { err.textContent = M.friendlyError(r.error); err.hidden = false; return; }
       M.toast("Value and revenue saved."); reload();
     });
-    main.onclick = function (e) {
-      var a = e.target.closest("[data-artist]"), u = e.target.closest("[data-unartist]"), k = e.target.closest("[data-task]"), d = e.target.closest("[data-deltask]");
-      if (a) openArtistReason(id, a.getAttribute("data-artist"), names[a.getAttribute("data-artist")] || "this artist", a.getAttribute("data-state"), a.getAttribute("data-reason") || "", reload);
+    main.onclick = async function (e) {
+      var ea = e.target.closest("[data-edit-artist]"), aa = e.target.closest("[data-add-artist]"), u = e.target.closest("[data-unartist]");
+      var k = e.target.closest("[data-task]"), d = e.target.closest("[data-deltask]");
+      var pp = e.target.closest("[data-proposal]"), sp = e.target.closest("[data-send]"), wp = e.target.closest("[data-withdraw]"), dp = e.target.closest("[data-delprop]");
+      if (ea) { var row = chosen.filter(function (c) { return c.artist_id === ea.getAttribute("data-edit-artist"); })[0]; openArtistUpdate(id, row.artist_id, names[row.artist_id] || "this artist", row, "", reload); }
+      if (aa) openArtistUpdate(id, aa.getAttribute("data-add-artist"), names[aa.getAttribute("data-add-artist")] || "this artist", null, aa.getAttribute("data-reason") || "", reload);
       if (u) call("remove_project_artist", { p_id: id, p_artist: u.getAttribute("data-unartist") }, "Removed from the list.");
       if (k) call("set_project_task_done", { p_task: k.getAttribute("data-task"), p_done: k.getAttribute("data-done") === "true" }, "Follow-up updated.");
       if (d && confirm("Delete this follow-up?")) call("delete_project_task", { p_task: d.getAttribute("data-deltask") }, "Follow-up deleted.");
+      if (pp) {
+        var pid = pp.getAttribute("data-proposal");
+        var existing = pid === "new" ? null : proposals.filter(function (x) { return x.id === pid; })[0];
+        openProposal(p, existing, existing ? null : proposals[0] || null, candidates, publicArtists, reload);
+      }
+      if (sp && confirm("Send this proposal to the client? They will be emailed and can accept it, ask for changes or decline it in their account.")) {
+        M.setBusy(sp, true, "Sending");
+        try { var r = await M.api("request-team", { action: "send_proposal", id: sp.getAttribute("data-send") }); M.toast(r.emailed ? "Proposal sent and the client was emailed." : "Proposal sent. The email could not be delivered; please tell the client."); reload(); }
+        catch (ex) { M.setBusy(sp, false); fail(ex); }
+      }
+      if (wp && confirm("Withdraw this proposal? The client will no longer be able to accept it.")) call("withdraw_proposal", { p_id: wp.getAttribute("data-withdraw") }, "Proposal withdrawn.");
+      if (dp && confirm("Delete this draft?")) call("delete_proposal_draft", { p_id: dp.getAttribute("data-delprop") }, "Draft deleted.");
     };
   }
 
-  function openArtistReason(projectId, artistId, name, state, reason, done) {
+  // Record an artist on the request: their state, what they answered about
+  // availability, price and timing, whether they are an alternative, and why.
+  function openArtistUpdate(projectId, artistId, name, row, reason, done) {
+    var r = row || { state: "considered", reason: reason, price_note: "", timeline_note: "", response_note: "", is_alternative: false };
+    var states = Object.keys(ARTIST_STATE).filter(function (s) { return s !== "nominated" || (row && row.state === "nominated"); });
     M.modal(
-      "<h2>" + (state === "recommended" ? "Recommend" : "Consider") + " <em>" + esc(name) + "</em></h2>" +
-      '<p class="muted">Why is this artist a good match? This stays internal: nothing is sent to the client until the team decides to share it.</p>' +
-      '<label class="f">Reason<textarea class="inp" id="m-why" rows="4" maxlength="2000">' + esc(reason) + "</textarea></label>" +
+      "<h2>" + esc(name) + "</h2>" +
+      '<p class="muted">Internal record. Nothing here is shown to the client until you include it in a proposal or an update.</p>' +
+      '<label class="f">Where things stand<select class="inp" id="m-state">' + states.map(function (s) { return '<option value="' + s + '"' + (r.state === s ? " selected" : "") + ">" + esc(ARTIST_STATE[s][0]) + "</option>"; }).join("") + "</select></label>" +
+      '<div class="grid2"><label class="f"><span>Price <span class="opt">as the artist quoted</span></span><input class="inp" id="m-price" maxlength="300" value="' + esc(r.price_note) + '"></label>' +
+      '<label class="f"><span>Timing <span class="opt">as the artist said</span></span><input class="inp" id="m-time" maxlength="300" value="' + esc(r.timeline_note) + '"></label></div>' +
+      '<label class="f"><span>The artist\'s answer <span class="opt">optional</span></span><textarea class="inp" id="m-resp" rows="3" maxlength="2000">' + esc(r.response_note) + "</textarea></label>" +
+      '<label class="row small" style="font-weight:500"><input type="checkbox" id="m-alt"' + (r.is_alternative ? " checked" : "") + "> Suggested as an alternative to the client's choice</label>" +
+      '<label class="f"><span>Why this artist <span class="opt">internal</span></span><textarea class="inp" id="m-why" rows="3" maxlength="2000">' + esc(r.reason) + "</textarea></label>" +
       '<p class="err" id="m-err" hidden></p><div class="row"><button class="btn" type="button" id="m-go">Save</button><button class="btn line" type="button" data-close>Cancel</button></div>',
       function (box, close) {
         box.querySelector("#m-go").addEventListener("click", async function () {
-          var why = box.querySelector("#m-why").value.trim(), err = box.querySelector("#m-err");
-          if (why.length < 3) { err.textContent = "Please write why this artist could be a good match."; err.hidden = false; return; }
+          var err = box.querySelector("#m-err");
           M.setBusy(this, true, "Saving");
-          var r = await sb.rpc("set_project_artist", { p_id: projectId, p_artist: artistId, p_state: state, p_reason: why });
-          if (r.error) { M.setBusy(this, false); err.textContent = M.friendlyError(r.error); err.hidden = false; return; }
-          close(); M.toast(state === "recommended" ? "Artist recommended." : "Artist added as considered."); done();
+          var x = await sb.rpc("update_project_artist", { p_id: projectId, p_artist: artistId, p: {
+            state: box.querySelector("#m-state").value, price_note: box.querySelector("#m-price").value, timeline_note: box.querySelector("#m-time").value,
+            response_note: box.querySelector("#m-resp").value, is_alternative: box.querySelector("#m-alt").checked, reason: box.querySelector("#m-why").value } });
+          if (x.error) { M.setBusy(this, false); err.textContent = M.friendlyError(x.error); err.hidden = false; return; }
+          close(); M.toast("Artist updated."); done();
+        });
+      });
+  }
+
+  // Prepare or edit a proposal draft: creative direction, each artist's
+  // contribution, materials and estimated price, budget, timeline, message.
+  function openProposal(p, existing, previous, candidates, publicArtists, done) {
+    var src = existing || previous || {};
+    var rows = (src.artists || []).map(function (a) { return { id: a.artist_id, name: a.name, contribution: a.contribution, materials: a.materials, price: a.price }; });
+    if (!rows.length) candidates.filter(function (c) { return ["available", "recommended", "nominated"].indexOf(c.state) !== -1; })
+      .forEach(function (c) { rows.push({ id: c.id, name: c.name, contribution: "", materials: "", price: c.price || "" }); });
+    function rowHtml(a, i) {
+      return '<div class="prop-artist" data-i="' + i + '"><div class="between"><b>' + esc(a.name) + '</b><button class="btn quiet sm" type="button" data-rm="' + i + '">Remove</button></div>' +
+        '<label class="f">Contribution<textarea class="inp" data-k="contribution" rows="2" maxlength="1000">' + esc(a.contribution || "") + "</textarea></label>" +
+        '<div class="grid2"><label class="f">Materials or techniques<input class="inp" data-k="materials" maxlength="300" value="' + esc(a.materials || "") + '"></label>' +
+        '<label class="f">Estimated price <span class="opt">optional</span><input class="inp" data-k="price" maxlength="200" value="' + esc(a.price || "") + '"></label></div></div>';
+    }
+    M.modal(
+      "<h2>" + (existing ? "Proposal " + existing.version : "New proposal") + " <em>draft</em></h2>" +
+      '<p class="muted">' + esc(p.reference) + " · " + esc(p.client_organization || p.client_name) + ". Saved as a draft: the client sees it only after you press Send.</p>" +
+      '<label class="f">Creative direction<textarea class="inp" id="pr-dir" rows="5" maxlength="4000">' + esc(src.creative_direction || "") + "</textarea></label>" +
+      '<h3 style="font-size:18px;margin:6px 0 0">Artists and their contribution</h3><div id="pr-artists" class="stack" style="gap:10px"></div>' +
+      '<div class="row"><label class="visually-hidden" for="pr-add">Add an artist</label><select class="inp" id="pr-add" style="flex:1;width:auto">' +
+      publicArtists.map(function (a) { return '<option value="' + a.id + '">' + esc(a.display_name) + "</option>"; }).join("") + '</select><button class="btn line sm" type="button" id="pr-add-b">Add artist</button></div>' +
+      '<div class="grid2"><label class="f">Estimated budget<input class="inp" id="pr-budget" maxlength="500" value="' + esc(src.budget || "") + '" placeholder="For example: USD 8,000 to 10,000"></label>' +
+      '<label class="f">Timeline<input class="inp" id="pr-time" maxlength="500" value="' + esc(src.timeline || "") + '" placeholder="For example: 10 to 12 weeks from confirmation"></label></div>' +
+      '<label class="f"><span>Message to the client <span class="opt">optional</span></span><textarea class="inp" id="pr-msg" rows="3" maxlength="4000">' + esc(src.message || "") + "</textarea></label>" +
+      '<p class="err" id="pr-err" hidden></p><div class="row"><button class="btn" type="button" id="pr-save">Save draft</button><button class="btn line" type="button" data-close>Cancel</button></div>',
+      function (box, close) {
+        var wrap = box.querySelector("#pr-artists");
+        function read() {
+          wrap.querySelectorAll(".prop-artist").forEach(function (el) {
+            var a = rows[+el.getAttribute("data-i")];
+            el.querySelectorAll("[data-k]").forEach(function (f) { a[f.getAttribute("data-k")] = f.value; });
+          });
+        }
+        function draw() { wrap.innerHTML = rows.length ? rows.map(rowHtml).join("") : '<p class="small muted">No artists yet. Add the artists you propose.</p>'; }
+        draw();
+        wrap.addEventListener("click", function (e) { var b = e.target.closest("[data-rm]"); if (b) { read(); rows.splice(+b.getAttribute("data-rm"), 1); draw(); } });
+        box.querySelector("#pr-add-b").addEventListener("click", function () {
+          read();
+          var sel = box.querySelector("#pr-add"), aid = sel.value;
+          if (rows.some(function (r) { return r.id === aid; })) { M.toast("This artist is already in the proposal."); return; }
+          rows.push({ id: aid, name: sel.options[sel.selectedIndex].text, contribution: "", materials: "", price: "" });
+          draw();
+        });
+        box.querySelector("#pr-save").addEventListener("click", async function () {
+          read();
+          var err = box.querySelector("#pr-err");
+          M.setBusy(this, true, "Saving");
+          var x = await sb.rpc("save_proposal", { p_project: p.id, p_id: existing ? existing.id : null, p: {
+            creative_direction: box.querySelector("#pr-dir").value, budget: box.querySelector("#pr-budget").value, timeline: box.querySelector("#pr-time").value,
+            message: box.querySelector("#pr-msg").value,
+            artists: rows.map(function (r) { return { artist_id: r.id, contribution: r.contribution, materials: r.materials, price: r.price }; }) } });
+          if (x.error) { M.setBusy(this, false); err.textContent = M.friendlyError(x.error); err.hidden = false; return; }
+          close(); M.toast("Draft saved. Send it when it is ready."); done();
         });
       });
   }
@@ -1328,7 +1859,7 @@
       var k = Object.keys(m);
       return k.length ? k.sort().map(function (cur) { return esc(money(m[cur], cur)); }).join("<br>") : '<span class="muted">None recorded</span>';
     }
-    var open = prjF.filter(function (x) { return ["new", "contacted", "proposal_sent", "negotiation"].indexOf(x.status) !== -1; });
+    var open = prjF.filter(function (x) { return ["confirmed", "not_confirmed"].indexOf(x.status) === -1; });
     var confirmed = prjF.filter(function (x) { return x.status === "confirmed"; });
     main.innerHTML =
       '<div class="head"><div><span class="eyebrow">Founders</span><h1>Reports</h1>' +

@@ -1,7 +1,8 @@
 /* M.E.E.T. public artist profile: portrait, biography and approach,
-   disciplines, materials and techniques, cultural traditions, and the
-   artist's approved artworks, and the inquiry form for signed-in members.
-   Never shows the artist's contact details or links. */
+   disciplines, materials and techniques, every approved artwork, and two
+   separate actions: an inquiry to the artist about a work or a commission
+   (signed-in members), and interest in a collaboration, which goes to the
+   M.E.E.T. team. Never shows the artist's contact details or links. */
 (function () {
   "use strict";
   var P = window.MEET_PUBLIC, esc = P.esc;
@@ -33,7 +34,7 @@
     if (!who.session) {
       box.innerHTML = "<p>To send an inquiry, please sign in to your M.E.E.T. account, so the artist knows who is writing. Creating an account is free.</p>" +
         '<p class="inq-act"><a class="btn btn-small" href="/signin?next=' + encodeURIComponent(here + "#inquire") + '">Sign in to inquire</a>' +
-        '<a class="text-link" href="/signup">Create an account</a></p>';
+        '<a class="text-link" href="/signup?next=' + encodeURIComponent(here + "#inquire") + '">Create an account</a></p>';
       return;
     }
     if (!who.account) {
@@ -47,7 +48,7 @@
       '<label class="flt"><span>What is your inquiry about?</span><select id="inq-topic" required>' +
         '<option value="">Choose one</option>' +
         (works.length ? '<option value="artwork">An artwork on M.E.E.T.</option>' : "") +
-        '<option value="commission">A commission</option><option value="collaboration">A collaboration or project</option><option value="other">Something else</option></select></label>' +
+        '<option value="commission">A commission</option><option value="other">Something else</option></select></label>' +
       '<label class="flt" id="inq-work-row" hidden><span>Which artwork?</span><select id="inq-work">' +
         works.map(function (w) { return '<option value="' + esc(w.id) + '">' + esc(w.title || "Untitled") + "</option>"; }).join("") + "</select></label>" +
       '<label class="flt"><span>Your message</span><textarea id="inq-msg" rows="6" maxlength="2000" placeholder="Introduce yourself and tell the artist what you have in mind."></textarea>' +
@@ -103,9 +104,12 @@
 
       var disciplines = P.terms([a.main_discipline, a.other_disciplines].join(","));
       var techniques = P.terms(a.techniques);
+      var materials = P.terms(a.materials);
       var facts = [];
       if (disciplines.length) facts.push('<div class="fact"><h2>Disciplines</h2>' + chips(disciplines) + "</div>");
-      if (techniques.length) facts.push('<div class="fact"><h2>Materials &amp; techniques</h2>' + chips(techniques) + "</div>");
+      if (materials.length) facts.push('<div class="fact"><h2>Materials</h2>' + chips(materials) + "</div>");
+      if (techniques.length) facts.push('<div class="fact"><h2>' + (materials.length ? "Techniques" : "Materials &amp; techniques") + "</h2>" + chips(techniques) + "</div>");
+      var collabHref = "/collaborate?artist=" + encodeURIComponent(a.id) + "#request";
 
       view.removeAttribute("aria-busy");
       view.innerHTML =
@@ -117,7 +121,9 @@
             : '<span class="p-portrait p-initial" aria-hidden="true">' + esc((a.display_name || "?").charAt(0)) + "</span>") +
           '<div><p class="kicker">' + esc(a.main_discipline || "Artist") + "</p>" +
           '<h1 class="p-name">' + esc(a.display_name) + "</h1>" +
-          (P.place(a) ? '<p class="p-place">' + esc(P.place(a)) + "</p>" : "") + "</div>" +
+          (P.place(a) ? '<p class="p-place">' + esc(P.place(a)) + "</p>" : "") +
+          '<p class="p-actions"><a class="btn btn-small" href="#inquire">Inquire about a work or commission</a>' +
+          '<a class="text-link" href="' + collabHref + '">Express interest in a collaboration</a></p></div>' +
         "</header>" +
         '<div class="p-body">' +
           (a.bio ? '<section class="p-bio" aria-labelledby="t-bio"><h2 id="t-bio" class="p-h">Biography and approach</h2>' + paras(a.bio) + "</section>" : "") +
@@ -135,7 +141,9 @@
             : '<p class="muted-note">' + esc(a.display_name) + " has no artworks on M.E.E.T. yet.</p>") +
         "</section>" +
         '<section class="inq" id="inquire" aria-labelledby="t-inq"><div class="inq-intro"><h2 id="t-inq" class="p-h">Inquire about this artist</h2>' +
-        "<p>Write to " + esc(a.display_name) + " through M.E.E.T. about an artwork, a commission or a collaboration.</p></div>" +
+        "<p>Write to " + esc(a.display_name) + " through M.E.E.T. about an artwork or a commission.</p>" +
+        '<p class="collab-note"><b>Thinking of a collaboration?</b> To bring ' + esc(a.display_name) + " together with other artists, send your idea to the M.E.E.T. team. We contact the artists, check what is possible and come back to you with a proposal. " +
+        '<a class="text-link" href="' + collabHref + '">Propose a collaboration</a></p></div>' +
         '<div class="inq-body" id="inq-body"><p class="muted-note">Loading…</p></div></section>';
       await inquiryForm(a, works);
       if (location.hash === "#inquire") document.getElementById("inquire").scrollIntoView();

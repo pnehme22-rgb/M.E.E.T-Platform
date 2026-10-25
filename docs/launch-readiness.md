@@ -40,3 +40,13 @@ Status words: **Verified** (tested and passed), **Built, not verified** (impleme
 - **Deleted member accounts:** sales records keep the organization, country and figures under "Deleted member". Confirm this retention.
 - **Cultural traditions:** stored privately, not public and not used for matching, until the Artist terms cover them, are reviewed, and artists agree again.
 - **Sales staff and revenue:** sales team members can read the recorded figures on every project, not only their own. Confirm or restrict.
+
+## Website revision (update 012, prepared 25 October 2026, not deployed)
+| Area | Status | Evidence |
+| --- | --- | --- |
+| New navigation, homepage, About, For Artists, Discover & Commission, Start a Project, Collaborate | Built, not verified live | Checked on a local copy at desktop and phone widths: pages load, no script errors, no horizontal overflow |
+| Directory search, region, country, discipline, materials, techniques | Built, partly verified | Local copy with live public data: filters and search work; materials and curated order need update 012 |
+| Commission, collaboration and project requests; proposals; client decisions; updates; next action | Built, not verified | Database test `supabase/tests/phase5_requests_test.sql` to run after update 012; real email test after deploy |
+| Homepage draft, preview, publish; featured pin and rotation; directory order | Built, not verified | Database test covers draft, publish and visibility; console flow to test after deploy |
+| Artist help requests and materials field | Built, not verified | Database test covers access and review reset |
+| Direct client and artist messaging | Not built (planned after registration) | Requests show one-way team updates; nothing claims messaging exists |

@@ -1,5 +1,6 @@
 /* M.E.E.T. member account: profile, security, inquiries to artists,
-   project requests (Professional and Business), deletion request.
+   requests to the M.E.E.T. team (commissions, collaborations, project briefs)
+   with their status, updates and proposals, deletion request.
    Members can only read and edit their own row (database row level security);
    the account type and email cannot be changed here. */
 (function () {
@@ -26,8 +27,7 @@
   }
 
   function renderNav(current) {
-    var items = [["", "Overview"], ["inquiries", "Inquiries"]];
-    if (acct.account_type !== "personal") items.push(["projects", "Project requests"]);
+    var items = [["", "Overview"], ["inquiries", "Inquiries"], ["requests", "Requests"]];
     items.push(["profile", "Profile"], ["security", "Security"]);
     items.push(["delete", "Delete account"]);
     nav.innerHTML = items.map(function (i) {
@@ -46,14 +46,13 @@
     main.onclick = null;
     try {
       await load();
-      renderNav(view);
+      renderNav(view === "request" || view === "projects" ? "requests" : view);
       if (view === "") viewOverview();
       else if (view === "profile") viewProfile();
       else if (view === "security") viewSecurity();
       else if (view === "inquiries") await viewInquiries();
-      else if (view === "projects" && acct.account_type !== "personal") {
-        if (location.hash.split("/")[2] === "new") viewProjectForm(); else await viewProjects();
-      }
+      else if (view === "requests" || view === "projects") await viewRequests();
+      else if (view === "request") await viewRequest(location.hash.split("/")[2] || "");
       else if (view === "delete") viewDelete();
       else location.hash = "#/";
     } catch (err) {
@@ -67,13 +66,13 @@
     main.innerHTML =
       '<div class="head"><div><span class="eyebrow">' + esc(TYPE_LABEL[acct.account_type]) + " account</span>" +
       "<h1>Welcome, <em>" + esc((acct.full_name || "").split(" ")[0] || name) + "</em></h1>" +
-      "<p>Your M.E.E.T. account. Discover artists from different cultures, materials and disciplines.</p></div></div>" +
+      "<p>Your M.E.E.T. account. Discover artists, write to them, and follow the requests you send to the M.E.E.T. team.</p></div></div>" +
       (acct.deletion_requested_at ? '<div class="notice warn">You asked us to delete this account on ' + esc(M.fmtDate(acct.deletion_requested_at)) + ". The M.E.E.T. team will complete it and confirm by email.</div>" : "") +
       '<div class="kpis">' +
       '<a class="kpi" href="/artists"><span>Discover</span><b class="word">Artists</b><span>Browse the M.E.E.T. artist directory</span></a>' +
       '<a class="kpi" href="#/profile"><span>Your details</span><b class="word">Profile</b><span>' + esc(name) + " · " + esc(acct.country) + "</span></a>" +
       '<a class="kpi" href="#/inquiries"><span>Your messages</span><b class="word">Inquiries</b><span>To artists, and their replies</span></a>' +
-      (acct.account_type !== "personal" ? '<a class="kpi" href="#/projects"><span>Sourcing</span><b class="word">Projects</b><span>Ask the team to find artists for a project</span></a>' : "") +
+      '<a class="kpi" href="#/requests"><span>With the M.E.E.T. team</span><b class="word">Requests</b><span>Commissions, collaborations' + (acct.account_type !== "personal" ? " and projects" : "") + "</span></a>" +
       "</div>";
   }
 
@@ -184,88 +183,119 @@
         : '<div class="empty">You have not sent any inquiries yet. Open an artist\'s profile and use "Inquire about this artist".</div>');
   }
 
-  /* ---------------- project requests (Professional and Business) ---------------- */
+  /* ---------------- requests to the M.E.E.T. team ---------------- */
 
-  var CLIENT_STATUS = {
-    received: ["Received", "blue", "The M.E.E.T. team has your request and will review it."],
-    in_discussion: ["In discussion", "warn", "The M.E.E.T. team is working on your request and will be in touch by email."],
-    confirmed: ["Confirmed", "ok", "Your project is confirmed."],
-    closed: ["Closed", "", "This request is closed. You are welcome to send a new one."]
-  };
+  // What the member sees: a plain status that is never further along than the
+  // team's own record, the team's updates, and the proposals sent to them.
+  var KIND_LABEL = { commission: "Commission", collaboration: "Collaboration", project: "Project" };
+  var STEPS = [
+    ["received", "Received", "The M.E.E.T. team has your request."],
+    ["under_review", "Under review", "The team is reviewing your request."],
+    ["finding_artists", "Contacting artists", "The team is checking availability, pricing and timing with artists."],
+    ["preparing_proposal", "Preparing your proposal", "The team is preparing a proposal for you."],
+    ["proposal_ready", "Proposal ready", "Your proposal is ready. Please review it below."],
+    ["in_discussion", "In discussion", "The team is refining the request with you."],
+    ["confirmed", "Confirmed", "You accepted the proposal. The team will be in touch about the next steps."]
+  ];
+  var STEP = {}; STEPS.forEach(function (s, i) { STEP[s[0]] = { i: i, label: s[1], text: s[2] }; });
+  var STEP_TAG = { received: "blue", under_review: "blue", finding_artists: "warn", preparing_proposal: "warn", proposal_ready: "red", in_discussion: "warn", confirmed: "ok", closed: "" };
+  function statusTag(s) { return '<span class="tag ' + (STEP_TAG[s] || "") + '">' + esc(s === "closed" ? "Closed" : (STEP[s] || { label: s }).label) + "</span>"; }
+  var PROPOSAL_STATUS = { sent: ["Waiting for your answer", "red"], accepted: ["Accepted", "ok"], changes_requested: ["You asked for changes", "warn"], declined: ["Declined", ""], withdrawn: ["Replaced or withdrawn", ""] };
 
-  async function viewProjects() {
+  async function viewRequests() {
     var r = await sb.rpc("my_project_requests");
     if (r.error) throw r.error;
     var rows = r.data || [];
+    var biz = acct.account_type !== "personal";
     main.innerHTML =
-      '<div class="head"><div><span class="eyebrow">For ' + esc(acct.account_type === "business" ? "Business & Organization" : "Professional") + " accounts</span>" +
-      "<h1>Project <em>requests</em></h1><p>Looking for artwork for a hotel, an office, a home or another project? Describe it and the M.E.E.T. team will help you find suitable artists.</p></div>" +
-      '<div class="row"><a class="btn" href="#/projects/new">New project request</a></div></div>' +
-      (rows.length ? '<div class="stack" style="gap:12px">' + rows.map(function (q) {
-        var st = CLIENT_STATUS[q.client_status] || [q.client_status, "", ""];
-        return '<article class="rblock"><div class="between"><h3 style="font-size:24px">' + esc(q.artwork_type) + "</h3>" +
-          '<span class="tag ' + st[1] + '">' + esc(st[0]) + "</span></div>" +
-          '<p class="small muted">' + esc(q.reference) + " · sent " + esc(M.fmtDate(q.created_at)) + " · " + esc(st[2]) + "</p>" +
-          '<p class="prose">' + esc(q.description) + "</p>" +
-          '<div class="kv"><span>Budget</span><b>' + (q.budget_undecided ? "Not decided yet" : esc(q.budget)) + "</b>" +
-          "<span>Timeline</span><b>" + (q.timeline_undecided ? "Not decided yet" : esc(q.timeline)) + "</b>" +
-          (q.location ? "<span>Location</span><b>" + esc(q.location) + "</b>" : "") +
-          (q.quantity_dims ? "<span>Quantity and dimensions</span><b>" + esc(q.quantity_dims) + "</b>" : "") +
-          (q.style_refs ? "<span>Style and references</span><b>" + esc(q.style_refs) + "</b>" : "") + "</div></article>";
+      '<div class="head"><div><span class="eyebrow">Your requests</span><h1>Requests to the <em>M.E.E.T. team</em></h1>' +
+      "<p>Commission ideas, collaborations" + (biz ? " and project briefs" : "") + " you sent to the team. Follow each step here, read the team's updates and answer proposals.</p></div>" +
+      '<div class="row"><a class="btn line sm" href="/discover#commission">New commission idea</a><a class="btn line sm" href="/collaborate">New collaboration</a>' +
+      (biz ? '<a class="btn line sm" href="/start-a-project#brief">New project brief</a>' : "") + "</div></div>" +
+      (rows.length ? '<div class="list">' + rows.map(function (q) {
+        return '<a class="lrow" href="#/request/' + q.id + '"><div class="lm"><b>' + esc(KIND_LABEL[q.kind] || "Request") + " · " + esc(q.kind === "collaboration" ? (q.description || "").slice(0, 70) : q.artwork_type) + "</b>" +
+          '<span class="muted small">' + esc(q.reference) + " · sent " + esc(M.fmtDate(q.created_at)) + "</span></div>" +
+          '<div class="ls">' + (q.needs_answer ? '<span class="tag red">Your answer is needed</span>' : statusTag(q.client_status)) + "</div></a>";
       }).join("") + "</div>"
-        : '<div class="empty">You have not sent a project request yet.</div>');
+        : '<div class="empty">You have not sent a request to the team yet. Start with a <a class="link" href="/discover#commission">commission idea</a> or <a class="link" href="/collaborate">a collaboration</a>.</div>');
   }
 
-  function viewProjectForm() {
+  async function viewRequest(id) {
+    var list = await sb.rpc("my_project_requests");
+    if (list.error) throw list.error;
+    var q = (list.data || []).filter(function (x) { return x.id === id; })[0];
+    if (!q) { main.innerHTML = '<div class="empty">This request could not be found. <a class="link" href="#/requests">Back to your requests</a></div>'; return; }
+    var d = await sb.rpc("my_request_detail", { p_id: id });
+    if (d.error) throw d.error;
+    d = d.data;
+    var cur = d.client_status, closed = cur === "closed", at = closed ? -1 : (STEP[cur] || { i: 0 }).i;
+    var visible = STEPS.filter(function (s, i) { return !(s[0] === "in_discussion" && at < 5 && cur !== "in_discussion"); });
+    var stepper = closed ? '<div class="notice">This request is closed. You are welcome to send a new one at any time.</div>'
+      : '<ol class="stepper">' + visible.map(function (s) {
+        var i = STEP[s[0]].i;
+        return '<li class="' + (s[0] === cur ? "now" : i < at ? "done" : "") + '"' + (s[0] === cur ? ' aria-current="step"' : "") + "><b>" + esc(s[1]) + "</b>" + (s[0] === cur ? "<span>" + esc(s[2]) + "</span>" : "") + "</li>";
+      }).join("") + "</ol>";
+    var open = d.proposals.filter(function (p) { return p.status === "sent"; })[0];
+    function proposal(p) {
+      var st = PROPOSAL_STATUS[p.status] || [p.status, ""];
+      return '<article class="rblock proposal"><div class="between"><h3 style="font-size:24px">Proposal ' + p.version + "</h3>" + '<span class="tag ' + st[1] + '">' + esc(st[0]) + "</span></div>" +
+        '<p class="small muted">Sent ' + esc(M.fmtDate(p.sent_at, true)) + (p.decided_at ? " · answered " + esc(M.fmtDate(p.decided_at, true)) : "") + "</p>" +
+        (p.message ? '<div class="note"><span class="muted">From the M.E.E.T. team</span>' + esc(p.message).replace(/\n/g, "<br>") + "</div>" : "") +
+        '<h4 class="ph">Creative direction</h4><p class="prose">' + esc(p.creative_direction).replace(/\n/g, "<br>") + "</p>" +
+        '<h4 class="ph">Artists and their contribution</h4><div class="stack" style="gap:8px">' + (p.artists || []).map(function (a) {
+          return '<div class="note"><b><a class="link" href="/artists/' + esc(a.artist_id) + '" target="_blank" rel="noopener">' + esc(a.name) + "</a></b>" +
+            (a.contribution ? "<br>" + esc(a.contribution) : "") + (a.materials ? '<br><span class="muted small">' + esc(a.materials) + "</span>" : "") +
+            (a.price ? '<br><span class="small">Estimated: ' + esc(a.price) + "</span>" : "") + "</div>";
+        }).join("") + "</div>" +
+        '<div class="kv" style="margin-top:12px"><span>Estimated budget</span><b>' + esc(p.budget) + "</b><span>Timeline</span><b>" + esc(p.timeline) + "</b></div>" +
+        (p.client_response ? '<div class="note reply"><span class="muted">Your answer</span>' + esc(p.client_response).replace(/\n/g, "<br>") + "</div>" : "") +
+        (p.status === "sent" ? '<div class="panel stack" style="gap:10px;margin-top:14px"><p class="small">Nothing goes ahead until you accept. You can also ask for changes or alternatives, or decline.</p>' +
+          '<label class="f"><span>Message to the team <span class="opt" id="msg-opt">optional</span></span><textarea class="inp" id="p-msg" rows="3" maxlength="2000"></textarea></label>' +
+          '<p class="err" id="p-err" role="alert" hidden></p>' +
+          '<div class="row"><button class="btn" type="button" data-decide="accept" data-id="' + p.id + '">Accept the proposal</button>' +
+          '<button class="btn line" type="button" data-decide="changes" data-id="' + p.id + '">Ask for changes</button>' +
+          '<button class="btn quiet" type="button" data-decide="decline" data-id="' + p.id + '">Decline</button></div></div>' : "") +
+        "</article>";
+    }
     main.innerHTML =
-      '<a class="link small" href="#/projects">Back to project requests</a>' +
-      '<div class="head"><div><span class="eyebrow">New project request</span><h1>Tell us about your <em>project</em></h1>' +
-      "<p>Share what you know. If something is not decided yet, say so: the team will help you work it out.</p></div></div>" +
-      '<form class="panel stack" id="prj" novalidate>' +
-      '<label class="f">Project description<span class="hint">What is the project, where will the artwork live, and what should it feel like?</span>' +
-      '<textarea class="inp" name="description" rows="6" maxlength="4000"></textarea></label>' +
-      '<label class="f">Type of artwork<span class="hint">For example: large ceramic wall piece, a series of textile works, sculpture for a lobby.</span>' +
-      '<input class="inp" name="artwork_type" maxlength="200"></label>' +
-      '<div class="grid2"><div class="f"><label class="f" for="p-budget">Estimated budget<span class="hint">With the currency, for example AED 40,000 to 60,000.</span></label>' +
-      '<input class="inp" id="p-budget" name="budget" maxlength="200"><label class="row small" style="font-weight:500"><input type="checkbox" name="budget_undecided"> Not decided yet</label></div>' +
-      '<div class="f"><label class="f" for="p-time">Timeline<span class="hint">For example: installed by March 2027.</span></label>' +
-      '<input class="inp" id="p-time" name="timeline" maxlength="200"><label class="row small" style="font-weight:500"><input type="checkbox" name="timeline_undecided"> Not decided yet</label></div></div>' +
-      '<label class="f"><span>Project location <span class="opt">optional</span></span><input class="inp" name="location" maxlength="200" placeholder="City and country"></label>' +
-      '<label class="f"><span>Quantity and dimensions <span class="opt">optional</span></span><textarea class="inp" name="quantity_dims" rows="3" maxlength="1000"></textarea></label>' +
-      '<label class="f"><span>Style and references <span class="opt">optional</span></span><span class="hint">Colours, materials, moods, or links to images you like.</span><textarea class="inp" name="style_refs" rows="3" maxlength="2000"></textarea></label>' +
-      '<p class="small muted">Your request is linked to your account: ' + esc(acct.account_type === "business" ? acct.business_name : acct.company_name || acct.full_name) + ", " + esc(acct.country) + ". Only you and the M.E.E.T. team can see it.</p>" +
-      '<p class="err" id="prj-err" role="alert" hidden></p>' +
-      '<div class="row"><button class="btn" type="submit" id="b-prj">Send project request</button><a class="btn line" href="#/projects">Cancel</a></div></form>';
-    var f = main.querySelector("#prj");
-    ["budget", "timeline"].forEach(function (k) {
-      f.elements[k + "_undecided"].addEventListener("change", function () { f.elements[k].disabled = this.checked; if (this.checked) f.elements[k].value = ""; });
-    });
-    f.addEventListener("submit", async function (e) {
-      e.preventDefault();
-      var err = main.querySelector("#prj-err");
-      var v = {
-        description: f.elements.description.value.trim(), artwork_type: f.elements.artwork_type.value.trim(),
-        budget: f.elements.budget.value.trim(), budget_undecided: f.elements.budget_undecided.checked,
-        timeline: f.elements.timeline.value.trim(), timeline_undecided: f.elements.timeline_undecided.checked,
-        location: f.elements.location.value.trim(), quantity_dims: f.elements.quantity_dims.value.trim(), style_refs: f.elements.style_refs.value.trim()
-      };
-      var problem = v.description.length < 20 ? ["description", "Please describe the project in at least 20 characters."]
-        : v.artwork_type.length < 2 ? ["artwork_type", "Please tell us what type of artwork you are looking for."]
-        : !v.budget && !v.budget_undecided ? ["budget", "Please give an estimated budget, or tick “Not decided yet”."]
-        : !v.timeline && !v.timeline_undecided ? ["timeline", "Please give a timeline, or tick “Not decided yet”."] : null;
-      if (problem) { err.textContent = problem[1]; err.hidden = false; f.elements[problem[0]].focus(); return; }
-      err.hidden = true;
-      var b = main.querySelector("#b-prj");
+      '<a class="link small" href="#/requests">Back to your requests</a>' +
+      '<div class="head"><div><span class="eyebrow">' + esc(KIND_LABEL[q.kind] || "Request") + " · " + esc(q.reference) + "</span>" +
+      "<h1>" + esc(q.kind === "collaboration" ? "Your collaboration" : q.artwork_type) + "</h1>" +
+      "<p>Sent " + esc(M.fmtDate(q.created_at, true)) + (d.contact ? ". Your contact at M.E.E.T. is <b>" + esc(d.contact) + "</b>" : "") + ".</p></div>" +
+      '<div class="row">' + statusTag(cur) + "</div></div>" +
+      stepper +
+      (open ? proposal(open) : "") +
+      (d.updates.length ? '<section class="rblock"><h3 style="font-size:24px">Updates from the team</h3>' + d.updates.map(function (u) {
+        return '<div class="note"><span class="muted">' + esc(M.fmtDate(u.at, true)) + "</span>" + esc(u.body).replace(/\n/g, "<br>") + "</div>";
+      }).join("") + "</section>" : "") +
+      '<section class="rblock"><h3 style="font-size:24px">Your request</h3><p class="prose">' + esc(q.description).replace(/\n/g, "<br>") + '</p><div class="kv">' +
+      (q.kind !== "collaboration" ? "<span>" + (q.kind === "project" ? "Project type or space" : "Type of artwork") + "</span><b>" + esc(q.artwork_type) + "</b>" : "") +
+      (d.nominated.length ? "<span>" + (q.kind === "collaboration" ? "Artists to bring together" : "Artists you suggested") + "</span><b>" + d.nominated.map(function (a) { return esc(a.name); }).join(", ") + "</b>" : "") +
+      (q.purpose ? "<span>Purpose</span><b>" + esc(q.purpose) + "</b>" : "") +
+      (q.disciplines_wanted ? "<span>Disciplines or materials</span><b>" + esc(q.disciplines_wanted) + "</b>" : "") +
+      "<span>Budget</span><b>" + (q.budget_undecided ? "Not decided yet" : esc(q.budget)) + "</b>" +
+      "<span>Timing</span><b>" + (q.timeline_undecided ? "Not decided yet" : esc(q.timeline)) + "</b>" +
+      (q.location ? "<span>Location</span><b>" + esc(q.location) + "</b>" : "") +
+      (q.quantity_dims ? "<span>Quantity and dimensions</span><b>" + esc(q.quantity_dims) + "</b>" : "") +
+      (q.style_refs ? "<span>Inspiration</span><b>" + esc(q.style_refs) + "</b>" : "") +
+      (q.file_count ? "<span>Files</span><b>" + q.file_count + " attached</b>" : "") + "</div></section>" +
+      d.proposals.filter(function (p) { return p !== open; }).map(proposal).join("") +
+      '<p class="small muted">Direct messages with artists are not available yet. For anything else about this request, reply to any email from the team or write to <a class="link" href="mailto:minds.exploring.traditions@gmail.com">minds.exploring.traditions@gmail.com</a>.</p>';
+
+    main.onclick = async function (e) {
+      var b = e.target.closest("[data-decide]");
+      if (!b) return;
+      var decision = b.getAttribute("data-decide"), msg = main.querySelector("#p-msg").value.trim(), err = main.querySelector("#p-err");
+      if (decision === "changes" && msg.length < 10) { err.textContent = "Please tell the team what you would like to change (at least 10 characters)."; err.hidden = false; main.querySelector("#p-msg").focus(); return; }
+      if (decision === "accept" && !confirm("Accept this proposal? The M.E.E.T. team will confirm the next steps with you.")) return;
+      if (decision === "decline" && !confirm("Decline this proposal?")) return;
       M.setBusy(b, true, "Sending");
       try {
-        var res = await M.api("project-request", v);
-        main.innerHTML = '<div class="panel stack" role="status"><span class="eyebrow">Request sent</span><h1>Thank you</h1>' +
-          "<p>We have received your project request with the reference <b>" + esc(res.reference) + "</b>. " +
-          (res.emailed && res.emailed.member === false ? "We could not send the confirmation email, but your request is saved. " : "We have emailed you a confirmation. ") +
-          "The M.E.E.T. team will review it and contact you by email.</p>" +
-          '<div class="row"><a class="btn line" href="#/projects">View my project requests</a></div></div>';
+        await M.api("proposal-response", { id: b.getAttribute("data-id"), decision: decision, message: msg });
+        M.toast(decision === "accept" ? "Thank you. You accepted the proposal." : decision === "changes" ? "Your request for changes was sent." : "You declined the proposal.");
+        route();
       } catch (ex) { M.setBusy(b, false); err.textContent = M.friendlyError(ex); err.hidden = false; }
-    });
+    };
   }
 
   function viewDelete() {

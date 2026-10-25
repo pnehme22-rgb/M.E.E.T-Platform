@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Artists | M.E.E.T.</title>
-<meta name="description" content="Discover M.E.E.T. artists from different countries, disciplines, materials and traditions.">
+<meta name="description" content="Explore M.E.E.T. artists by region, country, discipline, materials and techniques. Every profile is reviewed by the M.E.E.T. team.">
 <meta name="theme-color" content="#f6f0e5">
 <link rel="canonical" href="https://meetstudio.art/artists">
 <link rel="icon" href="/assets/img/brand/mark.svg" type="image/svg+xml">
@@ -12,6 +12,7 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@400;500;600&family=Instrument+Serif:ital@0;1&display=swap">
 <link rel="stylesheet" href="/assets/css/site.css">
+<link rel="stylesheet" href="/assets/css/pages.css">
 <link rel="stylesheet" href="/assets/css/discover.css">
 <script src="/assets/js/site.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.50.0/dist/umd/supabase.js" defer></script>
@@ -36,7 +37,7 @@
   </defs>
 </svg>
 
-<header class="site-header">
+<header class="site-header" id="top">
   <div class="wrap header-inner">
     <a class="brand" href="/" aria-label="M.E.E.T. home">
       <svg class="brand-mark" aria-hidden="true"><use href="#mark"/></svg>
@@ -45,15 +46,16 @@
     <nav class="nav" aria-label="Main">
       <ul class="nav-links" id="nav-menu">
         <li><a href="/artists" aria-current="page">Artists</a></li>
-        <li><a href="/#idea">About us</a></li>
+        <li><a href="/discover">Discover &amp; Commission</a></li>
+        <li><a href="/start-a-project">Start a Project</a></li>
+        <li><a href="/about">About</a></li>
         <li class="nav-m"><a href="/signin">Sign in</a></li>
         <li class="nav-m"><a href="/signup">Create an account</a></li>
-        <li class="nav-m"><a href="/join">Join as an artist</a></li>
+        <li class="nav-m"><a href="/for-artists">Join as an Artist</a></li>
       </ul>
       <a class="nav-signin nav-d" href="/signin">Sign in</a>
-      <a class="nav-signin nav-d" href="/signup">Sign up</a>
       <button class="nav-toggle" type="button" aria-expanded="false" aria-controls="nav-menu">Menu</button>
-      <a class="btn btn-small" href="/join"><span>Join<span class="btn-more"> as an artist</span></span></a>
+      <a class="btn btn-small btn-quiet" href="/for-artists"><span>Join<span class="btn-more"> as an Artist</span></span></a>
     </nav>
   </div>
 </header>
@@ -62,15 +64,18 @@
   <div class="wrap">
     <header class="dir-head">
       <p class="kicker">The M.E.E.T. artists</p>
-      <h1 class="dir-title">Discover <em>artists</em></h1>
-      <p class="lede">Artists from different cultures, materials and disciplines. Every profile and artwork here has been reviewed by the M.E.E.T. team.</p>
+      <h1 class="dir-title">Artists and their <em>practices</em></h1>
+      <p class="lede">Explore artists across disciplines, materials, techniques and traditions. Every profile and artwork here has been reviewed by the M.E.E.T. team.</p>
     </header>
 
-    <form class="filters" id="filters" role="search" aria-label="Filter artists">
+    <form class="filters dir-filters" id="filters" role="search" aria-label="Search and filter artists">
+      <label class="flt flt-q"><span>Search</span><input type="search" id="f-q" name="q" placeholder="Name, practice, material, place" autocomplete="off"></label>
+      <label class="flt"><span>Region</span><select id="f-region" name="region"><option value="">All regions</option></select></label>
       <label class="flt"><span>Country</span><select id="f-country" name="country"><option value="">All countries</option></select></label>
-      <label class="flt"><span>Artistic discipline</span><select id="f-discipline" name="discipline"><option value="">All disciplines</option></select></label>
-      <label class="flt"><span>Materials &amp; techniques</span><select id="f-material" name="material"><option value="">All materials and techniques</option></select></label>
-      <button class="flt-clear" type="button" id="f-clear" hidden>Clear filters</button>
+      <label class="flt"><span>Discipline</span><select id="f-discipline" name="discipline"><option value="">All disciplines</option></select></label>
+      <label class="flt"><span>Materials</span><select id="f-material" name="material"><option value="">All materials</option></select></label>
+      <label class="flt"><span>Techniques</span><select id="f-technique" name="technique"><option value="">All techniques</option></select></label>
+      <button class="flt-clear" type="button" id="f-clear" hidden>Clear</button>
     </form>
     <p class="dir-count" id="count" role="status" aria-live="polite"></p>
 
@@ -88,13 +93,22 @@
         <span class="brand-word">M.E.E.T.</span>
       </a>
       <p class="expansion">Mind Exploring Every Tradition</p>
-      <p>An international community connecting artists and makers across cultures and disciplines.</p>
+      <p>An international platform where artistic practices, materials and traditions meet.</p>
     </div>
     <div class="footer-col">
       <h2>Explore</h2>
       <ul>
-        <li><a href="/artists">Discover artists</a></li>
-        <li><a href="/join">Join as an artist</a></li>
+        <li><a href="/artists">Artists</a></li>
+        <li><a href="/discover">Discover &amp; Commission</a></li>
+        <li><a href="/collaborate">Propose a collaboration</a></li>
+        <li><a href="/start-a-project">Start a Project</a></li>
+        <li><a href="/about">About</a></li>
+      </ul>
+    </div>
+    <div class="footer-col">
+      <h2>Join and sign in</h2>
+      <ul>
+        <li><a href="/for-artists">Join as an Artist</a></li>
         <li><a href="/signup">Create an account</a></li>
         <li><a href="/signin">Sign in</a></li>
       </ul>

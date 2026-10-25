@@ -154,8 +154,9 @@
       return safe ? next : "/team";
     }
     if (me.artist) return "/studio";
-    // Members may return to the artist profile they were inquiring from.
-    if (me.account) return next && /^\/(artists\/[0-9a-f-]{36}|account)([?#][\w=&#%-]*)?$/i.test(next) ? next : "/account";
+    // Members may return to the artist profile they were inquiring from, or to
+    // the request form they started (their answers are kept on the device).
+    if (me.account) return next && /^\/(artists\/[0-9a-f-]{36}|account|discover|collaborate|start-a-project)([?#][\w=&#%\/-]*)?$/i.test(next) ? next : "/account";
     return null;
   }
 
@@ -328,7 +329,7 @@
     esc: esc, fmtDate: fmtDate, fmtWhen: fmtWhen, initials: initials, toast: toast, friendlyError: friendlyError,
     session: session, whoAmI: whoAmI, requireTeam: requireTeam, requireArtist: requireArtist, requireAccount: requireAccount,
     routeAfterSignIn: routeAfterSignIn, signOut: signOut, api: api,
-    setGateCookie: setGateCookie, mediaUrl: mediaUrl, hydrateMedia: hydrateMedia, uploadImage: uploadImage,
+    setGateCookie: setGateCookie, mediaUrl: mediaUrl, hydrateMedia: hydrateMedia, uploadImage: uploadImage, prepareImage: prepareImage,
     modal: modal, setBusy: setBusy, captcha: captcha
   };
 })();

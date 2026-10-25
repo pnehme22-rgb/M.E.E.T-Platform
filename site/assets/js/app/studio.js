@@ -1,10 +1,11 @@
-/* M.E.E.T. artist studio: profile, artworks, review status.
+/* M.E.E.T. artist studio: profile, artworks, review status, inquiries,
+   and requests for help from the M.E.E.T. team.
    Artists can only reach their own row, works and photo folder (database
    row level security). Status changes go through submit_profile() and
    submit_artwork(); editing an approved item sends it back for review. */
 (function () {
   "use strict";
-  var M = window.MEET, sb, me, artist;
+  var M = window.MEET, sb, me, artist, isPublic = false;
   var esc = M.esc;
   var TERMS_VERSION = "2026-10-24";   // change when the Artist terms change; artists then agree again
   var main = document.getElementById("main");
@@ -12,23 +13,30 @@
 
   var STATUS = {
     draft: ["Draft", "", "Not sent for review yet."],
-    submitted: ["Waiting for review", "blue", "The M.E.E.T. team is reviewing this."],
+    submitted: ["Under review", "blue", "The M.E.E.T. team is reviewing this."],
     changes_requested: ["Changes requested", "warn", "The team has asked for a few changes. See their note below."],
-    approved: ["Approved", "ok", "Approved by the M.E.E.T. team, and public on M.E.E.T."],
+    approved: ["Approved", "ok", "Approved by the M.E.E.T. team."],
     declined: ["Not accepted", "", "This was not accepted. You can write to us if you have questions."]
   };
-  function tag(s) { var t = STATUS[s] || [s, ""]; return '<span class="tag ' + t[1] + '">' + esc(t[0]) + "</span>"; }
+  // Approved items are "Published" once the profile itself is public.
+  function tag(s) {
+    var t = STATUS[s] || [s, ""];
+    if (s === "approved") t = isPublic ? ["Published", "ok"] : ["Approved, not public yet", "ok"];
+    return '<span class="tag ' + t[1] + '">' + esc(t[0]) + "</span>";
+  }
   function fail(err) { M.toast(M.friendlyError(err)); }
 
   async function loadArtist() {
     var r = await sb.from("artists").select("*").eq("id", me.user.id).single();
     if (r.error) throw r.error;
     artist = r.data;
+    var pub = await sb.rpc("artist_is_public", { p_artist: artist.id });
+    isPublic = pub.data === true;
   }
 
   async function renderNav(current) {
     var n = await sb.from("artist_inquiries").select("id", { count: "exact", head: true }).eq("artist_id", artist.id).eq("status", "new");
-    var items = [["", "Overview", 0], ["profile", "Profile", 0], ["works", "Artworks", 0], ["inquiries", "Inquiries", n.count || 0]];
+    var items = [["", "Overview", 0], ["profile", "Profile", 0], ["works", "Artworks", 0], ["inquiries", "Inquiries", n.count || 0], ["help", "Ask the team", 0]];
     nav.innerHTML = items.map(function (i) {
       return '<a class="ni" href="#/' + i[0] + '"' + (current === i[0] ? ' aria-current="page"' : "") + ">" + esc(i[1]) +
         (i[2] ? '<span class="badge" aria-label="' + i[2] + ' new">' + i[2] + "</span>" : "") + "</a>";
@@ -55,6 +63,7 @@
       else if (view === "works") await viewWorks();
       else if (view === "work") await viewWork(parts[1] || "new");
       else if (view === "inquiries") { if (parts[1]) await viewInquiry(parts[1]); else await viewInquiries(); }
+      else if (view === "help") await viewHelp();
       else location.hash = "#/";
     } catch (err) {
       main.innerHTML = '<div class="empty">This page could not be loaded. ' + esc(M.friendlyError(err)) + "</div>";
@@ -182,8 +191,6 @@
     var w = await sb.from("artworks").select("id, status").eq("artist_id", artist.id);
     var works = w.data || [];
     var approved = works.filter(function (x) { return x.status === "approved"; }).length;
-    var pub = await sb.rpc("artist_is_public", { p_artist: artist.id });
-    var isPublic = pub.data === true;
     var steps = [
       [artist.profile_status === "approved" || artist.profile_status === "submitted", "Complete your profile", "Your name, main discipline, biography and a profile picture.", "#/profile"],
       [works.length > 0, "Add your first artwork", "At least one piece you made yourself, photographed in daylight.", "#/work/new"],
@@ -206,7 +213,40 @@
       "<span>Your profile</span><b>" + (isPublic
         ? 'Public on M.E.E.T. · <a class="link" href="/artists/' + artist.id + '" target="_blank" rel="noopener">View your public profile</a>'
         : "Not public yet. It becomes public once the team approves your profile.") + "</b></div></section>" +
-      '<p class="small muted">Questions? Write to <a class="link" href="mailto:minds.exploring.traditions@gmail.com">minds.exploring.traditions@gmail.com</a>.</p>';
+      '<p class="small muted">Questions, or interested in a collaboration with another artist? <a class="link" href="#/help">Ask the M.E.E.T. team</a>.</p>';
+  }
+
+  /* ---------------- help from the M.E.E.T. team ---------------- */
+
+  var HELP_TOPIC = { profile: "My profile", artworks: "My artworks", inquiry: "An inquiry I received", collaboration: "A collaboration with another artist", other: "Something else" };
+
+  async function viewHelp() {
+    var r = await sb.from("artist_requests").select("*").eq("artist_id", artist.id).order("created_at", { ascending: false });
+    var rows = r.error ? [] : r.data || [];
+    main.innerHTML =
+      '<div class="head"><div><span class="eyebrow">Ask the team</span><h1>How can we <em>help?</em></h1>' +
+      "<p>Ask about your profile, your artworks or an inquiry. If you would like to collaborate with another artist, tell us who or what kind of practice you have in mind, and the team will explore a suitable connection.</p></div></div>" +
+      '<form class="panel stack" id="help" novalidate>' +
+      '<label class="f">What is it about?<select class="inp" name="topic"><option value="">Choose one</option>' +
+      Object.keys(HELP_TOPIC).map(function (k) { return '<option value="' + k + '">' + esc(HELP_TOPIC[k]) + "</option>"; }).join("") + "</select></label>" +
+      '<label class="f">Your message<span class="hint">At least 10 characters. We reply by email.</span><textarea class="inp" name="message" rows="5" maxlength="2000"></textarea></label>' +
+      '<p class="err" id="help-err" role="alert" hidden></p><div class="row"><button class="btn" type="submit" id="b-help">Send to the team</button></div></form>' +
+      (rows.length ? '<section class="panel stack" style="gap:10px"><h2 style="font-size:26px">Your messages</h2>' + rows.map(function (q) {
+        return '<div class="note"><span class="muted">' + esc(HELP_TOPIC[q.topic] || "") + " · " + esc(M.fmtDate(q.created_at, true)) + " · " + (q.status === "closed" ? "Answered" : "Open") + "</span>" +
+          esc(q.message).replace(/\n/g, "<br>") + "</div>";
+      }).join("") + "</section>" : "");
+    main.querySelector("#help").addEventListener("submit", async function (e) {
+      e.preventDefault();
+      var f = this, err = main.querySelector("#help-err");
+      var topic = f.elements.topic.value, message = f.elements.message.value.trim();
+      var problem = !topic ? "Please choose what your message is about." : message.length < 10 ? "Please write at least 10 characters." : "";
+      err.textContent = problem; err.hidden = !problem;
+      if (problem) return;
+      var b = main.querySelector("#b-help");
+      M.setBusy(b, true, "Sending");
+      try { await M.api("artist-help", { topic: topic, message: message }); M.toast("Sent. The team will reply by email."); route(); }
+      catch (ex) { M.setBusy(b, false); err.textContent = M.friendlyError(ex); err.hidden = false; }
+    });
   }
 
   /* ---------------- profile ---------------- */
@@ -233,7 +273,8 @@
       '<label class="f">City<input class="inp" name="city" maxlength="80" value="' + esc(a.city) + '"></label></div>' +
       '<label class="f">Main discipline<span class="hint">Your main art form, for example porcelain painting.</span><input class="inp" name="craft" maxlength="120" value="' + esc(a.craft) + '"></label>' +
       '<div class="grid2"><label class="f">Other disciplines <span class="opt">optional</span><span class="hint">Other kinds of art you also practise.</span><input class="inp" name="other_disciplines" maxlength="400" value="' + esc(a.other_disciplines || "") + '"></label>' +
-      '<label class="f">Techniques and materials <span class="opt">optional</span><span class="hint">How you work: techniques, tools, materials.</span><input class="inp" name="techniques" maxlength="400" value="' + esc(a.techniques) + '"></label></div>' +
+      '<label class="f">' + ("materials" in a ? "Techniques" : "Techniques and materials") + ' <span class="opt">optional</span><span class="hint">How you work, for example wheel throwing, natural dyeing, lost-wax casting.</span><input class="inp" name="techniques" maxlength="400" value="' + esc(a.techniques) + '"></label></div>' +
+      ("materials" in a ? '<label class="f">Materials <span class="opt">optional</span><span class="hint">What you work with, separated by commas, for example porcelain, wool, walnut, brass. Visitors can find you by material.</span><input class="inp" name="materials" maxlength="300" value="' + esc(a.materials || "") + '"></label>' : "") +
       ("traditions" in a ? '<label class="f">Cultural traditions <span class="opt">optional</span><span class="hint">Traditions, heritage or schools your practice comes from, for example Damascene inlay or Japanese kintsugi. For the M.E.E.T. team only for now: it is not shown on your public profile.</span><input class="inp" name="traditions" maxlength="400" value="' + esc(a.traditions || "") + '"></label>' : "") +
       '<label class="f">Biography and approach<span class="hint">What you make, how you learned it, how you approach your work, what you are exploring now. At least 40 characters.</span>' +
       '<textarea class="inp" name="bio" rows="7" maxlength="1500">' + esc(a.bio) + "</textarea></label></div>" +
@@ -252,6 +293,7 @@
     var form = main.querySelector("#pf");
     var FIELDS = ["display_name", "legal_name", "country", "city", "craft", "other_disciplines", "techniques", "bio", "instagram", "website", "other_link"];
     if ("traditions" in a) FIELDS.splice(7, 0, "traditions");
+    if ("materials" in a) FIELDS.splice(7, 0, "materials");
     function values() { var v = {}; FIELDS.forEach(function (f) { v[f] = form.elements[f].value.trim(); }); return v; }
     function changed() { var v = values(); return FIELDS.some(function (f) { return v[f] !== (artist[f] || ""); }); }
 

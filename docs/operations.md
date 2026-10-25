@@ -29,3 +29,16 @@ Order matters: if step 3 happens before step 2 is live, sign-in stops working fo
 - `meetstudio.art` has **no MX record**: hello@meetstudio.art cannot receive email, so replies to sign-up and password emails bounce. Fix: free forwarding (for example ImprovMX or Forward Email) with MX records added in Netlify › Domains › meetstudio.art › DNS records. Needs approval (new third-party service).
 - Supabase sender name is "M.E.E.T"; the website's own emails say "M.E.E.T.". Set Supabase › Authentication › Emails › SMTP Settings › Sender name to `M.E.E.T.`.
 - DMARC policy is `p=none` with no report address; tighten to `p=quarantine` after a few weeks of clean sending, once a mailbox exists for reports.
+
+## Requests: commissions, collaborations, projects (update 012)
+- **Where they arrive:** console › Requests › Commissions, Collaborations, Projects. One shared record per request (client, artists, history, follow-ups, figures); each kind has its own dashboard. The sales team is emailed for each new request.
+- **Who can change them:** founders, and the sales team member assigned to the request (others read and add notes).
+- **Working a request:** set *Next action* (waiting on team / artist / client, what, by when); record each artist under *Artists* (contacted, available, unavailable, declined, recommended, alternative, their price and timing); prepare a *Proposal* (drafts stay internal), then *Send to the client*. The client accepts, asks for changes, or declines in their account; the responsible person is emailed. Accepting confirms the request.
+- **What the client sees:** a simple status (Received, Under review, Contacting artists, Preparing your proposal, Proposal ready, In discussion, Confirmed, Closed), sent proposals, and *Updates shared with the client*. Never internal notes, drafts, artists' prices or figures.
+- **Files:** project briefs may carry up to five files (PDF, JPG, PNG, WebP, 10 MB) in the private `request-files` store; only the member and the sales team can open them.
+- **Messaging:** direct messages between clients and artists are not built. Updates are one way, from the team; clients reply by email.
+
+## Public website (console › Public website)
+- **Homepage:** edit words and images, show or hide sections, drag to reorder. *Save draft* keeps the live homepage unchanged; *Save and preview* opens `/?preview=draft` (team only); *Publish* makes it live and keeps a copy of each published version (`site_page_versions`). *Discard draft* returns to the published version. Images go to the public `site-media` store; every image needs a description.
+- **Featured artists and artworks:** only approved, public items can be made eligible. Pinned items always show first; the others rotate daily when rotation is on for that section. Sections with nothing eligible are hidden.
+- **Directory order:** drag artists into the order they first appear on the Artists page; unplaced artists follow by name.
