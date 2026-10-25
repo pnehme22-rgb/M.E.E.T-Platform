@@ -32,7 +32,8 @@
     items.push(["delete", "Delete account"]);
     nav.innerHTML = items.map(function (i) {
       return '<a class="ni" href="#/' + i[0] + '"' + (current === i[0] ? ' aria-current="page"' : "") + ">" + esc(i[1]) + "</a>";
-    }).join("") + '<a class="ni" href="/artists">Discover artists</a>';
+    }).join("") + '<a class="ni" href="/artists">Discover artists</a><a class="ni" href="/discover#commission">Send a commission idea</a>' +
+      '<a class="ni" href="/collaborate">Propose a collaboration</a>' + (acct.account_type !== "personal" ? '<a class="ni" href="/start-a-project#brief">Start a project</a>' : "");
   }
 
   async function load() {
