@@ -139,7 +139,7 @@
     if (!who.session) {
       msg = "<p>Sending a request needs a free M.E.E.T. account, so the team can reply and you can follow each step. You can fill in the form first: your answers are kept on this device while you sign in.</p>" + signLinks();
     } else if (!who.account) {
-      msg = "<p>Requests are sent from a member account. Artist studios and team logins cannot send them. If you would like help as an artist, use <b>Ask the team</b> in your studio.</p>";
+      msg = "<p>Requests are sent from a member account. Artist studios and team logins cannot send them. If you would like help as an artist, use <b>Support</b> in your studio.</p>";
     } else if (kind === "project" && who.account.account_type === "personal") {
       msg = '<p>Project briefs are sent from Professional and Business &amp; Organization accounts. With your Personal account you can <a class="text-link" href="/discover#commission">send a commission idea</a> or <a class="text-link" href="/collaborate">propose a collaboration</a>.</p>';
     } else {

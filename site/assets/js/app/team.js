@@ -627,8 +627,9 @@
       '<div class="kv" style="flex:1;min-width:240px"><span>Legal name</span><b>' + esc(a.legal_name) + "</b><span>Shown as</span><b>" + esc(a.display_name) + "</b>" +
       "<span>Main discipline</span><b>" + esc(a.craft) + "</b>" +
       (a.other_disciplines ? "<span>Other disciplines</span><b>" + esc(a.other_disciplines) + "</b>" : "") +
-      (a.techniques ? "<span>Techniques and materials</span><b>" + esc(a.techniques) + "</b>" : "") +
-      (a.traditions ? "<span>Cultural traditions</span><b>" + esc(a.traditions) + "</b>" : "") +
+      (a.techniques ? "<span>Techniques</span><b>" + esc(a.techniques) + "</b>" : "") +
+      (a.materials ? "<span>Materials</span><b>" + esc(a.materials) + "</b>" : "") +
+      (a.traditions ? '<span>Cultural traditions</span><b>' + esc(a.traditions) + ' <span class="muted small">(stored from earlier; no longer collected or shown)</span></b>' : "") +
       (a.instagram ? "<span>Instagram</span><b>" + esc(a.instagram) + "</b>" : "") +
       (a.website ? '<span>Website</span><b><a class="link" href="' + esc(a.website) + '" target="_blank" rel="noopener noreferrer nofollow">' + esc(a.website) + "</a></b>" : "") +
       (a.other_link ? '<span>Other link</span><b>' + esc(a.other_link) + "</b>" : "") +
@@ -783,12 +784,71 @@
       kv("Full name", m.full_name) + kv("Professional role", m.professional_role) + kv("Company or studio", m.company_name) + kv("Professional website", m.professional_website, true) +
       '<span>Email</span><b><a class="link" href="mailto:' + esc(m.email) + '">' + esc(m.email) + "</a></b>" +
       kv("Country", m.country) + kv("Phone", m.phone) + kv("Last updated", M.fmtDate(m.updated_at, true)) +
-      "</div><p class=\"small muted\">The account type is fixed. Members cannot change it themselves.</p></div>" +
+      "</div><p class=\"small muted\">Members cannot change their email address or account type themselves." + (me.role === "founder" ? " When a member asks, a founder can change them here." : " A founder can change them when a member asks.") + "</p>" +
+      (me.role === "founder" ? '<div class="row"><button class="btn line sm" type="button" id="chg-email">Change email address</button><button class="btn line sm" type="button" id="chg-type">Change account type</button></div>' : "") + "</div>" +
       (me.role === "founder" ? '<div class="panel stack" style="gap:8px;margin-top:12px"><h3 style="font-size:22px">Remove this member</h3>' +
         '<p class="small muted">For deletion requests: removes their member account and their login.</p>' +
         '<div><button class="btn danger sm" type="button" id="del-member">Delete member account</button></div></div>' : "");
     var del = main.querySelector("#del-member");
     if (del) del.addEventListener("click", function () { openDelete("member", m.id, memberName(m), function () { location.hash = "#/members"; renderNav("members"); }); });
+    var ce = main.querySelector("#chg-email"), ct = main.querySelector("#chg-type");
+    if (ce) ce.addEventListener("click", function () { openMemberEmail(m); });
+    if (ct) ct.addEventListener("click", function () { openMemberType(m); });
+  }
+
+  // Founders: change a member's sign-in email, only when the member asked.
+  function openMemberEmail(m) {
+    M.modal(
+      "<h2>Change the email of <em>" + esc(memberName(m)) + "</em></h2>" +
+      '<p class="muted">Only when the member asked for it, from their current address or after you checked it is really them. They will sign in with the new address; their password does not change. Both addresses are told by email, and the change is recorded in the activity log.</p>' +
+      '<div class="kv"><span>Current email</span><b>' + esc(m.email) + "</b></div>" +
+      '<label class="f">New email<input class="inp" id="m-new" type="email" autocomplete="off" autocapitalize="off" spellcheck="false"></label>' +
+      '<label class="f">New email again<input class="inp" id="m-new2" type="email" autocomplete="off" autocapitalize="off" spellcheck="false"></label>' +
+      '<label class="row small" style="font-weight:500"><input type="checkbox" id="m-ok"> The member asked for this change and I checked it is them.</label>' +
+      '<p class="err" id="m-err" hidden></p><div class="row"><button class="btn" type="button" id="m-go">Change email</button><button class="btn line" type="button" data-close>Cancel</button></div>',
+      function (box, close) {
+        box.querySelector("#m-go").addEventListener("click", async function () {
+          var a = box.querySelector("#m-new").value.trim(), b = box.querySelector("#m-new2").value.trim(), err = box.querySelector("#m-err");
+          var problem = !/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(a) ? "Please enter a valid email address." : a.toLowerCase() !== b.toLowerCase() ? "The two email addresses do not match." : !box.querySelector("#m-ok").checked ? "Please confirm the member asked for this change." : "";
+          if (problem) { err.textContent = problem; err.hidden = false; return; }
+          M.setBusy(this, true, "Changing");
+          try { var r = await M.api("member-admin", { action: "email", id: m.id, email: a, confirm: b }); close(); M.toast("Email changed." + (r.emailed ? " The member was told by email." : "")); viewMember(m.id); }
+          catch (ex) { M.setBusy(this, false); err.textContent = M.friendlyError(ex); err.hidden = false; }
+        });
+      });
+  }
+
+  // Founders: change a member's account type, with the details that type needs.
+  function openMemberType(m) {
+    var types = Object.keys(ACCOUNT_TYPE).filter(function (t) { return t !== m.account_type; });
+    M.modal(
+      "<h2>Change the account type of <em>" + esc(memberName(m)) + "</em></h2>" +
+      '<p class="muted">Now: ' + esc(ACCOUNT_TYPE[m.account_type][0]) + ". Their requests, inquiries and history stay as they are. The member is told by email, and the change is recorded in the activity log.</p>" +
+      '<label class="f">New account type<select class="inp" id="t-type">' + types.map(function (t) { return '<option value="' + t + '">' + esc(ACCOUNT_TYPE[t][0]) + "</option>"; }).join("") + "</select></label>" +
+      '<div id="t-pro" class="stack" style="gap:8px"><label class="f">Professional role<input class="inp" id="t-role" maxlength="120" value="' + esc(m.professional_role) + '"></label>' +
+      '<label class="f">Company or studio name<input class="inp" id="t-company" maxlength="160" value="' + esc(m.company_name) + '"></label></div>' +
+      '<div id="t-biz" class="stack" style="gap:8px"><label class="f">Business or organization name<input class="inp" id="t-bname" maxlength="160" value="' + esc(m.business_name) + '"></label>' +
+      '<label class="f">Business type<input class="inp" id="t-btype" maxlength="120" value="' + esc(m.business_type) + '"></label>' +
+      '<label class="f">Contact person<input class="inp" id="t-contact" maxlength="120" value="' + esc(m.contact_person || m.full_name) + '"></label></div>' +
+      '<label class="row small" style="font-weight:500"><input type="checkbox" id="t-ok"> The member asked for this change.</label>' +
+      '<p class="err" id="t-err" hidden></p><div class="row"><button class="btn" type="button" id="t-go">Change account type</button><button class="btn line" type="button" data-close>Cancel</button></div>',
+      function (box, close) {
+        var sel = box.querySelector("#t-type");
+        function sync() { box.querySelector("#t-pro").hidden = sel.value !== "professional"; box.querySelector("#t-biz").hidden = sel.value !== "business"; }
+        sel.addEventListener("change", sync); sync();
+        box.querySelector("#t-go").addEventListener("click", async function () {
+          var err = box.querySelector("#t-err"), t = sel.value;
+          var f = { professional_role: box.querySelector("#t-role").value, company_name: box.querySelector("#t-company").value,
+            business_name: box.querySelector("#t-bname").value, business_type: box.querySelector("#t-btype").value, contact_person: box.querySelector("#t-contact").value };
+          var problem = !box.querySelector("#t-ok").checked ? "Please confirm the member asked for this change."
+            : t === "professional" && (!f.professional_role.trim() || !f.company_name.trim()) ? "Please fill in the professional role and the company or studio name."
+            : t === "business" && (!f.business_name.trim() || !f.business_type.trim() || !f.contact_person.trim()) ? "Please fill in the business name, type and contact person." : "";
+          if (problem) { err.textContent = problem; err.hidden = false; return; }
+          M.setBusy(this, true, "Changing");
+          try { var r = await M.api("member-admin", { action: "type", id: m.id, account_type: t, fields: f }); close(); M.toast("Account type changed." + (r.emailed ? " The member was told by email." : "")); viewMember(m.id); }
+          catch (ex) { M.setBusy(this, false); err.textContent = M.friendlyError(ex); err.hidden = false; }
+        });
+      });
   }
 
   /* ------------------------------------------------------------------ */
@@ -1128,7 +1188,7 @@
   }
 
   /* ------------------------------------------------------------------ */
-  /* Requests from artists (Ask the team, in the studio)                 */
+  /* Requests from artists (Support, in the studio)                      */
   /* ------------------------------------------------------------------ */
 
   var HELP_TOPIC = { profile: "Their profile", artworks: "Their artworks", inquiry: "An inquiry", collaboration: "A collaboration with another artist", other: "Something else" };
@@ -1142,7 +1202,7 @@
     var rows = all.filter(function (x) { return x.status === tab; });
     main.innerHTML =
       '<div class="head"><div><span class="eyebrow">Artists</span><h1>Artist <em>requests</em></h1>' +
-      "<p>Messages artists send from their studio with Ask the team: questions about their profile, artworks or an inquiry, and interest in collaborating with another artist. Reply by email, then mark the request as answered.</p></div></div>" +
+      "<p>Messages artists send from Support in their studio: questions about their profile, artworks or an inquiry, and interest in collaborating with another artist. Reply by email, then mark the request as answered.</p></div></div>" +
       '<div class="chips" role="group" aria-label="Which requests">' + [["open", "Open"], ["closed", "Answered"]].map(function (c) {
         return '<button class="chip" type="button" data-f="tab" data-v="' + c[0] + '" aria-pressed="' + (tab === c[0]) + '">' + esc(c[1]) + " · " + all.filter(function (x) { return x.status === c[0]; }).length + "</button>";
       }).join("") + "</div>" +
@@ -1316,13 +1376,21 @@
     "Review the request": "team", "Contact the artists": "team", "Check availability, pricing and timing": "team", "Suggest alternative artists": "team",
     "Prepare the proposal": "team", "Send the proposal": "team", "Revise the proposal": "team",
     "Confirm the details with the client and artists": "team", "Arrange delivery or installation": "team" };
+  // Every request column except the figures, which only founders and the
+  // assigned team member can read (project_money, enforced by the database).
+  var PRJ_COLS = "id, reference, member_id, client_name, client_type, client_organization, client_country, description, artwork_type, " +
+    "budget, budget_undecided, timeline, timeline_undecided, location, style_refs, quantity_dims, status, not_confirmed_reason, " +
+    "not_confirmed_note, assigned_to, confirmed_at, created_at, updated_at, kind, purpose, disciplines_wanted, files, waiting_on, " +
+    "next_action, next_action_due, client_milestones";
+  var MILESTONES = [["received", "Received"], ["under_review", "Under review"], ["finding_artists", "Contacting artists"],
+    ["preparing_proposal", "Preparing the proposal"], ["proposal_ready", "Proposal ready"], ["in_discussion", "In discussion"], ["confirmed", "Confirmed"]];
   function requestTitle(p) { return p.kind === "collaboration" ? "Collaboration" : p.artwork_type; }
 
   async function viewProjects(q, kind) {
     var K = KINDS[kind];
     var status = q.get("status") || "", who = q.get("who") || "", country = q.get("country") || "", waiting = q.get("waiting") || "";
     var term = (q.get("q") || "").trim().toLowerCase(), sort = q.get("sort") || "new", page = Math.max(1, parseInt(q.get("page") || "1", 10));
-    var r = await sb.from("project_requests").select("*").eq("kind", kind).order("created_at", { ascending: false }).limit(5000);
+    var r = await sb.from("project_requests").select(PRJ_COLS).eq("kind", kind).order("created_at", { ascending: false }).limit(5000);
     if (r.error) throw r.error;
     var all = r.data || [], t = today();
     var base = all.filter(function (p) {
@@ -1406,7 +1474,7 @@
     task_added: "Follow-up added", task_done: "Follow-up completed", task_reopened: "Follow-up reopened", task_deleted: "Follow-up deleted", money: "Value and revenue updated",
     next: "Next action updated", proposal_draft: "Proposal drafted", proposal_sent: "Proposal sent to the client", proposal_withdrawn: "Proposal withdrawn",
     client_accepted: "Client accepted the proposal", client_changes_requested: "Client asked for changes", client_declined: "Client declined the proposal",
-    client_update: "Update shared with the client"
+    client_update: "Update shared with the client", milestones: "Client milestones updated"
   };
   function eventText(e) {
     var d = e.detail || {};
@@ -1418,12 +1486,13 @@
     if (e.kind === "next") return [d.waiting_on ? "Waiting on " + (WAITING[d.waiting_on] || [d.waiting_on])[0].toLowerCase() : "", d.action, d.due ? "due " + d.due : ""].filter(Boolean).join(" · ");
     if (/^proposal_|^client_(accepted|changes|declined)/.test(e.kind)) return (d.version ? "Proposal " + d.version : "") + (d.message ? ": " + d.message : "");
     if (e.kind === "client_update") return d.text || "";
+    if (e.kind === "milestones") return (d.steps || []).map(function (k) { return (MILESTONES.filter(function (m) { return m[0] === k; })[0] || [k, k])[1]; }).join(", ") || "None";
     if (e.kind === "created") return d.artists ? d.artists + " artist" + (d.artists === 1 ? "" : "s") + " chosen" + (d.files ? ", " + d.files + " file" + (d.files === 1 ? "" : "s") : "") : "";
     return "";
   }
 
   async function viewProject(id) {
-    var pr = await sb.from("project_requests").select("*").eq("id", id).maybeSingle();
+    var pr = await sb.from("project_requests").select(PRJ_COLS).eq("id", id).maybeSingle();
     if (pr.error) throw pr.error;
     var p = pr.data;
     if (!p) { main.innerHTML = '<div class="empty">This request could not be found. <a class="link" href="#/projects">Back to projects</a></div>'; return; }
@@ -1439,8 +1508,11 @@
       sb.from("public_artists").select("id, display_name, main_discipline, other_disciplines, techniques, materials, country, city").order("display_name"),
       sb.from("public_artworks").select("artist_id, materials"),
       sb.from("project_proposals").select("*").eq("project_id", id).order("version", { ascending: false }),
-      sb.from("project_updates").select("*").eq("project_id", id).order("created_at", { ascending: false })
+      sb.from("project_updates").select("*").eq("project_id", id).order("created_at", { ascending: false }),
+      sb.rpc("project_money", { p_id: id })
     ]);
+    var moneyRow = (res[10].data || [])[0], moneyVisible = !!moneyRow;
+    if (moneyRow) Object.assign(p, moneyRow);
     var manage = res[0].data === true, notes = res[1].data || [], chosen = res[2].data || [], tasks = res[3].data || [], events = res[4].data || [];
     var contact = res[5].data, publicArtists = res[6].data || [], publicWorks = res[7].data || [], proposals = res[8].data || [], updates = res[9].data || [];
     var chosenIds = chosen.map(function (c) { return c.artist_id; });
@@ -1554,6 +1626,7 @@
         '<p class="err" id="task-err" hidden></p><div><button class="btn line sm" type="submit">Add follow-up</button></div></form>' : "") +
       "</section>" +
 
+      (!moneyVisible ? '<section class="rblock"><h3>Value and revenue</h3><p class="small muted">Visible to founders and to the team member this request is assigned to.</p></section>' :
       '<section class="rblock"><h3>Value and revenue</h3><p class="small muted">Recorded by hand. The client\'s project value and M.E.E.T.\'s own revenue are kept apart, and nothing is calculated from a rate. Payment status is what the team records; the website does not process or verify payments.</p>' +
       '<form class="money" id="money" novalidate>' +
       '<label class="f">Currency<input class="inp" name="currency" maxlength="3" list="currencies" autocapitalize="characters" value="' + esc(p.currency) + '"' + dis + '></label>' +
@@ -1564,8 +1637,7 @@
       '<label class="f">Payment status <span class="hint">Recorded by hand.</span><select class="inp" name="payment_status"' + dis + ">" + PAYMENT.map(function (o) { return '<option value="' + o[0] + '"' + (p.payment_status === o[0] ? " selected" : "") + ">" + esc(o[1]) + "</option>"; }).join("") + "</select></label>" +
       '<label class="f full">Notes and dates <span class="opt">optional</span><textarea class="inp" name="revenue_notes" rows="3" maxlength="2000"' + dis + ">" + esc(p.revenue_notes) + "</textarea></label>" +
       (manage ? '<p class="err full" id="money-err" hidden></p><div class="full"><button class="btn line sm" type="submit">Save value and revenue</button></div>' : "") +
-      '</form><datalist id="currencies"><option>AED</option><option>USD</option><option>EUR</option><option>GBP</option><option>SAR</option></datalist></section>' +
-
+      '</form><datalist id="currencies"><option>AED</option><option>USD</option><option>EUR</option><option>GBP</option><option>SAR</option></datalist></section>') +
       '<section class="rblock"><h3>Internal notes</h3><p class="small muted">Visible to founders and the sales team only. Never shown to the client or to artists.</p>' +
       (notes.map(function (n) { return '<div class="note"><span class="muted">' + esc(teamName(n.author) || "Team") + " · " + esc(M.fmtDate(n.created_at, true)) + "</span>" + esc(n.body).replace(/\n/g, "<br>") + "</div>"; }).join("") || '<p class="small muted">No notes yet.</p>') +
       '<label class="f">Add a note<textarea class="inp" id="note" rows="3" maxlength="4000"></textarea></label><div><button class="btn line sm" type="button" id="b-note">Save note</button></div></section>' +
@@ -1576,6 +1648,10 @@
       (p.status === "not_confirmed" && p.not_confirmed_reason ? '<p class="small">Reason: ' + esc(REASON_LABEL[p.not_confirmed_reason]) + (p.not_confirmed_note ? ". " + esc(p.not_confirmed_note) : "") + "</p>" : "") +
       '<p class="small muted">The client sees: ' + esc(CLIENT_LABEL[clientStatus(p.status)]) + ".</p>" +
       (manage ? '<button class="btn sm" type="button" id="b-status">' + (p.status === "not_confirmed" ? "Reopen or change status" : "Change status") + "</button>" : "") + "</div>" +
+      '<div class="panel stack" style="gap:8px"><h3 style="font-size:22px">Client milestones</h3>' +
+      '<p class="small muted">The steps the client sees ticked as completed. Nothing is ticked automatically: tick a step once it is really done.</p>' +
+      MILESTONES.map(function (m) { return '<label class="row small" style="font-weight:500"><input type="checkbox" data-milestone="' + m[0] + '"' + ((p.client_milestones || []).indexOf(m[0]) !== -1 ? " checked" : "") + dis + "> " + esc(m[1]) + "</label>"; }).join("") +
+      (manage ? '<div><button class="btn line sm" type="button" id="b-miles">Save milestones</button></div>' : "") + "</div>" +
       '<div class="panel stack" style="gap:10px"><h3 style="font-size:22px">Next action</h3>' +
       '<label class="f">Waiting on<select class="inp" id="nx-wait"' + dis + ">" + Object.keys(WAITING).map(function (k) { return '<option value="' + k + '"' + (p.waiting_on === k ? " selected" : "") + ">" + esc(WAITING[k][0]) + "</option>"; }).join("") + "</select></label>" +
       '<label class="f">Next action<select class="inp" id="nx-pick"' + dis + ">" + '<option value="">Nothing planned</option>' +
@@ -1610,6 +1686,12 @@
     if (claim) claim.addEventListener("click", function () { call("assign_project", { p_id: id, p_user: me.user.id }, "This request is now yours."); });
     var bs = main.querySelector("#b-status");
     if (bs) bs.addEventListener("click", function () { openProjectStatus(p, reload); });
+    var bm = main.querySelector("#b-miles");
+    if (bm) bm.addEventListener("click", function () {
+      var steps = Array.prototype.filter.call(main.querySelectorAll("[data-milestone]"), function (c) { return c.checked; }).map(function (c) { return c.getAttribute("data-milestone"); });
+      M.setBusy(bm, true, "Saving");
+      call("set_client_milestones", { p_id: id, p_steps: steps }, "Milestones saved. The client sees them in their account.").then(function (ok) { if (!ok) M.setBusy(bm, false); });
+    });
     var bn = main.querySelector("#b-next");
     if (bn) bn.addEventListener("click", function () {
       var pick = main.querySelector("#nx-pick").value, action = pick === "other" ? main.querySelector("#nx-action").value.trim() : pick;
@@ -1859,7 +1941,7 @@
     var country = q.get("country") || "";
     var res = await Promise.all([
       sb.from("artist_inquiries").select("status, member_country").limit(20000),
-      sb.from("project_requests").select("status, client_country, currency, estimated_value, final_value, final_revenue, payment_status, not_confirmed_reason").limit(20000)
+      sb.rpc("project_money_report")
     ]);
     if (res[0].error) throw res[0].error;
     if (res[1].error) throw res[1].error;
@@ -1888,7 +1970,7 @@
       "<p>By each person's registered country, as given in their account. Inquiry counts are not revenue. Amounts in different currencies are shown separately and never added together.</p></div>" +
       '<div class="toolbar"><label class="visually-hidden" for="f-country">Country</label><select class="inp" id="f-country">' + countryOptions(countries, country, "All countries") + "</select>" +
       '<button class="btn line sm" type="button" data-job="export">Email the export now</button></div></div>' +
-      '<p class="small muted">Every Monday at 05:00 UTC, founders receive an email with CSV copies of all inquiry and sales records. It is a copy of the records, not a full database backup.</p>' +
+      '<p class="small muted">Every Monday at 04:00 Lebanon time, founders receive an email with CSV copies of all inquiry and sales records. It is a copy of these records only, not a full database backup: logins, artists, artworks, photographs and other tables are not included.</p>' +
       '<section class="rblock"><h3>Revenue records</h3><p class="small muted">From the figures the team recorded by hand.</p>' +
       table(["", "Projects", "Amounts"], [
         ["Open pipeline, estimated project value", String(open.length), sums(open, "estimated_value")],

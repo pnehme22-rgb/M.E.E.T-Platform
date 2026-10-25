@@ -1,0 +1,73 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex">
+<title>M.E.E.T. QR card</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@400;600&family=Instrument+Serif:ital@0;1&display=swap">
+<style>
+  /* Print at 100% scale (no "fit to page"). One A6 card per page, 105 x 148 mm, front and back.
+     The QR code points to https://meetstudio.art/ (checked by decoding the image). */
+  @page { size: 105mm 148mm; margin: 0; }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; background: #e9e2d5; }
+  .card {
+    width: 105mm; height: 148mm; margin: 10mm auto; background: #f6f0e5; color: #18213a;
+    padding: 12mm 10mm 9mm; display: flex; flex-direction: column; align-items: center; text-align: center;
+    font-family: "Instrument Sans", Arial, sans-serif; break-after: page; position: relative; overflow: hidden;
+    box-shadow: 0 6px 24px rgba(0,0,0,.08);
+  }
+  .brand { display: flex; align-items: center; gap: 3mm; font-family: "Instrument Serif", Georgia, serif; font-size: 18pt; letter-spacing: .06em; }
+  .brand svg { width: 13mm; height: 9mm; }
+  .kicker { margin: 8mm 0 2.5mm; font-size: 6.5pt; font-weight: 600; letter-spacing: .2em; text-transform: uppercase; color: #7a1420; }
+  h1 { font-family: "Instrument Serif", Georgia, serif; font-weight: 400; font-size: 20pt; line-height: 1.04; margin: 0; }
+  h1 em { color: #7a1420; }
+  .qr { width: 50mm; height: 50mm; margin: 7mm 0 4mm; padding: 1.5mm; background: #fff; border: .3mm solid #ddd2bf; border-radius: 3mm; }
+  .qr img { width: 100%; height: 100%; display: block; }
+  .scan { font-size: 8.5pt; line-height: 1.45; color: #2c3550; margin: 0; max-width: 74mm; }
+  .url { margin-top: auto; font-size: 10pt; font-weight: 600; letter-spacing: .03em; }
+  .tag { margin-top: 1mm; font-family: "Instrument Serif", Georgia, serif; font-style: italic; font-size: 9pt; color: #545a69; }
+  /* Back: the three ways in */
+  .back { justify-content: center; background: #13284a; color: #f6f0e5; }
+  .back .brand { color: #f6f0e5; }
+  .back .brand circle { stroke: #c9d8e4; }
+  .ways { list-style: none; margin: 9mm 0 0; padding: 0; text-align: left; width: 100%; max-width: 78mm; }
+  .ways li { padding: 3.2mm 0; border-top: .25mm solid rgba(201, 216, 228, .35); }
+  .ways b { display: block; font-family: "Instrument Serif", Georgia, serif; font-weight: 400; font-size: 14pt; }
+  .ways span { font-size: 8pt; line-height: 1.4; color: rgba(246, 240, 229, .82); }
+  .back .url { margin-top: 9mm; color: #f6f0e5; }
+  .back .tag { color: #c9d8e4; }
+  @media print { html, body { background: none; } .card { margin: 0; box-shadow: none; } }
+</style>
+</head>
+<body>
+  <section class="card" aria-label="Front">
+    <div class="brand">
+      <svg viewBox="0 0 119 80" aria-hidden="true"><path d="M59.5 8.56 A37 37 0 0 1 59.5 71.44 A37 37 0 0 1 59.5 8.56 Z" fill="#74191d"/><circle cx="40" cy="40" r="37" fill="none" stroke="#11306a" stroke-width="4.5"/><circle cx="79" cy="40" r="37" fill="none" stroke="#11306a" stroke-width="4.5"/></svg>
+      M.E.E.T.
+    </div>
+    <p class="kicker">Mind Exploring Every Tradition</p>
+    <h1>Bring any creative vision <em>closer to reality.</em></h1>
+    <div class="qr"><img src="meet-website-qr.svg" alt="QR code to meetstudio.art"></div>
+    <p class="scan">Discover artists, commission a piece, or bring different practices together on a project.</p>
+    <p class="url">meetstudio.art</p>
+  </section>
+
+  <section class="card back" aria-label="Back">
+    <div class="brand">
+      <svg viewBox="0 0 119 80" aria-hidden="true"><path d="M59.5 8.56 A37 37 0 0 1 59.5 71.44 A37 37 0 0 1 59.5 8.56 Z" fill="#74191d"/><circle cx="40" cy="40" r="37" fill="none" stroke-width="4.5"/><circle cx="79" cy="40" r="37" fill="none" stroke-width="4.5"/></svg>
+      M.E.E.T.
+    </div>
+    <ul class="ways">
+      <li><b>Join as an Artist</b><span>Present your practice to the people looking for it.</span></li>
+      <li><b>Discover &amp; Commission</b><span>Find an artist, or send us an idea for a commission.</span></li>
+      <li><b>Start a Project</b><span>For designers, curators, businesses and organizations.</span></li>
+    </ul>
+    <p class="url">meetstudio.art</p>
+    <p class="tag">What becomes possible when artistic worlds meet.</p>
+  </section>
+</body>
+</html>

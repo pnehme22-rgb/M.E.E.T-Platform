@@ -28,7 +28,7 @@ Status words: **Verified** (tested and passed), **Built, not verified** (impleme
 | Public sign-up | Open | Opened 25 Oct 2026 with email confirmation and bot protection |
 
 ## Operational actions
-1. Check the logs of the first scheduled runs (followup-reminders daily 06:00 UTC; sales-export Mondays 05:00 UTC).
+1. Check the logs of the first scheduled runs (followup-reminders daily 06:00 UTC; sales-export Mondays 04:00 Asia/Beirut).
 2. hello@meetstudio.art forwarding (ImprovMX): MX and SPF records published; confirm ImprovMX shows active and a test email arrives.
 3. Decide whether to keep or remove the test records (Test Professional, PRJ-0004, two test inquiries).
 4. Later: DMARC to p=quarantine with a report address; Google Postmaster Tools; Supabase paid plan for full backups.

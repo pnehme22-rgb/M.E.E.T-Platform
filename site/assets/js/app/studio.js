@@ -36,7 +36,7 @@
 
   async function renderNav(current) {
     var n = await sb.from("artist_inquiries").select("id", { count: "exact", head: true }).eq("artist_id", artist.id).eq("status", "new");
-    var items = [["", "Overview", 0], ["profile", "Profile", 0], ["works", "Artworks", 0], ["inquiries", "Inquiries", n.count || 0], ["help", "Ask the team", 0]];
+    var items = [["", "Overview", 0], ["profile", "Profile", 0], ["works", "Artworks", 0], ["inquiries", "Inquiries", n.count || 0], ["help", "Support", 0]];
     nav.innerHTML = items.map(function (i) {
       return '<a class="ni" href="#/' + i[0] + '"' + (current === i[0] ? ' aria-current="page"' : "") + ">" + esc(i[1]) +
         (i[2] ? '<span class="badge" aria-label="' + i[2] + ' new">' + i[2] + "</span>" : "") + "</a>";
@@ -213,7 +213,7 @@
       "<span>Your profile</span><b>" + (isPublic
         ? 'Public on M.E.E.T. · <a class="link" href="/artists/' + artist.id + '" target="_blank" rel="noopener">View your public profile</a>'
         : "Not public yet. It becomes public once the team approves your profile.") + "</b></div></section>" +
-      '<p class="small muted">Questions, or interested in a collaboration with another artist? <a class="link" href="#/help">Ask the M.E.E.T. team</a>.</p>';
+      '<p class="small muted">Questions, or interested in a collaboration with another artist? Write to the team from <a class="link" href="#/help">Support</a>.</p>';
   }
 
   /* ---------------- help from the M.E.E.T. team ---------------- */
@@ -224,8 +224,8 @@
     var r = await sb.from("artist_requests").select("*").eq("artist_id", artist.id).order("created_at", { ascending: false });
     var rows = r.error ? [] : r.data || [];
     main.innerHTML =
-      '<div class="head"><div><span class="eyebrow">Ask the team</span><h1>How can we <em>help?</em></h1>' +
-      "<p>Ask about your profile, your artworks or an inquiry. If you would like to collaborate with another artist, tell us who or what kind of practice you have in mind, and the team will explore a suitable connection.</p></div></div>" +
+      '<div class="head"><div><span class="eyebrow">Support</span><h1>How can we <em>help?</em></h1>' +
+      "<p>Write to the M.E.E.T. team about your profile, your artworks or an inquiry. If you would like to collaborate with another artist, tell us who or what kind of practice you have in mind, and the team will explore a suitable connection. This is not a live chat: the team replies by email.</p></div></div>" +
       '<form class="panel stack" id="help" novalidate>' +
       '<label class="f">What is it about?<select class="inp" name="topic"><option value="">Choose one</option>' +
       Object.keys(HELP_TOPIC).map(function (k) { return '<option value="' + k + '">' + esc(HELP_TOPIC[k]) + "</option>"; }).join("") + "</select></label>" +
@@ -275,7 +275,6 @@
       '<div class="grid2"><label class="f">Other disciplines <span class="opt">optional</span><span class="hint">Other kinds of art you also practise.</span><input class="inp" name="other_disciplines" maxlength="400" value="' + esc(a.other_disciplines || "") + '"></label>' +
       '<label class="f">' + ("materials" in a ? "Techniques" : "Techniques and materials") + ' <span class="opt">optional</span><span class="hint">How you work, for example wheel throwing, natural dyeing, lost-wax casting.</span><input class="inp" name="techniques" maxlength="400" value="' + esc(a.techniques) + '"></label></div>' +
       ("materials" in a ? '<label class="f">Materials <span class="opt">optional</span><span class="hint">What you work with, separated by commas, for example porcelain, wool, walnut, brass. Visitors can find you by material.</span><input class="inp" name="materials" maxlength="300" value="' + esc(a.materials || "") + '"></label>' : "") +
-      ("traditions" in a ? '<label class="f">Cultural traditions <span class="opt">optional</span><span class="hint">Traditions, heritage or schools your practice comes from, for example Damascene inlay or Japanese kintsugi. For the M.E.E.T. team only for now: it is not shown on your public profile.</span><input class="inp" name="traditions" maxlength="400" value="' + esc(a.traditions || "") + '"></label>' : "") +
       '<label class="f">Biography and approach<span class="hint">What you make, how you learned it, how you approach your work, what you are exploring now. At least 40 characters.</span>' +
       '<textarea class="inp" name="bio" rows="7" maxlength="1500">' + esc(a.bio) + "</textarea></label></div>" +
       '<div class="panel stack"><h3 style="font-size:24px">Links</h3>' +
@@ -292,7 +291,6 @@
 
     var form = main.querySelector("#pf");
     var FIELDS = ["display_name", "legal_name", "country", "city", "craft", "other_disciplines", "techniques", "bio", "instagram", "website", "other_link"];
-    if ("traditions" in a) FIELDS.splice(7, 0, "traditions");
     if ("materials" in a) FIELDS.splice(7, 0, "materials");
     function values() { var v = {}; FIELDS.forEach(function (f) { v[f] = form.elements[f].value.trim(); }); return v; }
     function changed() { var v = values(); return FIELDS.some(function (f) { return v[f] !== (artist[f] || ""); }); }

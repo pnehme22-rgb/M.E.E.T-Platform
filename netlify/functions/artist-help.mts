@@ -23,13 +23,13 @@ export default handle(async (req) => {
   const { data: team } = await p.svc.from("team_members").select("email, role").eq("active", true);
   const to = (team || []).filter((t) => t.role !== "viewer").map((t) => t.email).filter(Boolean);
   const mail = renderMail({
-    preheader: `${name} asked the team for help.`,
+    preheader: `${name} wrote to Support.`,
     paragraphs: [`<b>${esc(name)}</b> would like help with ${esc(TOPIC[topic] || "something")}.`],
     quote: message,
     cta: { label: "Open in the console", url: `${siteUrl()}/team#/artist-requests` },
   });
   for (const t of to) {
-    try { await sendMail(t, `Artist request: ${name}`, mail); } catch (err) { console.error(err); }
+    try { await sendMail(t, `Artist support: ${name}`, mail); } catch (err) { console.error(err); }
   }
   return json(200, { ok: true, id });
 });

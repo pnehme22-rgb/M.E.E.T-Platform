@@ -1,6 +1,6 @@
 /* M.E.E.T. member account: profile, security, inquiries to artists,
    requests to the M.E.E.T. team (commissions, collaborations, project briefs)
-   with their status, updates and proposals, deletion request.
+   with their status, updates and proposals, and how to ask for account deletion.
    Members can only read and edit their own row (database row level security);
    the account type and email cannot be changed here. */
 (function () {
@@ -29,7 +29,7 @@
   function renderNav(current) {
     var items = [["", "Overview"], ["inquiries", "Inquiries"], ["requests", "Requests"]];
     items.push(["profile", "Profile"], ["security", "Security"]);
-    items.push(["delete", "Delete account"]);
+    items.push(["delete", "Account deletion"]);
     nav.innerHTML = items.map(function (i) {
       return '<a class="ni" href="#/' + i[0] + '"' + (current === i[0] ? ' aria-current="page"' : "") + ">" + esc(i[1]) + "</a>";
     }).join("") + '<a class="ni" href="/artists">Discover artists</a><a class="ni" href="/discover#commission">Send a commission idea</a>' +
@@ -229,12 +229,13 @@
     var d = await sb.rpc("my_request_detail", { p_id: id });
     if (d.error) throw d.error;
     d = d.data;
-    var cur = d.client_status, closed = cur === "closed", at = closed ? -1 : (STEP[cur] || { i: 0 }).i;
-    var visible = STEPS.filter(function (s, i) { return !(s[0] === "in_discussion" && at < 5 && cur !== "in_discussion"); });
+    // A step is ticked only when the team has marked it as completed.
+    var cur = d.client_status, closed = cur === "closed", at = closed ? -1 : (STEP[cur] || { i: 0 }).i, done = d.milestones || [];
+    var visible = STEPS.filter(function (s) { return !(s[0] === "in_discussion" && at < 5 && cur !== "in_discussion" && done.indexOf("in_discussion") === -1); });
     var stepper = closed ? '<div class="notice">This request is closed. You are welcome to send a new one at any time.</div>'
       : '<ol class="stepper">' + visible.map(function (s) {
-        var i = STEP[s[0]].i;
-        return '<li class="' + (s[0] === cur ? "now" : i < at ? "done" : "") + '"' + (s[0] === cur ? ' aria-current="step"' : "") + "><b>" + esc(s[1]) + "</b>" + (s[0] === cur ? "<span>" + esc(s[2]) + "</span>" : "") + "</li>";
+        var ticked = done.indexOf(s[0]) !== -1;
+        return '<li class="' + [s[0] === cur ? "now" : "", ticked ? "done" : ""].join(" ").trim() + '"' + (s[0] === cur ? ' aria-current="step"' : "") + "><b>" + esc(s[1]) + (ticked ? '<span class="visually-hidden"> (completed)</span>' : "") + "</b>" + (s[0] === cur ? "<span>" + esc(s[2]) + "</span>" : "") + "</li>";
       }).join("") + "</ol>";
     var open = d.proposals.filter(function (p) { return p.status === "sent"; })[0];
     function proposal(p) {
@@ -299,25 +300,18 @@
     };
   }
 
+  // Members cannot delete their account themselves: M.E.E.T. keeps the records
+  // it needs (for example of requests and projects). Deletion is requested
+  // from Support, and the team handles it.
   function viewDelete() {
     var pending = !!acct.deletion_requested_at;
     main.innerHTML =
-      '<div class="head"><div><span class="eyebrow">Your data</span><h1>Delete your <em>account</em></h1>' +
-      "<p>We will permanently delete your account and the personal details you gave us. This cannot be undone.</p></div></div>" +
-      (pending
-        ? '<div class="notice warn">You asked us to delete this account on ' + esc(M.fmtDate(acct.deletion_requested_at, true)) + ". The M.E.E.T. team will complete it within 30 days and confirm by email.</div>"
-        : '<div class="panel stack"><p>How it works: you send the request here, the M.E.E.T. team deletes your account within 30 days, and we confirm by email.</p>' +
-          '<label class="f">Type <b>DELETE</b> to confirm<input class="inp" id="confirm" autocomplete="off" autocapitalize="characters"></label>' +
-          '<p class="err" id="del-err" role="alert" hidden></p>' +
-          '<div class="row"><button class="btn danger" type="button" id="b-del">Request account deletion</button></div></div>');
-    var b = main.querySelector("#b-del");
-    if (b) b.addEventListener("click", async function () {
-      var err = main.querySelector("#del-err");
-      if (main.querySelector("#confirm").value.trim().toUpperCase() !== "DELETE") { err.textContent = "Please type DELETE to confirm."; err.hidden = false; return; }
-      M.setBusy(b, true, "Sending");
-      try { await M.api("account-deletion", {}); M.toast("Request received."); route(); }
-      catch (ex) { M.setBusy(b, false); err.textContent = M.friendlyError(ex); err.hidden = false; }
-    });
+      '<div class="head"><div><span class="eyebrow">Your data</span><h1>Account <em>deletion</em></h1>' +
+      "<p>Accounts are not deleted from this page. If you need your account deleted, please write to Support and the M.E.E.T. team will handle your request.</p></div></div>" +
+      (pending ? '<div class="notice warn">We have your earlier deletion request from ' + esc(M.fmtDate(acct.deletion_requested_at, true)) + ". The M.E.E.T. team will contact you by email.</div>" : "") +
+      '<div class="panel stack"><h3 style="font-size:24px">How to ask</h3>' +
+      '<p>Write to <a class="link" href="mailto:minds.exploring.traditions@gmail.com?subject=Account%20deletion%20request">minds.exploring.traditions@gmail.com</a> from the email address of this account (' + esc(acct.email) + "), with the subject “Account deletion request”.</p>" +
+      "<p class=\"small muted\">The team confirms by email what is deleted and what M.E.E.T. needs to keep, for example records of requests and projects. The <a class=\"link\" href=\"/privacy\">privacy notice</a> explains how we handle your information.</p></div>";
   }
 
   document.getElementById("logo").insertAdjacentHTML("afterbegin", M.LOGO);
