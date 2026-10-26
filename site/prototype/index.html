@@ -2344,11 +2344,11 @@ function bookPrivate(ps, slotId, client, note){
 
 /* ---------------- shell ---------------- */
 const NAV = {
-  client:[['home','Home',P.home],['discover','Discover',P.disc],['workshops','Workshops',P.cal],['messages','Messages',P.msg],['account','Account',P.user]],
-  artist:[['studio','Studio',P.studio],['artworks','Artworks',P.grid],['invites','Collaborations',P.users],['messages','Messages',P.msg]],
+  client:[['home','Home',P.home],['artists','Artists',P.disc],['match','Project',P.cal],['about','About',P.msg],['account','Account',P.user]],
+  artist:[['studio','Studio',P.studio],['artworks','Artworks',P.grid],['invites','Collaborations',P.users],['support','Support',P.msg]],
   team:[['ops','Operations',P.grid],['messages','Messages',P.msg],['home','Public site',P.home]],
 };
-const WEBNAV = [['discover','Discover'],['collections','Collaborations'],['artists','Artists'],['workshops','Workshops'],['match','M.E.E.T. Match'],['about','About']];
+const WEBNAV = [['artists','Artists'],['discover','Discover & Commission'],['match','Start a Project'],['collections','Collaborations'],['about','About']];
 const SECTION = {book:'workshops',work:'discover',enquiry:'discover',confirm:'discover',artist:'artists',collection:'collections',proposal:'match',deposit:'match',matchsent:'match',join:'studio',addwork:'artworks',artwork:'artworks',propose:'artists',space:'home',review:'ops',console:'ops',signup:'signin',recover:'signin',checkout:'discover',order:'account',request:'account',enquiryview:'account',commission:'artists',comsent:'artists',asettings:'studio',sessions:'studio',wsdetail:'workshops',private:'workshops'};
 function shell(body){
   const cur = R.route==='project' ? (S.role==='artist'?'invites':'account') : (SECTION[R.route] || R.route);
@@ -2357,7 +2357,7 @@ function shell(body){
   const roleBtn = (r,l)=>`<button aria-pressed="${S.role===r}" data-act="role" data-v="${r}">${l}</button>`;
   return `
   <div class="proto"><div class="wrap">
-    <span class="lbl">DESIGN PROTOTYPE · SAMPLE NAMES AND WORKS · SAVED IN THIS BROWSER ONLY</span>
+    <span class="lbl">DESIGN PROTOTYPE · ILLUSTRATIVE ARTISTS, WORKS, PRICES AND FEES · FEATURES MARKED “LATER” ARE NOT LIVE · SAVED IN THIS BROWSER ONLY · <a href="https://meetstudio.art/" target="_blank" rel="noopener" style="color:inherit">LIVE WEBSITE ↗</a></span>
     <span class="sp"></span>
     <span class="lbl">Viewing as</span>
     <span class="seg" role="group" aria-label="Viewing as">${roleBtn('client','Client')}${roleBtn('artist','Artist')}${roleBtn('team','M.E.E.T. team')}</span>
@@ -2367,14 +2367,14 @@ function shell(body){
     <button class="logo" data-go="${homeRoute()}" aria-label="M.E.E.T. home">${I.logo(30)}<span>M.E.E.T.</span></button>
     <nav class="nav" aria-label="Main">${
       S.role==='team' ? [['ops','Operations'],['messages','Conversations'],['home','Public site']].map(([r,l])=>`<button data-go="${r}" ${cur===r?'aria-current="page"':''}>${l}</button>`).join('')
-      : S.role==='artist' ? [['studio','Studio'],['artworks','Artworks'],['invites','Collaborations'],['sessions','Private sessions'],['artists','Artists']].map(([r,l])=>`<button data-go="${r}" ${cur===r?'aria-current="page"':''}>${l}</button>`).join('')
+      : S.role==='artist' ? [['studio','Studio'],['artworks','Artworks'],['invites','Collaborations'],['sessions','Private sessions (later)'],['support','Support'],['artists','Artists']].map(([r,l])=>`<button data-go="${r}" ${cur===r?'aria-current="page"':''}>${l}</button>`).join('')
       : WEBNAV.map(([r,l])=>`<button data-go="${r}" ${cur===r?'aria-current="page"':''}>${l}</button>`).join('')}
     </nav>
     <div class="hdr-right">
       <button class="iconbtn" data-act="theme" aria-label="Switch between light and dark">${I.ico(isDark()?P.sun:P.moon,20)}</button>
       <button class="iconbtn" data-go="notices" aria-label="Notifications${unreadCount()?', '+unreadCount()+' unread':''}">${I.ico('<path d="M6 16V11a6 6 0 0 1 12 0v5l1.5 2h-15z"/><path d="M10 20.5a2 2 0 0 0 4 0"/>',20)}${unreadCount()?'<i class="dot"></i>':''}</button>
       <button class="iconbtn wide" data-go="messages" aria-label="Messages">${I.ico(P.msg,20)}${unread?'<i class="dot"></i>':''}</button>
-      ${S.role==='client' ? `<button class="iconbtn" data-go="${currentClient()?'account':'signin'}" aria-label="${currentClient()?'Your account':'Sign in'}">${I.ico(P.user,20)}</button><button class="btn line sm wide" data-go="join">Apply as an artist</button>`:''}
+      ${S.role==='client' ? `<button class="iconbtn" data-go="${currentClient()?'account':'signin'}" aria-label="${currentClient()?'Your account':'Sign in'}">${I.ico(P.user,20)}</button><button class="btn line sm wide" data-go="join">Join as an Artist</button>`:''}
     </div>
   </div></header>
   <main id="main">${body}</main>
@@ -2522,7 +2522,7 @@ V.confirm = () => {
 
 V.artists = () => {
   const A = Object.values(allArtists());
-  return `<div class="wrap">${head('Artists','Artists in the <em>circle</em>','Any artist can apply. M.E.E.T. approves each one before their profile goes live.', S.role==='client'?`<div><button class="btn line sm" data-go="join">Apply as an artist</button></div>`:'')}
+  return `<div class="wrap">${head('Artists','Artists and their <em>practices</em>','Any artist can apply. M.E.E.T. reviews each profile and artwork before it appears. The artists in this prototype are illustrative.', S.role==='client'?`<div><button class="btn line sm" data-go="join">Join as an Artist</button></div>`:'')}
   <div class="grid g3" style="row-gap:34px;padding-bottom:30px">${A.map(a=>`<button class="wcard" data-go="artist" data-id="${a.id}"><div class="ph" style="aspect-ratio:4/3"><img src="${img(a.cover)}" alt="" loading="lazy"></div><span class="t">${esc(a.name)}</span><span class="s">${esc(a.craft)} · ${esc(a.heritage)} · ${esc(a.city)}</span><span class="s">Open to meet: ${esc(a.openTo.join(', '))}</span></button>`).join('')}</div></div>`;
 };
 
@@ -2962,11 +2962,11 @@ function footer(){
     <div class="ft">
       <div class="ft-nl"><h2 class="serif ft-lede">A little more art in your inbox.</h2><p class="muted ft-sub">New collaborations, artists, studio stories and upcoming workshops, delivered occasionally.</p>
         ${ftNewsForm()}</div>
-      ${col('Explore',[['discover','Works'],['collections','Collaborations'],['artists','Artists'],['workshops','Workshops']])}
-      ${col('M.E.E.T.',[['about','About'],['match','M.E.E.T. Match'],['space','The future space'],['join','Apply as an artist']])}
+      ${col('Explore',[['artists','Artists'],['discover','Discover & Commission'],['match','Start a Project'],['collections','Collaborations']])}
+      ${col('M.E.E.T.',[['about','About'],['join','Join as an Artist'],['workshops','Workshops (later)'],['space','The future space (later)']])}
     </div>
     <p class="small muted ft-place">Workshops currently take place at partner studios in Dubai. The M.E.E.T. space is planned for Phase 3 and is not open yet.</p>
-    <div class="ft-base"><span class="ft-sig" aria-hidden="true">M.E.E.T.</span><span>© 2026 M.E.E.T. · Minds Exploring Every Tradition · Dubai</span></div>
+    <div class="ft-base"><span class="ft-sig" aria-hidden="true">M.E.E.T.</span><span>© 2026 M.E.E.T. · Mind Exploring Every Tradition · Design prototype. The live website is meetstudio.art</span></div>
   </div></footer>`;
 }
 
@@ -2978,10 +2978,10 @@ V.home = () => {
   return `
   <section class="hx"><div class="wrap hx-grid">
     <div class="stack" style="gap:26px">
-      <span class="eyebrow" data-r="up">Handmade art · Dubai</span>
-      <h1 data-r="lines">Where two traditions make <em>one work.</em></h1>
-      <p class="lead" data-r="up" style="--d:250ms">M.E.E.T. brings together artists of different crafts and cultures. Acquire their work, commission a pairing for your space, or learn beside them in the studio.</p>
-      <div class="row" data-r="up" style="--d:380ms;gap:14px"><button class="btn" data-go="discover">Explore the works ${ARR}</button><button class="btn line" data-go="match">Request a M.E.E.T. Match</button></div>
+      <span class="eyebrow" data-r="up">Mind Exploring Every Tradition</span>
+      <h1 data-r="lines">Bring any creative vision <em>closer to reality.</em></h1>
+      <p class="lead" data-r="up" style="--d:250ms">M.E.E.T. brings together artists of different practices, materials and traditions, and the people who want to work with them. Discover an artist, commission a piece, or start a project with the help of our team.</p>
+      <div class="row" data-r="up" style="--d:380ms;gap:14px"><button class="btn" data-go="artists">Discover the artists ${ARR}</button><button class="btn line" data-go="match">Start a project</button></div>
       <div class="cue" data-r="fade" style="--d:600ms"><i></i>Scroll</div>
     </div>
     <div class="hx-media">
@@ -3003,6 +3003,18 @@ V.home = () => {
       <p data-r="up">Because when different perspectives come together, ideas travel further. Traditions meet new ways of thinking, materials find unexpected companions, and something entirely new can take shape, something neither artist could have created alone.</p>
       <p class="why-close serif" data-r="up">Every encounter holds the possibility of something new.</p>
     </div>
+  </div></section>
+
+  <section class="sec" style="background:var(--surface)" aria-labelledby="inv-h"><div class="wrap stack" style="gap:18px;max-width:900px">
+    <span class="eyebrow" data-r="up">For artists</span>
+    <h2 id="inv-h" data-r="lines">A place for your practice, <em>and what it could become.</em></h2>
+    <p class="muted" data-r="up" style="font-size:17px;max-width:60ch">Present your work in a reviewed profile where collectors, designers and organizations can find it. People can write to you about a piece or a commission, and the M.E.E.T. team can invite you into projects alongside artists from other disciplines.</p>
+    <div class="row" data-r="up"><button class="btn" data-go="join">Join as an Artist ${ARR}</button></div>
+  </div></section>
+
+  <section class="sec" aria-labelledby="ways-h"><div class="wrap">
+    <div class="stack" style="gap:14px;margin-bottom:30px"><span class="eyebrow" data-r="up">Where to begin</span><h2 id="ways-h" data-r="lines">Three ways into <em>M.E.E.T.</em></h2></div>
+    <div class="grid g3">${[['join','Join as an Artist','Present your practice to the people looking for it, and open the door to commissions and collaborations.','For artists'],['discover','Discover &amp; Commission','Explore artists by discipline, material and place. Write to an artist directly, or send us an idea for a commission.','Discover and commission'],['match','Start a Project','For interior designers, curators, businesses and organizations planning larger or more complex work.','Start a project']].map(([r,t,d,b],i)=>`<button class="panel stack" style="gap:12px;text-align:left;cursor:pointer" data-r="up" data-go="${r}"><span class="eyebrow">0${i+1}</span><strong class="serif" style="font-size:28px;font-weight:400;line-height:1.1">${t}</strong><span class="muted">${d}</span><span style="color:var(--accent);font-weight:600">${b} ${ARR}</span></button>`).join('')}</div>
   </div></section>
 
   <section class="enc" data-pin="enc" style="height:320vh" aria-label="Two artists, one work">
@@ -3034,9 +3046,16 @@ V.home = () => {
     </div>
   </div></section>
 
-  <section class="rail" data-pin="rail" aria-label="Available works">
+  <section class="sec" aria-labelledby="arc-h"><div class="wrap stack" style="gap:18px;max-width:900px">
+    <span class="eyebrow" data-r="up">The M.E.E.T. Archive · Later</span>
+    <h2 id="arc-h" data-r="lines">Works that exist <em>because artists met.</em></h2>
+    <p class="muted" data-r="up" style="font-size:17px;max-width:62ch">Collaborations can start with M.E.E.T., with artists who want to work together, or with a client's idea that M.E.E.T. develops into a concept. The original works they produce enter the M.E.E.T. Archive and, later, a dedicated section for M.E.E.T.-created works. Every collaboration is agreed in writing with the artists before work begins. The collaborations shown in this prototype are illustrative.</p>
+    <div class="row" data-r="up"><button class="btn line" data-go="collections">See the collaborations ${ARR}</button></div>
+  </div></section>
+
+  <section class="rail" data-pin="rail" aria-label="Selected works">
     <div class="pin-in">
-      <div class="wrap rail-head"><div class="stack" style="gap:14px"><span class="eyebrow" data-r="up">Available now</span><h2 data-r="lines">Works from <em>the circle</em></h2></div>
+      <div class="wrap rail-head"><div class="stack" style="gap:14px"><span class="eyebrow" data-r="up">Selected works · Illustrative</span><h2 data-r="lines">Works from <em>the circle</em></h2></div>
         <div class="row" style="gap:22px"><span class="rail-count num" data-r="fade">01 / ${String(works.length).padStart(2,'0')}</span><span class="rail-bar" data-r="fade"><i></i></span><button class="btn line sm" data-go="discover">View all works ${ARR}</button></div></div>
       <div class="rail-track">${works.map(w=>`<button class="wcard" data-go="work" data-id="${w.id}" data-cursor="View"><div class="ph"><img src="${img(w.img)}" alt="${esc(w.title)}" loading="lazy"></div><span class="t">${esc(w.title)}</span><span class="s">${esc(byline(w))}</span><span class="s" style="color:var(--ink);font-weight:600">${price(w)}</span></button>`).join('')}</div>
     </div>
@@ -3053,16 +3072,16 @@ V.home = () => {
   </div></section>
 
   <section class="sec wsx" aria-labelledby="wsx-h"><div class="wrap">
-    <div class="wsx-head"><span class="eyebrow" data-r="up">Workshops</span><h2 id="wsx-h" data-r="lines">Art brings us <em>together.</em></h2><p class="muted" data-r="up">Across generations, cultures and creative traditions, art gives us a reason to meet, share what we know and discover something new together.</p></div>
+    <div class="wsx-head"><span class="eyebrow" data-r="up">Workshops · Later</span><h2 id="wsx-h" data-r="lines">Art brings us <em>together.</em></h2><p class="muted" data-r="up">Across generations, cultures and creative traditions, art gives us a reason to meet, share what we know and discover something new together.</p></div>
     <div class="tiles">
     <button class="tile" data-r="up" data-go="workshops" data-cursor="Book"><img src="${img('callig_evening')}" alt="An evening calligraphy class with the Dubai skyline behind"><span class="tt"><span class="eyebrow">Adults · One-on-one</span><h3>Learn beside <em>the artists</em></h3><span style="opacity:.85">One-on-one from AED 700 · Adults AED 250</span><span class="go" aria-hidden="true">${I.ico(P.arrow,18)}</span></span></button>
     <button class="tile" data-r="up" style="--d:120ms" data-go="workshops" data-tab="kids" data-cursor="Book"><img src="${img('kids_space')}" alt="Children working with clay, mosaic and a loom in a bright studio"><span class="tt"><span class="eyebrow">Ages 6 to 12</span><h3>M.E.E.T. <em>Kids</em></h3><span class="tile-p">A space for young minds to explore, create and connect through art.</span><span style="opacity:.85">AED 180 per session</span><span class="go" aria-hidden="true">${I.ico(P.arrow,18)}</span></span></button>
   </div></div></section>
 
   <section class="band"><div class="wrap sec mband">
-    <div class="stack" style="gap:18px"><span class="eyebrow" style="color:#E5D3AF" data-r="up">M.E.E.T. Match</span><h2 data-r="lines" style="font-size:clamp(44px,5vw,76px)">Your vision. <em>The right artists.</em></h2>
+    <div class="stack" style="gap:18px"><span class="eyebrow" style="color:#E5D3AF" data-r="up">Start a Project</span><h2 data-r="lines" style="font-size:clamp(44px,5vw,76px)">Your vision. <em>The right artists.</em></h2>
       <p data-r="up" style="opacity:.82;max-width:46ch">Tell us what you have in mind, whether it's a piece for your space or an idea you'd love to bring to life. M.E.E.T. connects you with artists who can make it happen, individually or through a collaboration.</p>
-      <div class="row" data-r="up"><button class="btn" data-go="match">Request a M.E.E.T. Match ${ARR}</button></div></div>
+      <div class="row" data-r="up"><button class="btn" data-go="match">Start a project ${ARR}</button></div></div>
     <div class="bas" data-r="img" data-ba><img src="${img('room')}" alt="A living room with an empty wall above a navy sofa"><img class="after" src="${img('match_after')}" alt="The same room with a woven and painted panel above the sofa"><span class="lb l">Today</span><span class="lb r">Proposed</span><span class="h"><span>${I.ico('<path d="M9 6l-6 6 6 6M15 6l6 6-6 6"/>',22)}</span></span><input type="range" min="0" max="100" value="50" aria-label="Compare the room today with the proposal" data-ba-in></div>
   </div></section>
 
@@ -3840,7 +3859,7 @@ V.discover = () => {
   const moreN = [d.type, d.ed, d.artist, !d.sold].filter(Boolean).length; const more = !!(UI.pbMore || moreN || UI.pbSheet);
   if(PUB.viaBack && PUB.y!=null){ const y=PUB.y; setTimeout(()=>window.scrollTo(0,y), 0); }
   PUB.viaBack=false;
-  return `<div class="wrap">${head('Discover','Works made by hand, <em>and by two.</em>','Every artist here is approved by M.E.E.T. Artists set their own prices, and some works are priced on request.')}
+  return `<div class="wrap">${head('Discover &amp; Commission','Works made by hand, <em>and by two.</em>','Every artist here is approved by M.E.E.T. Artists choose whether to show a price, or price on request. Write to an artist about a work or a commission, or send the M.E.E.T. team your idea.')}
   <div class="pb-disc">
     <div class="pb-searchrow">
       <div class="pb-search" role="search"><label for="pub-q" class="pb-sr">Search works</label>${I.ico(PUB_ICO.search,18)}
@@ -4152,17 +4171,18 @@ V.signup = () => {
   pubEnsure();
   if(S.role!=='client') return pubRoleOnly('Client registration is available in the client view');
   if(currentClient()) return V.signin();
-  const f = UI.su || (UI.su = {name:'', email:'', pw:'', country:'United Arab Emirates', city:''}); const er = UI.suErr || {};
+  const f = UI.su || (UI.su = {type:'personal', name:'', email:'', pw:'', country:'United Arab Emirates', city:''}); const er = UI.suErr || {};
   return pubAuthShell(`<span class="eyebrow">Client account</span><h1 class="pb-h">Create an account</h1>
-    <p class="muted">Browse freely without an account. You need one to send enquiries, buy artworks and request a M.E.E.T. Match.</p>
+    <p class="muted">Browse freely without an account. You need one to write to artists and to send commission ideas, collaborations and project briefs to the M.E.E.T. team. Buying online comes later.</p>
     <form class="stack" data-pubform="pubSignup" novalidate style="gap:16px">
       ${pubFormErr(er)}
+      ${pubSelect({id:'pb-sutype', label:'Account type', bind:'su.type', val:f.type, options:[['personal','Personal'],['professional','Professional'],['business','Business & Organization']]})}
+      <p class="small muted" style="margin-top:-8px">Project briefs are for Professional and Business &amp; Organization accounts.</p>
       ${pubInput({id:'pb-suname', label:'Full name', bind:'su.name', val:f.name, err:er.name, auto:'name'})}
       ${pubInput({id:'pb-suemail', label:'Email address', bind:'su.email', val:f.email, type:'email', err:er.email, auto:'email'})}
       ${pubPw({id:'pb-supw', label:'Password', bind:'su.pw', val:f.pw, err:er.pw, auto:'new-password', help:'At least 8 characters.'})}
       <div class="pb-2col">${pubSelect({id:'pb-sucountry', label:'Country', bind:'su.country', val:f.country, options:pubCountries(), err:er.country, placeholder:'Select a country'})}
       ${pubInput({id:'pb-sucity', label:'City', bind:'su.city', val:f.city, opt:true, auto:'address-level2'})}</div>
-      <p class="small muted">Delivery details are only asked for when you place an order.</p>
       <button class="btn block" type="submit">Create account</button>
     </form>
     <p class="small">Already have an account? <button class="linkbtn" data-go="signin">Sign in</button></p>${pubDemoNote}`, 'workshop');
@@ -4394,7 +4414,7 @@ function paResults(f, base){ const L = afApply(base, f);
     : `<div class="pb-empty"><span class="eyebrow">No results</span><h2>No artists match these filters</h2><p class="muted">Try a different word or remove a filter.</p><div class="row"><button class="btn line sm" data-act="afReset" data-v="pa">Reset all filters</button></div></div>`; }
 V.artists = () => {
   const base = Object.values(allArtists()); const f = afState('pa'); const L = afApply(base, f);
-  return `<div class="wrap">${head('Artists','Artists in the <em>circle</em>','Any artist can apply. M.E.E.T. approves each one before their profile goes live.', S.role==='client'?`<div><button class="btn line sm" data-go="join">Apply as an artist</button></div>`:'')}
+  return `<div class="wrap">${head('Artists','Artists and their <em>practices</em>','Any artist can apply. M.E.E.T. reviews each profile and artwork before it appears. The artists in this prototype are illustrative.', S.role==='client'?`<div><button class="btn line sm" data-go="join">Join as an Artist</button></div>`:'')}
   <div class="pb-disc">${afBar('pa', f, base)}
     <div class="pb-bar"><p class="pb-count" id="af-pa-count" aria-live="polite">${afCountTxt(L.length)}</p><div class="pb-active" id="af-pa-active">${afActiveHTML('pa', f)}</div></div></div>
   <div id="af-pa-res">${paResults(f, base)}</div></div>`;
@@ -4426,7 +4446,6 @@ function pubAbout(a){
       <dl class="pb-kv"><dt>Craft</dt><dd>${esc(a.craft)}</dd>${artLoc(a)?`<dt>Based in</dt><dd>${esc(artLoc(a))}</dd>`:''}</dl></section>
     ${ed.approach||a.quote?`<section class="pb-ab-sec pb-ab-approach"><h2 class="pb-h3">Approach</h2><div class="pb-ab-2">${ed.approach?`<p>${esc(ed.approach)}</p>`:''}${a.quote?`<blockquote class="pb-pull"><p>“${esc(a.quote)}”</p><cite>${esc(a.name)}</cite></blockquote>`:''}</div></section>`:''}
     ${sec('Materials and techniques', tech.length?`<ul class="pb-tech">${tech.map(t=>`<li><b>${esc(t)}</b>${PUB_TECH[t]?`<span class="muted">${esc(PUB_TECH[t])}</span>`:''}</li>`).join('')}</ul>`:'')}
-    ${sec('Influences and traditions', ed.influences?`<p>${esc(ed.influences)}</p>`:'')}
     ${ed.process||ims.length?`<section class="pb-ab-sec pb-process ${ims.length===1?'one':''}"><div class="pb-proc-txt"><h2 class="pb-h3">Process</h2>${ed.process?`<p>${esc(ed.process)}</p>`:''}</div>${ims.map((k,i)=>`<figure><img src="${img(k)}" alt="${esc(a.name)} at work, process photograph ${i+1}" loading="lazy"></figure>`).join('')}</section>`:''}
   </div>`;
 }
@@ -4616,7 +4635,7 @@ Object.assign(XA, {
     if(!f.pw) er.pw='Create a password.'; else if(String(f.pw).length<8) er.pw='Use at least 8 characters.';
     if(!f.country) er.country='Select your country.';
     UI.suErr=er; if(Object.keys(er).length){ render(); pubFocusErr(); return; }
-    const c={id:uid('c'), name:f.name.trim(), email:em, password:f.pw, country:f.country, city:String(f.city||'').trim(), phone:'', address:null, since:nowISO()};
+    const c={id:uid('c'), type:f.type||'personal', name:f.name.trim(), email:em, password:f.pw, country:f.country, city:String(f.city||'').trim(), phone:'', address:null, since:nowISO()};
     S.clients.push(c); pubEnsure(); S.savedBy[c.id]=[]; pubSignInAs(c.id);
     notify('team','New client account', `${c.name} · ${[c.city,c.country].filter(Boolean).join(', ')}`, null, {email:false}); audit('Client account created', c.name, c.name);
     save(); toast('Your account has been created'); pubResume();
@@ -5492,7 +5511,6 @@ const AW_PROFILE_FIELDS = [
   ['quote','Quotation','One sentence in your own words. It complements the biography.', false],
   ['approach','Approach and creative philosophy','What you look for in a work and why you make it.', true],
   ['techniques','Materials and techniques','Separate each one with a comma.', false],
-  ['influences','Cultural influences and traditions','Only what you are comfortable sharing publicly.', true],
   ['process','Story and working process','How a work moves from the first idea to the finished piece.', true],
 ];
 function awId(){ return currentArtistId(); }
@@ -8800,6 +8818,49 @@ document.addEventListener('submit', ev => {
 matchMedia('(prefers-color-scheme: dark)').addEventListener?.('change', ()=>{ if(!S.theme) render(); });
 ensureV3();
 R = {route:homeRoute(), p:{}};
+/* ---------- Alignment with the live website (meetstudio.art), 26 October 2026 ----------
+   The prototype keeps its illustrative artists, works and future features.
+   Features that are not live yet carry a "Later" note; nothing here is
+   connected to the live website or its database. */
+function laterNote(what, live){
+  return `<div class="wrap" style="padding-top:18px"><div class="panel" role="note" style="display:flex;gap:12px;align-items:flex-start;flex-wrap:wrap"><span class="tag warn">Later</span><p style="margin:0;flex:1;min-width:240px"><b>${what}</b> is planned for a later phase and is not available on the live website.${live?` ${live}`:''}</p></div></div>`;
+}
+[['checkout','Buying online and paying through M.E.E.T.','On the live website, visitors write to the artist about a work, and any sale is agreed directly or under a written agreement.'],
+ ['order','Online orders and payments','Fees and prices shown here are illustrative; M.E.E.T. has not set its rates.'],
+ ['workshops','Workshops',''], ['wsdetail','Workshops',''], ['private','Private sessions',''], ['bookingview','Bookings',''], ['sessions','Private sessions',''],
+ ['space','The M.E.E.T. space',''],
+ ['messages','Direct messages between clients and artists','On the live website, an artist replies once to an inquiry, and the team shares updates and proposals in the client’s account.']
+].forEach(([k, what, live])=>{ const f = V[k]; if(typeof f==='function') V[k] = () => laterNote(what, live) + f(); });
+{ const f = V.join; if(typeof f==='function') V.join = () => laterNote('The longer application with identity documents', 'On the live website, artists apply with a short form (name, contact, country and city, disciplines, practice and links). M.E.E.T. reviews each application; approval is not automatic. Approved artists then build their profile and artworks, which are reviewed before they appear.') + f(); }
+
+/* Support: the artist writes to the M.E.E.T. team; the team replies by email and here (as on the live website). */
+const SUP_TOPICS = [['profile','My profile'],['artworks','My artworks'],['inquiry','An inquiry I received'],['collaboration','A collaboration with another artist'],['other','Something else']];
+V.support = () => {
+  if(S.role!=='artist') return `<div class="wrap sec" style="max-width:720px"><div class="panel stack"><span class="eyebrow">Support</span><h2 style="font-size:32px">This page is for artists</h2><p class="muted">Switch to <b>Artist</b> in the bar at the top to see Support.</p></div></div>`;
+  S.support = S.support || [];
+  const d = UI.sup || (UI.sup = {topic:'', msg:''});
+  return `<div class="wrap">${head('Support','How can we <em>help?</em>','Write to the M.E.E.T. team about your profile, your artworks or an inquiry. If you would like to collaborate with another artist, tell us who or what kind of practice you have in mind, and the team will explore a suitable connection. This is not a live chat: the team replies by email and here.')}
+  <div class="panel stack" style="max-width:720px;gap:14px;margin-bottom:28px">
+    ${pubSelect({id:'sup-topic', label:'What is it about?', bind:'sup.topic', val:d.topic, options:SUP_TOPICS, placeholder:'Choose one'})}
+    <div class="pb-field"><label for="sup-msg">Your message</label><textarea class="inp" id="sup-msg" data-bind="sup.msg" rows="5">${esc(d.msg)}</textarea></div>
+    <div><button class="btn" data-act="supSend">Send to the team</button></div>
+  </div>
+  ${S.support.length ? `<div class="stack" style="max-width:720px;gap:12px;margin-bottom:40px">${S.support.map(m=>`<div class="panel stack" style="gap:8px"><span class="small muted">${esc((SUP_TOPICS.find(t=>t[0]===m.topic)||['',''])[1])} · ${fmtDate(m.at)} · ${m.reply?'Answered':'Open'}</span><p style="margin:0">${esc(m.msg)}</p>${m.reply?`<div class="panel" style="background:var(--surface)"><span class="small muted">Reply from the M.E.E.T. team</span><p style="margin:6px 0 0">${esc(m.reply)}</p></div>`:''}</div>`).join('')}</div>` : ''}
+  </div>`;
+};
+Object.assign(XA, {
+  supSend(){
+    const d = UI.sup || {}; const msg = String(d.msg||'').trim();
+    if(!d.topic){ toast('Please choose what your message is about.'); return; }
+    if(msg.length < 10){ toast('Please write at least 10 characters.'); return; }
+    S.support = S.support || [];
+    const m = {topic:d.topic, msg, at:nowISO(), reply:''};
+    S.support.unshift(m); UI.sup = {topic:'', msg:''}; save(); render(); toast('Sent. The team will reply by email and here.');
+    // Prototype only: a sample reply appears after a moment, as the team would send it from the console.
+    setTimeout(()=>{ m.reply = 'Thank you for your message. We will look into it and come back to you this week. (Sample reply)'; save(); if(R.route==='support') render(); }, 2500);
+  }
+});
+
 /* a refresh reopens the page the viewer was on, in the same role */
 try{ const sv=JSON.parse(sessionStorage.getItem('meet-route')||'null'); if(sv && sv.role===S.role && sv.R && V[sv.R.route] && !['signin','signup','recover'].includes(sv.R.route)) R={route:sv.R.route, p:sv.R.p||{}}; }catch(e){}
 render();
