@@ -221,11 +221,11 @@
   var HELP_TOPIC = { profile: "My profile", artworks: "My artworks", inquiry: "An inquiry I received", collaboration: "A collaboration with another artist", other: "Something else" };
 
   async function viewHelp() {
-    var r = await sb.from("artist_requests").select("*").eq("artist_id", artist.id).order("created_at", { ascending: false });
+    var r = await sb.from("artist_requests").select("id, topic, message, status, reply, replied_at, created_at").eq("artist_id", artist.id).order("created_at", { ascending: false });
     var rows = r.error ? [] : r.data || [];
     main.innerHTML =
       '<div class="head"><div><span class="eyebrow">Support</span><h1>How can we <em>help?</em></h1>' +
-      "<p>Write to the M.E.E.T. team about your profile, your artworks or an inquiry. If you would like to collaborate with another artist, tell us who or what kind of practice you have in mind, and the team will explore a suitable connection. This is not a live chat: the team replies by email.</p></div></div>" +
+      "<p>Write to the M.E.E.T. team about your profile, your artworks or an inquiry. If you would like to collaborate with another artist, tell us who or what kind of practice you have in mind, and the team will explore a suitable connection. This is not a live chat: the team's reply arrives by email and appears here.</p></div></div>" +
       '<form class="panel stack" id="help" novalidate>' +
       '<label class="f">What is it about?<select class="inp" name="topic"><option value="">Choose one</option>' +
       Object.keys(HELP_TOPIC).map(function (k) { return '<option value="' + k + '">' + esc(HELP_TOPIC[k]) + "</option>"; }).join("") + "</select></label>" +
@@ -233,7 +233,8 @@
       '<p class="err" id="help-err" role="alert" hidden></p><div class="row"><button class="btn" type="submit" id="b-help">Send to the team</button></div></form>' +
       (rows.length ? '<section class="panel stack" style="gap:10px"><h2 style="font-size:26px">Your messages</h2>' + rows.map(function (q) {
         return '<div class="note"><span class="muted">' + esc(HELP_TOPIC[q.topic] || "") + " · " + esc(M.fmtDate(q.created_at, true)) + " · " + (q.status === "closed" ? "Answered" : "Open") + "</span>" +
-          esc(q.message).replace(/\n/g, "<br>") + "</div>";
+          esc(q.message).replace(/\n/g, "<br>") + "</div>" +
+          (q.reply ? '<div class="note reply"><span class="muted">Reply from the M.E.E.T. team · ' + esc(M.fmtDate(q.replied_at, true)) + "</span>" + esc(q.reply).replace(/\n/g, "<br>") + "</div>" : "");
       }).join("") + "</section>" : "");
     main.querySelector("#help").addEventListener("submit", async function (e) {
       e.preventDefault();

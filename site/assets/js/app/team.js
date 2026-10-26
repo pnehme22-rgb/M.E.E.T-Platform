@@ -1195,14 +1195,14 @@
 
   async function viewArtistRequests(q) {
     var tab = q.get("tab") || "open";
-    var r = await sb.from("artist_requests").select("*").order("created_at", { ascending: false }).limit(2000);
+    var r = await sb.rpc("team_artist_requests");
     if (r.error) throw r.error;
     var all = r.data || [];
     var names = await artistNames(uniq(all.map(function (x) { return x.artist_id; })));
     var rows = all.filter(function (x) { return x.status === tab; });
     main.innerHTML =
       '<div class="head"><div><span class="eyebrow">Artists</span><h1>Artist <em>requests</em></h1>' +
-      "<p>Messages artists send from Support in their studio: questions about their profile, artworks or an inquiry, and interest in collaborating with another artist. Reply by email, then mark the request as answered.</p></div></div>" +
+      "<p>Messages artists send from Support in their studio: questions about their profile, artworks or an inquiry, and interest in collaborating with another artist. Write your reply here: the artist receives it by email and sees it in Support in their studio.</p></div></div>" +
       '<div class="chips" role="group" aria-label="Which requests">' + [["open", "Open"], ["closed", "Answered"]].map(function (c) {
         return '<button class="chip" type="button" data-f="tab" data-v="' + c[0] + '" aria-pressed="' + (tab === c[0]) + '">' + esc(c[1]) + " · " + all.filter(function (x) { return x.status === c[0]; }).length + "</button>";
       }).join("") + "</div>" +
@@ -1210,15 +1210,32 @@
         return '<article class="rblock"><div class="between"><h3 style="font-size:22px"><a class="link" href="#/artist/' + x.artist_id + '">' + esc(names[x.artist_id] || "Artist") + "</a></h3>" +
           '<span class="muted small">' + esc(HELP_TOPIC[x.topic] || x.topic) + " · " + esc(M.fmtDate(x.created_at, true)) + "</span></div>" +
           '<p class="prose">' + esc(x.message).replace(/\n/g, "<br>") + "</p>" +
-          (x.team_note ? '<div class="note"><span class="muted">Team note' + (x.handled_by ? " · " + esc(teamName(x.handled_by)) : "") + "</span>" + esc(x.team_note) + "</div>" : "") +
-          (canEdit ? '<div class="row">' + (x.status === "open"
-            ? '<input class="inp" style="flex:1;min-width:200px" placeholder="Internal note, optional" data-note="' + x.id + '" maxlength="2000"><button class="btn line sm" type="button" data-close-req="' + x.id + '">Mark as answered</button>'
-            : '<button class="btn line sm" type="button" data-open-req="' + x.id + '">Reopen</button>') + "</div>" : "") + "</article>";
+          (x.reply ? '<div class="note reply"><span class="muted">Reply sent to the artist' + (x.replied_by ? " by " + esc(teamName(x.replied_by)) : "") + " · " + esc(M.fmtDate(x.replied_at, true)) + "</span>" + esc(x.reply).replace(/\n/g, "<br>") + "</div>" : "") +
+          (x.team_note ? '<div class="note"><span class="muted">Internal note, not shown to the artist' + (x.handled_by ? " · " + esc(teamName(x.handled_by)) : "") + "</span>" + esc(x.team_note) + "</div>" : "") +
+          (canEdit ? (x.status === "open"
+            ? '<div class="stack" style="gap:8px"><label class="f">Reply to the artist<span class="hint">Sent by email and shown in their studio.</span><textarea class="inp" rows="4" maxlength="4000" data-reply="' + x.id + '"></textarea></label>' +
+              '<label class="f"><span>Internal note <span class="opt">optional, not shown to the artist</span></span><input class="inp" data-note="' + x.id + '" maxlength="2000"></label>' +
+              '<div class="row"><button class="btn sm" type="button" data-answer="' + x.id + '">Send reply and mark as answered</button>' +
+              '<button class="btn quiet sm" type="button" data-close-req="' + x.id + '">Mark as answered without replying</button></div></div>'
+            : '<div class="row"><button class="btn line sm" type="button" data-open-req="' + x.id + '">Reopen</button></div>') : "") + "</article>";
       }).join("") + "</div>" : '<div class="empty" style="margin-top:14px">' + (tab === "open" ? "No open requests." : "Nothing answered yet.") + "</div>");
     hashFilters("artist-requests", q);
     main.onclick = async function (e) {
+      var an = e.target.closest("[data-answer]");
+      if (an) {
+        var aid = an.getAttribute("data-answer"), text = (main.querySelector('[data-reply="' + aid + '"]') || {}).value || "";
+        if (text.trim().length < 5) { M.toast("Please write your reply to the artist."); return; }
+        M.setBusy(an, true, "Sending");
+        try {
+          var res = await M.api("artist-help", { action: "answer", id: aid, reply: text, note: (main.querySelector('[data-note="' + aid + '"]') || {}).value || "" });
+          M.toast(res.emailed ? "Reply sent. The artist was emailed." : "Reply saved in their studio. The email could not be sent; please tell them.");
+          route();
+        } catch (ex) { M.setBusy(an, false); fail(ex); }
+        return;
+      }
       var c = e.target.closest("[data-close-req]"), o = e.target.closest("[data-open-req]");
       if (!c && !o) return;
+      if (c && !confirm("Mark as answered without sending a reply to the artist?")) return;
       var id = (c || o).getAttribute(c ? "data-close-req" : "data-open-req");
       var note = c ? (main.querySelector('[data-note="' + id + '"]') || {}).value || "" : "";
       var x = await sb.rpc("set_artist_request", { p_id: id, p_status: c ? "closed" : "open", p_note: note });
