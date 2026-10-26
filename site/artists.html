@@ -68,14 +68,23 @@
       <p class="lede">Explore artists across disciplines, materials, techniques and traditions. Every profile and artwork here has been reviewed by the M.E.E.T. team.</p>
     </header>
 
-    <form class="filters dir-filters" id="filters" role="search" aria-label="Search and filter artists">
-      <label class="flt flt-q"><span>Search</span><input type="search" id="f-q" name="q" placeholder="Name, practice, material, place" autocomplete="off"></label>
-      <label class="flt"><span>Region</span><select id="f-region" name="region"><option value="">All regions</option></select></label>
-      <label class="flt"><span>Country</span><select id="f-country" name="country"><option value="">All countries</option></select></label>
-      <label class="flt"><span>Discipline</span><select id="f-discipline" name="discipline"><option value="">All disciplines</option></select></label>
-      <label class="flt"><span>Materials</span><select id="f-material" name="material"><option value="">All materials</option></select></label>
-      <label class="flt"><span>Techniques</span><select id="f-technique" name="technique"><option value="">All techniques</option></select></label>
-      <button class="flt-clear" type="button" id="f-clear" hidden>Clear</button>
+    <form class="dir-filters" id="filters" role="search" aria-label="Search and filter artists">
+      <div class="dir-searchrow">
+        <label class="flt-q"><span class="visually-hidden">Search artists</span><input type="search" id="f-q" name="q" placeholder="Search by name, practice, material or place" autocomplete="off"></label>
+        <button class="dir-fbtn" type="button" id="f-open" aria-expanded="false" aria-controls="f-panel"><svg aria-hidden="true" viewBox="0 0 24 24"><path d="M4 6h16M7 12h10M10 18h4" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>Filters<span class="dir-fbtn-n" id="f-n" hidden></span></button>
+      </div>
+      <div class="dir-panel" id="f-panel" role="dialog" aria-modal="true" aria-labelledby="f-panel-h" hidden>
+        <div class="dir-panel-head"><h2 id="f-panel-h" tabindex="-1">Filters</h2><button class="dir-panel-x" type="button" id="f-close" aria-label="Close filters">&times;</button></div>
+        <div class="dir-panel-body">
+          <label class="flt"><span>Region</span><select id="f-region" name="region"><option value="">All regions</option></select></label>
+          <label class="flt"><span>Country</span><select id="f-country" name="country"><option value="">All countries</option></select></label>
+          <label class="flt"><span>Discipline</span><select id="f-discipline" name="discipline"><option value="">All disciplines</option></select></label>
+          <label class="flt"><span>Materials</span><select id="f-material" name="material"><option value="">All materials</option></select></label>
+          <label class="flt"><span>Techniques</span><select id="f-technique" name="technique"><option value="">All techniques</option></select></label>
+        </div>
+        <div class="dir-panel-foot"><button class="flt-clear" type="button" id="f-clear" hidden>Clear filters</button><button class="btn btn-small" type="button" id="f-show">Show results</button></div>
+      </div>
+      <div class="dir-scrim" id="f-scrim" hidden></div>
     </form>
     <p class="dir-count" id="count" role="status" aria-live="polite"></p>
 

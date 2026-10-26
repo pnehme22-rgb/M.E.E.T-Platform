@@ -1,6 +1,8 @@
 /* M.E.E.T. Artists directory: public artists in the order the M.E.E.T. team
    curates (artists without a place follow, by name), with a text search and
    combined filters for region, country, discipline, materials and techniques.
+   The filters sit in a panel opened by the Filters button (from the right on
+   wider screens, from the bottom on phones).
    Every option comes from the artists' own approved profiles and approved
    artworks, and an artist working across several appears under each. */
 (function () {
@@ -83,7 +85,10 @@
     fillOptions(f);
     var list = artists.filter(function (a) { return matches(a, f); });
     var filtered = !!(f.q || FACETS.some(function (k) { return f[k]; }));
-    $("f-clear").hidden = !filtered;
+    var nF = FACETS.filter(function (k) { return f[k]; }).length;
+    $("f-clear").hidden = !nF;
+    $("f-n").textContent = nF; $("f-n").hidden = !nF;
+    $("f-open").setAttribute("aria-label", nF ? "Filters, " + nF + " active" : "Filters");
     grid.removeAttribute("aria-busy");
 
     if (!artists.length) {
@@ -95,6 +100,7 @@
       return;
     }
     if (!list.length) {
+      $("f-show").textContent = "Show results";
       grid.innerHTML = ""; grid.hidden = true;
       count.textContent = "No artists match your search.";
       empty.innerHTML = "<h2>No artists match your search</h2><p>Try fewer words, or remove one of the filters.</p>" +
@@ -105,6 +111,7 @@
     }
     empty.hidden = true; grid.hidden = false;
     count.textContent = list.length + (list.length === 1 ? " artist" : " artists") + (filtered ? (list.length === 1 ? " matches" : " match") + " your search" : "");
+    $("f-show").textContent = "Show " + list.length + (list.length === 1 ? " artist" : " artists");
     grid.innerHTML = list.map(card).join("");
     grid.querySelectorAll("img[data-path]").forEach(function (img) {
       var u = urls[img.getAttribute("data-path")];
@@ -116,12 +123,32 @@
     search.value = "";
     FACETS.forEach(function (k) { sel[k].value = ""; });
     render();
-    search.focus();
+    if (panel.hidden) search.focus();
   }
+
+  // The filter panel: opens from the Filters button, closes with ×, Show,
+  // a click outside it, or Escape. Results update while it is open.
+  var panel = $("f-panel"), scrim = $("f-scrim"), opener = $("f-open");
+  function openPanel() {
+    panel.hidden = false; scrim.hidden = false; opener.setAttribute("aria-expanded", "true");
+    document.body.style.overflow = "hidden";
+    $("f-panel-h").focus();
+  }
+  function closePanel() {
+    if (panel.hidden) return;
+    panel.hidden = true; scrim.hidden = true; opener.setAttribute("aria-expanded", "false");
+    document.body.style.overflow = "";
+    opener.focus();
+  }
+  opener.addEventListener("click", openPanel);
+  $("f-close").addEventListener("click", closePanel);
+  $("f-show").addEventListener("click", closePanel);
+  scrim.addEventListener("click", closePanel);
+  document.addEventListener("keydown", function (e) { if (e.key === "Escape") closePanel(); });
   FACETS.forEach(function (k) { sel[k].addEventListener("change", render); });
   var timer;
   search.addEventListener("input", function () { clearTimeout(timer); timer = setTimeout(render, 200); });
-  $("f-clear").addEventListener("click", clear);
+  $("f-clear").addEventListener("click", function () { FACETS.forEach(function (k) { sel[k].value = ""; }); render(); });
   empty.addEventListener("click", function (e) { if (e.target.closest("[data-clear]")) clear(); });
   $("filters").addEventListener("submit", function (e) { e.preventDefault(); render(); });
 
