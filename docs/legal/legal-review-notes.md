@@ -32,6 +32,9 @@ None of these is legally reviewed or approved. They describe how the website wor
 2. "Price shown is information, not an offer": confirm it is effective under the applicable consumer and commercial rules.
 3. Earlier open points remain: the worldwide, free, non-exclusive promotional permission; the AI training statement; the 30-day removal period; printed materials that cannot be recalled; the no-guarantee wording.
 4. Cultural traditions: stays hidden and is not mentioned in the terms (founder decision).
+5. New "Collaborations and commercial arrangements" section: confirm that the project-by-project written agreement is the right instrument for M.E.E.T.-created collaborative artworks (M.E.E.T. Archive, future products section), and what it must cover: contribution-based artist shares, M.E.E.T.'s percentage, pricing authority, ownership and intellectual property, exhibition and sale rights. See `docs/business-model.md`.
+6. New "Your responsibilities and ours" section: confirm the commitments on both sides are appropriate and not too broad.
+7. Agreement templates needed after registration: artwork sale, individual commission, sourcing/coordination service (single sourcing fee, fixed at order confirmation; reduced fee for artist-referred clients), collaborative artwork.
 
 ## Member Terms: what is left out until registration or legal approval
 
