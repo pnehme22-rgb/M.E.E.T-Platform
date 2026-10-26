@@ -1766,6 +1766,24 @@ button.hx-still:hover img{transform:scale(1.03)!important}
 .ab-letter-h{font-size:clamp(30px,3vw,42px)}
 .rs-back{position:fixed;inset:0;background:rgba(10,20,40,.55);display:flex;align-items:center;justify-content:center;padding:16px;z-index:2000}
 .rs-box{max-width:520px;width:100%;background:var(--bg)}
+
+/* Filters behind a button on every screen size: a panel from the right on wider screens, a sheet from the bottom on phones. */
+.pb-fbtn{display:inline-flex}
+.pb-filters{display:none}
+.pb-fbtn-n:empty{display:none}
+@media (min-width:761px){
+  .pb-filters.is-open{display:flex;flex-direction:column;position:fixed;top:0;right:0;bottom:0;left:auto;width:min(460px,92vw);z-index:80;background:var(--bg);box-shadow:-20px 0 60px rgba(0,0,0,.22);animation:pbDrawerIn .3s var(--ease)}
+  .pb-filters.is-open .pb-sheethead{display:flex;justify-content:space-between;align-items:center;padding:22px 24px 14px;border-bottom:1px solid var(--hairline)}
+  .pb-filters.is-open .pb-sheetbody{flex:1;overflow-y:auto;padding:20px 24px}
+  .pb-filters.is-open .pb-sheetfoot{display:flex;gap:10px;justify-content:space-between;padding:14px 24px;border-top:1px solid var(--hairline)}
+  .pb-filters.is-open .pb-sheetfoot .btn:last-child{flex:1}
+  .pb-filters.is-open .pb-scroll{flex-wrap:wrap;overflow:visible;margin:0;padding:0}
+  .pb-filters.is-open .pb-selects, .pb-filters.is-open .af-grid, .m-finder .pb-filters.is-open .af-grid{grid-template-columns:minmax(0,1fr)}
+  .pb-scrim{display:block;position:fixed;inset:0;z-index:79;background:rgba(10,20,40,.45)}
+}
+.pb-filters.is-open .af-grid{grid-template-columns:minmax(0,1fr);gap:16px}
+@keyframes pbDrawerIn{from{transform:translateX(40px);opacity:0}to{transform:none;opacity:1}}
+@media (prefers-reduced-motion:reduce){ .pb-filters.is-open{animation:none} }
 </style>
 
 <div id="app"></div>
@@ -4386,18 +4404,25 @@ function afBar(scope, f, base, opts={}){
   const cities = uniq(base.filter(a=>!f.country || artCountry(a)===f.country).map(artCity)).map(x=>[x,x]);
   const techs = uniq(base.flatMap(a=>a.techniques||[])).map(x=>[x,x]);
   const avail = opts.avail || [['commissions','Accepts individual commissions'],['collab','Open to collaborations']];
+  const open = !!(UI.afOpen && UI.afOpen[scope]); const nF = afActive(f, scope).filter(([k])=>k!=='q').length;
   return `<div class="af" role="search" aria-label="Find artists">
-    <div class="pb-search af-search"><label for="af-${scope}-q" class="pb-sr">Search artists</label>${I.ico(PUB_ICO.search,18)}<input id="af-${scope}-q" class="inp" type="search" data-afq="${scope}" value="${esc(f.q)}" placeholder="Search by name, craft, technique, material or place" autocomplete="off">
+    <div class="pb-searchrow"><div class="pb-search af-search"><label for="af-${scope}-q" class="pb-sr">Search artists</label>${I.ico(PUB_ICO.search,18)}<input id="af-${scope}-q" class="inp" type="search" data-afq="${scope}" value="${esc(f.q)}" placeholder="Search by name, craft, technique, material or place" autocomplete="off">
       <button class="pb-qclear" data-act="afRm" data-v="${scope}:q" aria-label="Clear search" ${f.q?'':'hidden'} id="af-${scope}-qclear">${I.ico(PUB_ICO.x,16)}</button></div>
+      <button class="btn line pb-fbtn" data-act="afSheet" data-v="${scope}" aria-expanded="${open}" aria-controls="af-${scope}-filters">${I.ico('<path d="M4 6h16M7 12h10M10 18h4"/>',16)} Filters <span class="pb-fbtn-n">${nF||''}</span></button></div>
     ${opts.top||''}
-    <div class="af-grid">
+    <div class="pb-filters ${open?'is-open':''}" id="af-${scope}-filters" role="group" aria-label="Filters">
+      <div class="pb-sheethead"><h2 class="pb-h3" id="af-${scope}-sheet-h" tabindex="-1">Filters</h2><button class="iconbtn" data-act="afSheet" data-v="${scope}" aria-label="Close filters">${I.ico(PUB_ICO.x,18)}</button></div>
+      <div class="pb-sheetbody"><div class="af-grid">
       ${afSel(scope,f,base,'craft','Craft',crafts,'Any craft')}
       ${afSel(scope,f,base,'mat','Material',mats,'Any material')}
       ${afSel(scope,f,base,'country','Country',countries,'Any country')}
       ${afSel(scope,f,base,'city','City',cities,'Any city')}
       ${afSel(scope,f,base,'tech','Technique',techs,'Any technique')}
       ${afSel(scope,f,base,'avail','Availability',avail,'Any availability')}
+      </div></div>
+      <div class="pb-sheetfoot"><button class="btn line sm" data-act="afReset" data-v="${scope}">Reset all</button><button class="btn sm" data-act="afSheet" data-v="${scope}">Show results</button></div>
     </div>
+    ${open?`<div class="pb-scrim" data-act="afSheet" data-v="${scope}" aria-hidden="true"></div>`:''}
   </div>`;
 }
 function afActiveHTML(scope, f){ const A=afActive(f, scope); return A.length ? `<span class="small muted">Active filters</span>${A.map(([k,l])=>`<button class="pb-achip" data-act="afRm" data-v="${scope}:${k}" aria-label="Remove filter: ${esc(l)}">${esc(l)} ${I.ico(PUB_ICO.x,13)}</button>`).join('')}<button class="linkbtn small" data-act="afReset" data-v="${scope}">Reset all</button>` : ''; }
@@ -4429,6 +4454,7 @@ function afRefresh(scope){
 }
 Object.assign(XA, {
   afRm(el,id,v){ const [scope,k]=v.split(':'); const f=afState(scope); f[k]=''; if(k==='country') f.city=''; save(); render(); const nx=document.querySelector('[data-act="afRm"].pb-achip')||document.getElementById(`af-${scope}-q`); if(nx) nx.focus({preventScroll:true}); },
+  afSheet(el,id,v){ UI.afOpen = UI.afOpen || {}; UI.afOpen[v] = !UI.afOpen[v]; render(); const t=document.getElementById(UI.afOpen[v]?`af-${v}-sheet-h`:`af-${v}-q`); if(t) t.focus({preventScroll:true}); },
   afReset(el,id,v){ const f=afState(v); AF_KEYS.forEach(k=>f[k]=''); save(); render(); toast('All filters reset'); const q=document.getElementById(`af-${v}-q`); if(q) q.focus({preventScroll:true}); },
   afSet(el,id,v){ const [scope,k,val]=v.split('|'); const f=afState(scope); f[k] = f[k]===val ? '' : val; if(k==='country') f.city=''; save(); render(); },
 });
@@ -4688,7 +4714,7 @@ document.addEventListener('change', ev=>{
   if(el.dataset.pubf){ const d=pubDS(); const k=el.dataset.pubf; d[k]=el.value; save(); render(); const s=document.querySelector(`[data-pubf="${k}"]`); if(s) s.focus({preventScroll:true}); return; }
   if(el.dataset.pubre){ setPath(el.dataset.bind, el.value); render(); const s=document.getElementById(el.id); if(s) s.focus({preventScroll:true}); }
 });
-document.addEventListener('keydown', ev=>{ if(ev.key==='Escape' && UI.pbSheet && R.route==='discover'){ XA.pubSheet(); } });
+document.addEventListener('keydown', ev=>{ if(ev.key!=='Escape') return; if(UI.pbSheet && R.route==='discover'){ XA.pubSheet(); return; } const open = UI.afOpen && Object.keys(UI.afOpen).find(k=>UI.afOpen[k]); if(open) XA.afSheet(null, null, open); });
 
 /* =====================================================================
    M.E.E.T. Match · guided brief, request detail, proposal review, project page
