@@ -22,9 +22,9 @@ None of these is legally reviewed or approved. They describe how the website wor
 3. Retention periods: not fixed. The notice says they are being defined. Decide periods for member accounts, request and project records, team mailbox copies, weekly exports, deletion records, backups held by providers.
 4. Deleted accounts: request records keep organization, country and description with the name removed. Confirm this is acceptable, or decide what else to remove.
 5. International transfers: providers in the EU (Supabase) and elsewhere (Netlify, Cloudflare, Resend, ImprovMX, Google). Whether transfer wording or agreements are required.
-8. Providers are described by type, not by name (founder decision, 26 October 2026). Confirm this meets the applicable law's requirement to identify recipients or categories of recipients. The providers behind each type: database, sign-in and storage: Supabase (EU); hosting: Netlify; security check: Cloudflare Turnstile; email delivery: Resend; email forwarding: ImprovMX; inbox and spreadsheet: Google (Gmail, Google Sheets).
 6. "We will reply within 30 days" (kept from the current notice): confirm the deadline the applicable law requires.
 7. Sharing request details with the artists the team contacts: confirm the wording, and whether the client's contact details may be shared without asking first (today the notice does not say they are shared).
+8. Providers are described by type, not by name (founder decision, 26 October 2026). Confirm this meets the applicable law's requirement to identify recipients or categories of recipients. The providers behind each type: database, sign-in and storage: Supabase (EU); hosting: Netlify; security check: Cloudflare Turnstile; email delivery: Resend; email forwarding: ImprovMX; inbox and spreadsheet: Google (Gmail, Google Sheets).
 
 ## Artist Terms: questions for the lawyer
 
